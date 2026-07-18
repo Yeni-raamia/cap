@@ -1,12 +1,26 @@
 "use client";
 
-import { METIERS, TYPES } from "@/lib/domain";
+import { useState } from "react";
+import { METIERS, TYPES, type Role } from "@/lib/domain";
 import { ORG_NAME } from "@/lib/config";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, TypeTag } from "@/components/atoms";
 
+const ROLES: Role[] = ["agent", "directeur", "admin"];
+
 export default function AdminPage() {
-  const { profiles, emailOn, setEmailOn } = useApp();
+  const { demo, me, profiles, emailOn, setEmailOn, updateRole } = useApp();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const canManage = !demo && me.role === "admin";
+
+  const onRoleChange = async (userId: string, role: Role) => {
+    setErr(null);
+    setBusy(userId);
+    const error = await updateRole(userId, role);
+    if (error) setErr(error);
+    setBusy(null);
+  };
 
   const roleBadge = (role: string) =>
     role === "directeur"
@@ -26,20 +40,45 @@ export default function AdminPage() {
 
       <Card className="p-4">
         <div className="text-[13px] font-semibold text-slate-700 mb-3">Membres &amp; rôles (RBAC)</div>
+        {err && <div className="text-[12px] text-rose-600 mb-2">{err}</div>}
         <div className="divide-y divide-slate-100">
           {profiles.map((u) => (
             <div key={u.id} className="flex items-center gap-3 py-2.5">
               <Avatar init={u.init} size="h-7 w-7" />
-              <div className="flex-1">
-                <div className="text-[13px] text-slate-800">{u.nom}</div>
-                <div className="text-[11px] text-slate-400">{u.poste}</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[13px] text-slate-800 truncate">
+                  {u.nom}
+                  {u.id === me.id && <span className="text-[11px] text-emerald-600 ml-1">· toi</span>}
+                </div>
+                <div className="text-[11px] text-slate-400 truncate">{u.poste}</div>
               </div>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${roleBadge(u.role)}`}>
-                {u.role}
-              </span>
+              {canManage ? (
+                <select
+                  aria-label={`Rôle de ${u.nom}`}
+                  value={u.role}
+                  disabled={busy === u.id || u.id === me.id}
+                  onChange={(e) => onRoleChange(u.id, e.target.value as Role)}
+                  className="text-[11px] border border-slate-200 rounded-lg px-2 py-1 bg-white disabled:opacity-60"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${roleBadge(u.role)}`}>
+                  {u.role}
+                </span>
+              )}
             </div>
           ))}
         </div>
+        {canManage && (
+          <div className="text-[11px] text-slate-400 mt-2">
+            Tu peux modifier le rôle des autres membres (pas le tien).
+          </div>
+        )}
       </Card>
 
       <div className="grid md:grid-cols-2 gap-4">

@@ -1,0 +1,28 @@
+import { NextResponse } from "next/server";
+import { applyAction, canEditItem, listItems } from "@/lib/db/repo";
+import { getCurrentUser } from "@/lib/auth/session";
+
+const ACTIONS = ["relance", "reponse", "bloque", "cloture"] as const;
+type Action = (typeof ACTIONS)[number];
+
+export async function POST(request: Request) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+
+  const body = await request.json().catch(() => ({}));
+  const itemId: string = body?.itemId;
+  const action: Action = body?.action;
+  const cause: string | undefined = body?.cause;
+
+  if (!itemId || !ACTIONS.includes(action)) {
+    return NextResponse.json({ error: "Action invalide." }, { status: 400 });
+  }
+
+  // RBAC serveur : seul le propriétaire (ou directeur/admin) peut éditer.
+  if (!canEditItem(itemId, user)) {
+    return NextResponse.json({ error: "Droits insuffisants sur cet objet." }, { status: 403 });
+  }
+
+  applyAction(itemId, action, cause, user.id);
+  return NextResponse.json({ items: listItems() });
+}

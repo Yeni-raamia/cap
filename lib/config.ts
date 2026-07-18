@@ -11,7 +11,8 @@ export const APP_MOTTO = "Aucun mail sans trace.";
 export const ORG_NAME =
   process.env.NEXT_PUBLIC_ORG_NAME?.trim() || "Équipe sécurité";
 
-// Indique si un backend Supabase est configuré (sinon : mode démo en mémoire).
-export const HAS_SUPABASE = Boolean(
-  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+// Mode démo : données en mémoire, non partagées, sans compte (pour essai/écran).
+// Par défaut l'app utilise la base locale SQLite (persistante, partagée, avec comptes).
+// Activer le mode démo : NEXT_PUBLIC_DEMO=1 dans .env.local.
+export const DEMO_MODE =
+  process.env.NEXT_PUBLIC_DEMO === "1" || process.env.NEXT_PUBLIC_DEMO === "true";

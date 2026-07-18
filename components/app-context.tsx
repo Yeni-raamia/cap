@@ -5,7 +5,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -13,25 +12,17 @@ import {
   applyAction as mockApply,
   createItem as mockCreate,
   DEFAULT_USER_ID,
-  isDemoMode,
   listNotifications,
   PROFILES,
   seedItems,
 } from "@/lib/data";
-import {
-  currentUser as sbCurrentUser,
-  loadItems as sbLoadItems,
-  loadProfiles as sbLoadProfiles,
-  persistAction as sbPersistAction,
-  persistCreate as sbPersistCreate,
-} from "@/lib/data/supabase";
-import { createClient } from "@/lib/supabase/client";
 import {
   computeScores,
   type Item,
   type ParsedSubject,
   type Priorite,
   type Profile,
+  type Role,
   type Score,
 } from "@/lib/domain";
 
@@ -57,83 +48,87 @@ interface AppCtx {
   setShowNew: (v: boolean) => void;
   act: (item: Item, action: Action, cause?: string) => void;
   create: (parsed: ParsedSubject, prio: Priorite, dest: string, points: string) => void;
+  updateRole: (userId: string, role: Role) => Promise<string | null>;
   alerts: number;
   signOut: () => void;
 }
 
 const EPOCH = new Date(0);
-const FALLBACK_PROFILE: Profile = {
-  id: "",
-  nom: "…",
-  poste: "",
-  role: "agent",
-  init: "?",
-};
+const FALLBACK_PROFILE: Profile = { id: "", nom: "…", poste: "", role: "agent", init: "?" };
 const Ctx = createContext<AppCtx | null>(null);
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const demo = isDemoMode;
-  const sbRef = useRef<ReturnType<typeof createClient> | null>(null);
-  const getSb = () => {
-    if (!sbRef.current) sbRef.current = createClient();
-    return sbRef.current;
+/** Reconvertit les dates (ISO string) d'une réponse JSON en objets Date. */
+function reviveItem(r: Item): Item {
+  return {
+    ...r,
+    dateCreation: new Date(r.dateCreation),
+    dateMaj: new Date(r.dateMaj),
+    timeline: r.timeline.map((e) => ({ ...e, date: new Date(e.date) })),
   };
+}
+const reviveItems = (arr: Item[]): Item[] => arr.map(reviveItem);
 
-  const [items, setItems] = useState<Item[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>(demo ? PROFILES : []);
+export function AppProvider({
+  children,
+  demo,
+  initialUser,
+  initialItems,
+  initialProfiles,
+}: {
+  children: ReactNode;
+  demo: boolean;
+  initialUser?: Profile;
+  initialItems?: Item[];
+  initialProfiles?: Profile[];
+}) {
+  const [items, setItems] = useState<Item[]>(
+    demo ? [] : reviveItems(initialItems ?? [])
+  );
+  const [profiles, setProfiles] = useState<Profile[]>(
+    demo ? PROFILES : initialProfiles ?? []
+  );
   const [nowState, setNowState] = useState<Date | null>(null);
   const [meId, setMeId] = useState<string>(DEFAULT_USER_ID); // sélecteur démo
-  const [authMe, setAuthMe] = useState<Profile | null>(null); // profil connecté (Supabase)
   const [emailOn, setEmailOn] = useState(true);
   const [open, setOpen] = useState<Item | null>(null);
   const [showNew, setShowNew] = useState(false);
 
-  // Chargement initial — uniquement côté client (pas d'écart d'hydratation).
+  // Horloge posée côté client uniquement (évite tout écart d'hydratation).
   useEffect(() => {
     setNowState(new Date());
     if (demo) {
       setItems(seedItems());
       setProfiles(PROFILES);
-      return;
     }
-    (async () => {
-      const sb = getSb();
-      const [profs, its, meProfile] = await Promise.all([
-        sbLoadProfiles(sb),
-        sbLoadItems(sb),
-        sbCurrentUser(sb),
-      ]);
-      setProfiles(profs);
-      setItems(its);
-      setAuthMe(meProfile);
-    })().catch((err) => console.error("Chargement Supabase échoué :", err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const now = nowState ?? EPOCH;
-  const ready = nowState !== null && (demo || authMe !== null);
-
   const me: Profile = demo
     ? profiles.find((p) => p.id === meId) ?? PROFILES[0]
-    : authMe ?? FALLBACK_PROFILE;
+    : initialUser ?? FALLBACK_PROFILE;
+  const ready = nowState !== null && (demo || Boolean(initialUser));
 
   const profileById = (id: string): Profile =>
     profiles.find((p) => p.id === id) ?? FALLBACK_PROFILE;
 
-  const refreshItems = async () => {
-    const its = await sbLoadItems(getSb());
-    setItems(its);
-  };
-
+  /* ---------- Mutations ---------- */
   const act = (item: Item, action: Action, cause?: string) => {
     setOpen(null);
     if (demo) {
       setItems((prev) => mockApply(prev, item, action, cause, meId));
       return;
     }
-    sbPersistAction(getSb(), item, action, cause, me.id)
-      .then(refreshItems)
-      .catch((err) => console.error("Action Supabase échouée :", err));
+    fetch("/api/items/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemId: item.id, action, cause }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.items) setItems(reviveItems(d.items));
+      })
+      .catch((e) => console.error("Action échouée :", e));
   };
 
   const create = (parsed: ParsedSubject, prio: Priorite, dest: string, points: string) => {
@@ -142,24 +137,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setItems((prev) => mockCreate(prev, parsed, prio, dest, points, meId));
       return;
     }
-    sbPersistCreate(getSb(), parsed, prio, dest, points, me.id)
-      .then(refreshItems)
-      .catch((err) => console.error("Création Supabase échouée :", err));
+    fetch("/api/items", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parsed, prio, dest, points }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.items) setItems(reviveItems(d.items));
+      })
+      .catch((e) => console.error("Création échouée :", e));
+  };
+
+  const updateRole = async (userId: string, role: Role): Promise<string | null> => {
+    const res = await fetch("/api/admin/role", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, role }),
+    });
+    const d = await res.json();
+    if (!res.ok) return d.error ?? "Erreur.";
+    if (d.profiles) setProfiles(d.profiles);
+    return null;
   };
 
   const signOut = () => {
     if (demo) return;
-    getSb()
-      .auth.signOut()
-      .then(() => {
-        window.location.href = "/login";
-      });
+    fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+      window.location.href = "/login";
+    });
   };
 
-  const scores = useMemo(
-    () => computeScores(items, profiles, now),
-    [items, profiles, now]
-  );
+  const scores = useMemo(() => computeScores(items, profiles, now), [items, profiles, now]);
   const alerts = useMemo(() => listNotifications(items, now, me), [items, now, me]);
 
   const value: AppCtx = {
@@ -182,6 +191,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setShowNew,
     act,
     create,
+    updateRole,
     alerts,
     signOut,
   };

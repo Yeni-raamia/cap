@@ -1,6 +1,26 @@
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
+import { DEMO_MODE } from "@/lib/config";
+import { getCurrentUser } from "@/lib/auth/session";
+import { listItems, listProfiles } from "@/lib/db/repo";
 
-export default function AppGroupLayout({ children }: { children: ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+export default async function AppGroupLayout({ children }: { children: ReactNode }) {
+  // Mode démo : pas d'authentification, l'app s'amorce côté client.
+  if (DEMO_MODE) {
+    return <AppShell demo>{children}</AppShell>;
+  }
+
+  // Mode local (SQLite + comptes) : garde d'authentification côté serveur.
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const items = listItems();
+  const profiles = listProfiles();
+
+  return (
+    <AppShell initialUser={user} initialItems={items} initialProfiles={profiles}>
+      {children}
+    </AppShell>
+  );
 }

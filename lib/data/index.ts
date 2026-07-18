@@ -1,16 +1,12 @@
 /* ==================================================================
- *  lib/data/index.ts — Sélecteur d'adaptateur de données.
- *  Si NEXT_PUBLIC_SUPABASE_URL est présent → adaptateur Supabase
- *  (Phase 2). Sinon → adaptateur « mock » (mode démo, Phase 1).
- *  Les deux exposent la même interface (cf. §6).
+ *  lib/data/index.ts — Sélecteur de mode de données.
+ *  - Mode démo (NEXT_PUBLIC_DEMO=1) : adaptateur « mock » en mémoire.
+ *  - Sinon : base locale SQLite côté serveur (voir lib/db + routes API),
+ *    les composants clients passent par /api/*.
  * ================================================================== */
-import { HAS_SUPABASE } from "../config";
-import * as mock from "./mock";
+import { DEMO_MODE } from "../config";
 
-// Phase 2 branchera ici l'adaptateur Supabase. En attendant, on
-// reste sur l'adaptateur mock même si l'env est présent.
-export const data = mock;
+export const isDemoMode = DEMO_MODE;
 
-export const isDemoMode = !HAS_SUPABASE;
-
+// Exporte l'adaptateur mock (utilisé par le mode démo côté client).
 export * from "./mock";

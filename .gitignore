@@ -35,8 +35,11 @@ yarn-error.log*
 # ...mais on versionne le modèle sans secret :
 !.env.local.example
 
-# Données de démonstration locales (jamais commitées)
-supabase/seed_demo.local.sql
+# Base locale SQLite (données réelles — jamais commitées)
+/data/
+*.sqlite
+*.sqlite-*
+*.db
 
 # vercel
 .vercel

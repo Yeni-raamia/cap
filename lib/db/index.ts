@@ -1,0 +1,93 @@
+/* ==================================================================
+ *  lib/db/index.ts — Base locale SQLite (serveur uniquement).
+ *  Fichier unique lu/écrit par le serveur : les données sont donc
+ *  persistées et partagées par tous les utilisateurs du LAN.
+ *  Aucun cloud, aucun Docker.
+ * ================================================================== */
+import Database from "better-sqlite3";
+import { existsSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { METIERS, TYPES } from "@/lib/domain";
+
+// Emplacement du fichier de base — surchargable via DATABASE_PATH.
+const DB_PATH = process.env.DATABASE_PATH || join(process.cwd(), "data", "cap.sqlite");
+
+const SCHEMA = `
+create table if not exists ref_metiers (
+  code text primary key, label text not null, tone text not null default 'slate', ordre integer not null default 0
+);
+create table if not exists ref_types (
+  code text primary key, label text not null,
+  sla_relance integer, sla_escalade integer, urgent integer not null default 0, ordre integer not null default 0
+);
+create table if not exists profiles (
+  id text primary key, email text unique not null, password_hash text not null,
+  full_name text not null, initials text not null, poste text,
+  role text not null default 'agent', active integer not null default 1,
+  created_at text not null default (datetime('now'))
+);
+create table if not exists items (
+  id text primary key, ref text not null, metier_code text not null, type_code text not null,
+  objet text not null, priorite text not null default 'Moyenne', statut text not null default 'Envoyé',
+  owner_id text not null, points_cles text not null default '[]', blocage_cause text,
+  relances_count integer not null default 0,
+  date_creation text not null default (datetime('now')), date_maj text not null default (datetime('now')),
+  closed_at text
+);
+create table if not exists item_people (
+  id text primary key, item_id text not null, name text not null, kind text not null default 'destinataire'
+);
+create table if not exists events (
+  id text primary key, item_id text not null, kind text not null, label text not null,
+  author_id text, created_at text not null default (datetime('now'))
+);
+create table if not exists notifications (
+  id text primary key, user_id text not null, item_id text, kind text not null, message text not null,
+  channel text not null default 'in-app', read integer not null default 0,
+  created_at text not null default (datetime('now'))
+);
+create table if not exists sessions (
+  token text primary key, user_id text not null,
+  created_at text not null default (datetime('now')), expires_at text not null
+);
+create index if not exists idx_items_owner on items(owner_id);
+create index if not exists idx_items_statut on items(statut);
+create index if not exists idx_events_item on events(item_id);
+create index if not exists idx_people_item on item_people(item_id);
+`;
+
+let _db: Database.Database | null = null;
+
+export function getDb(): Database.Database {
+  if (_db) return _db;
+
+  const dir = dirname(DB_PATH);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+  const db = new Database(DB_PATH);
+  db.pragma("journal_mode = WAL"); // meilleures écritures concurrentes (multi-utilisateurs LAN)
+  db.pragma("foreign_keys = ON");
+  db.exec(SCHEMA);
+  seedCatalogue(db);
+
+  _db = db;
+  return db;
+}
+
+// Catalogue (9 métiers + 11 types) inséré depuis lib/domain — source unique, jamais dupliquée.
+function seedCatalogue(db: Database.Database) {
+  const upM = db.prepare(
+    "insert into ref_metiers (code, label, tone, ordre) values (?,?,?,?) " +
+      "on conflict(code) do update set label=excluded.label, tone=excluded.tone, ordre=excluded.ordre"
+  );
+  Object.entries(METIERS).forEach(([code, m], i) => upM.run(code, m.label, m.tone, i + 1));
+
+  const upT = db.prepare(
+    "insert into ref_types (code, label, sla_relance, sla_escalade, urgent, ordre) values (?,?,?,?,?,?) " +
+      "on conflict(code) do update set label=excluded.label, sla_relance=excluded.sla_relance, " +
+      "sla_escalade=excluded.sla_escalade, urgent=excluded.urgent, ordre=excluded.ordre"
+  );
+  Object.entries(TYPES).forEach(([code, t], i) =>
+    upT.run(code, code, t.sla?.relance ?? null, t.sla?.escalade ?? null, t.urgent ? 1 : 0, i + 1)
+  );
+}

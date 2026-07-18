@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess } from "@/lib/nav";
+import type { Item, Profile } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -16,8 +17,8 @@ function Shell({ children }: { children: ReactNode }) {
 
   // Garde de rôle applicative : redirige si le rôle courant n'a pas accès.
   useEffect(() => {
-    if (!canAccess(pathname, me.role)) router.replace("/espace");
-  }, [pathname, me.role, router]);
+    if (ready && !canAccess(pathname, me.role)) router.replace("/espace");
+  }, [pathname, me.role, ready, router]);
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900">
@@ -30,7 +31,7 @@ function Shell({ children }: { children: ReactNode }) {
               children
             ) : (
               <div className="grid place-items-center py-24 text-[13px] text-slate-400">
-                Chargement du mode démo…
+                Chargement…
               </div>
             )}
           </div>
@@ -42,9 +43,26 @@ function Shell({ children }: { children: ReactNode }) {
   );
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  demo = false,
+  initialUser,
+  initialItems,
+  initialProfiles,
+}: {
+  children: ReactNode;
+  demo?: boolean;
+  initialUser?: Profile;
+  initialItems?: Item[];
+  initialProfiles?: Profile[];
+}) {
   return (
-    <AppProvider>
+    <AppProvider
+      demo={demo}
+      initialUser={initialUser}
+      initialItems={initialItems}
+      initialProfiles={initialProfiles}
+    >
       <Shell>{children}</Shell>
     </AppProvider>
   );
