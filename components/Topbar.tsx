@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Bell, Search } from "lucide-react";
+import { Bell, LogOut, Search } from "lucide-react";
 import { canAccess } from "@/lib/nav";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
 
 export function Topbar() {
-  const { me, meId, setMeId, profiles, alerts } = useApp();
+  const { demo, me, meId, setMeId, profiles, alerts, signOut } = useApp();
   const router = useRouter();
 
   return (
@@ -33,28 +33,46 @@ export function Topbar() {
         )}
       </button>
 
-      {/* Sélecteur d'utilisateur — démo RBAC */}
       <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
         <Avatar init={me.init} size="h-8 w-8" />
-        <select
-          aria-label="Utilisateur de démonstration"
-          value={meId}
-          onChange={(e) => {
-            const id = e.target.value;
-            setMeId(id);
-            const next = profiles.find((u) => u.id === id);
-            if (next && !canAccess(window.location.pathname, next.role)) {
-              router.push("/espace");
-            }
-          }}
-          className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white"
-        >
-          {profiles.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.nom} · {u.role}
-            </option>
-          ))}
-        </select>
+        {demo ? (
+          // Sélecteur d'utilisateur — démo RBAC (mode démo uniquement)
+          <select
+            aria-label="Utilisateur de démonstration"
+            value={meId}
+            onChange={(e) => {
+              const id = e.target.value;
+              setMeId(id);
+              const next = profiles.find((u) => u.id === id);
+              if (next && !canAccess(window.location.pathname, next.role)) {
+                router.push("/espace");
+              }
+            }}
+            className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white"
+          >
+            {profiles.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.nom} · {u.role}
+              </option>
+            ))}
+          </select>
+        ) : (
+          // Utilisateur réellement connecté (Supabase)
+          <>
+            <div className="text-right leading-tight hidden sm:block">
+              <div className="text-[12px] font-medium text-slate-700">{me.nom}</div>
+              <div className="text-[10px] text-slate-400">{me.role}</div>
+            </div>
+            <button
+              onClick={signOut}
+              aria-label="Se déconnecter"
+              title="Se déconnecter"
+              className="text-slate-400 hover:text-rose-600 ml-1"
+            >
+              <LogOut size={17} />
+            </button>
+          </>
+        )}
       </div>
     </header>
   );

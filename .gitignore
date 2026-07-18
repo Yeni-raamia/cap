@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...mais on versionne le modèle sans secret :
+!.env.local.example
 
 # Données de démonstration locales (jamais commitées)
 supabase/seed_demo.local.sql

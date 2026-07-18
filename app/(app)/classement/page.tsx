@@ -1,15 +1,13 @@
 "use client";
 
 import { Award } from "lucide-react";
-import { listScores } from "@/lib/data";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
 
 const medal = ["🥇", "🥈", "🥉"];
 
 export default function ClassementPage() {
-  const { items, now, me, profileById } = useApp();
-  const scores = listScores(items, now);
+  const { me, scores, profileById } = useApp();
 
   return (
     <div className="space-y-5">
