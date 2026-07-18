@@ -1,0 +1,91 @@
+import { Flag } from "lucide-react";
+import type { ComponentType, ReactNode } from "react";
+import { METIERS, isUrgentType, toneBg, type Priorite, type Tone } from "@/lib/domain";
+
+/* Référence en police mono — rappel du `//` de la charte documentaire */
+export function Token({ children }: { children: ReactNode }) {
+  return (
+    <span className="font-mono text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+      {children}
+    </span>
+  );
+}
+
+export function TypeTag({ t }: { t: string }) {
+  const urgent = isUrgentType(t);
+  return (
+    <span
+      className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${
+        urgent ? "bg-rose-600 text-white" : "bg-slate-800 text-white"
+      }`}
+    >
+      {t}
+    </span>
+  );
+}
+
+export function MetierChip({ code }: { code: string }) {
+  const m = METIERS[code];
+  const tone: Tone = m?.tone ?? "slate";
+  return (
+    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${toneBg[tone]}`}>
+      {code}
+    </span>
+  );
+}
+
+export function Avatar({ init, size = "h-8 w-8" }: { init: string; size?: string }) {
+  return (
+    <div
+      className={`${size} rounded-full bg-slate-800 text-white grid place-items-center text-[11px] font-semibold shrink-0`}
+    >
+      {init}
+    </div>
+  );
+}
+
+export function Priority({ p }: { p: Priorite }) {
+  const c =
+    p === "Critique" ? "text-rose-600" : p === "Élevé" ? "text-amber-600" : "text-slate-400";
+  return (
+    <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${c}`}>
+      <Flag size={11} />
+      {p}
+    </span>
+  );
+}
+
+export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`bg-white border border-slate-200 rounded-xl ${className}`}>{children}</div>
+  );
+}
+
+export function KPI({
+  icon: Icon,
+  label,
+  value,
+  tone = "slate",
+  sub,
+}: {
+  icon: ComponentType<{ size?: number }>;
+  label: string;
+  value: ReactNode;
+  tone?: Tone;
+  sub?: string;
+}) {
+  return (
+    <Card className="p-4 flex items-center gap-3">
+      <div className={`h-10 w-10 rounded-lg grid place-items-center ${toneBg[tone]}`}>
+        <Icon size={18} />
+      </div>
+      <div>
+        <div className="text-2xl font-semibold text-slate-800 leading-none">{value}</div>
+        <div className="text-[12px] text-slate-500 mt-1">
+          {label}
+          {sub && <span className="text-slate-400"> · {sub}</span>}
+        </div>
+      </div>
+    </Card>
+  );
+}
