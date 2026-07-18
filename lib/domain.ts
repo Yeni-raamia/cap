@@ -180,6 +180,38 @@ export function parseSubject(raw: string): ParsedSubject | null {
   };
 }
 
+/* ---------- Assemblage d'une référence (saisie par listes) ---------- */
+export const REF_YEAR = 2026;
+
+/**
+ * Prochain numéro pour un métier donné, calculé à partir des objets
+ * existants (max des numéros observés + 1, ou 1 si aucun).
+ *
+ * TODO (Phase 2 · Supabase) : remplacer ce calcul en mémoire par une
+ * séquence par métier en base (ex. table `ref_counters` ou `nextval`
+ * d'une séquence Postgres dédiée), pour rester correct en multi-utilisateurs.
+ */
+export function nextRefNumber(items: Item[], metier: string): number {
+  const nums = items
+    .filter((i) => i.metier === metier)
+    .map((i) => {
+      const m = i.ref.match(/(\d+)\s*$/); // dernier groupe de chiffres de la réf
+      return m ? parseInt(m[1], 10) : 0;
+    });
+  return nums.length ? Math.max(...nums) + 1 : 1;
+}
+
+/** Construit la référence normalisée. CASE = sans année (n° TheHive). */
+export function buildRef(metier: string, num: number | string, year: number = REF_YEAR): string {
+  if (metier === "CASE") return `CASE-${num}`;
+  return `${metier}-${year}-${String(num).padStart(4, "0")}`;
+}
+
+/** Ligne d'objet normalisée assemblée : `[REF] TYPE — objet`. */
+export function buildSubjectLine(ref: string, type: string, objet: string): string {
+  return `[${ref}] ${type} — ${objet}`.trim();
+}
+
 /* ---------- 4.5 · État de relance d'un item ---------- */
 export type ReminderLevel = "none" | "ok" | "relance" | "escalade" | "bloque";
 
