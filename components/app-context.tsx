@@ -19,6 +19,7 @@ import {
 import {
   computeScores,
   type Item,
+  type Notif,
   type ParsedSubject,
   type Priorite,
   type Profile,
@@ -49,6 +50,8 @@ interface AppCtx {
   act: (item: Item, action: Action, cause?: string) => void;
   create: (parsed: ParsedSubject, prio: Priorite, dest: string, points: string) => void;
   updateRole: (userId: string, role: Role) => Promise<string | null>;
+  notifications: Notif[];
+  markNotificationsRead: () => void;
   alerts: number;
   signOut: () => void;
 }
@@ -67,6 +70,8 @@ function reviveItem(r: Item): Item {
   };
 }
 const reviveItems = (arr: Item[]): Item[] => arr.map(reviveItem);
+const reviveNotifs = (arr: Notif[]): Notif[] =>
+  arr.map((n) => ({ ...n, createdAt: new Date(n.createdAt) }));
 
 export function AppProvider({
   children,
@@ -74,18 +79,23 @@ export function AppProvider({
   initialUser,
   initialItems,
   initialProfiles,
+  initialNotifications,
 }: {
   children: ReactNode;
   demo: boolean;
   initialUser?: Profile;
   initialItems?: Item[];
   initialProfiles?: Profile[];
+  initialNotifications?: Notif[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
   );
   const [profiles, setProfiles] = useState<Profile[]>(
     demo ? PROFILES : initialProfiles ?? []
+  );
+  const [notifications, setNotifications] = useState<Notif[]>(
+    demo ? [] : reviveNotifs(initialNotifications ?? [])
   );
   const [nowState, setNowState] = useState<Date | null>(null);
   const [meId, setMeId] = useState<string>(DEFAULT_USER_ID); // sélecteur démo
@@ -161,6 +171,17 @@ export function AppProvider({
     return null;
   };
 
+  const markNotificationsRead = () => {
+    if (demo) return;
+    if (!notifications.some((n) => !n.read)) return;
+    fetch("/api/notifications/read", { method: "POST" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.notifications) setNotifications(reviveNotifs(d.notifications));
+      })
+      .catch((e) => console.error("Lecture des notifications échouée :", e));
+  };
+
   const signOut = () => {
     if (demo) return;
     fetch("/api/auth/logout", { method: "POST" }).finally(() => {
@@ -169,7 +190,10 @@ export function AppProvider({
   };
 
   const scores = useMemo(() => computeScores(items, profiles, now), [items, profiles, now]);
-  const alerts = useMemo(() => listNotifications(items, now, me), [items, now, me]);
+  // Cloche : en démo, dérivée des objets ; en local, nombre de notifications non lues.
+  const alerts = demo
+    ? listNotifications(items, now, me)
+    : notifications.filter((n) => !n.read).length;
 
   const value: AppCtx = {
     demo,
@@ -192,6 +216,8 @@ export function AppProvider({
     act,
     create,
     updateRole,
+    notifications,
+    markNotificationsRead,
     alerts,
     signOut,
   };

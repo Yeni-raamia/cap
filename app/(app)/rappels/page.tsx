@@ -1,17 +1,30 @@
 "use client";
 
-import { ArrowUp, CalendarClock, Mail, RotateCcw } from "lucide-react";
-import { reminderState, type Item } from "@/lib/domain";
+import { ArrowUp, Bell, CalendarClock, CheckCheck, Mail, RotateCcw } from "lucide-react";
+import { fmt, reminderState, type Item, type NotifKind } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 
+const notifIcon: Record<NotifKind, typeof RotateCcw> = {
+  relance: RotateCcw,
+  escalade: ArrowUp,
+  digest: CalendarClock,
+};
+const notifTone: Record<NotifKind, string> = {
+  relance: "bg-amber-100 text-amber-600",
+  escalade: "bg-rose-100 text-rose-600",
+  digest: "bg-slate-800 text-emerald-300",
+};
+
 export default function RappelsPage() {
-  const { items, now, me, emailOn, profileById } = useApp();
+  const { demo, items, now, me, emailOn, profileById, notifications, markNotificationsRead } =
+    useApp();
 
   const dues = items.filter((i) => reminderState(i, now).level === "relance");
   const escal = items.filter((i) => reminderState(i, now).level === "escalade");
   const bloques = items.filter((i) => i.statut === "Bloqué").length;
   const isDir = me.role === "directeur" || me.role === "admin";
+  const unread = notifications.filter((n) => !n.read).length;
 
   const Row = ({ i, tone }: { i: Item; tone: "rose" | "amber" }) => {
     const rs = reminderState(i, now);
@@ -53,6 +66,59 @@ export default function RappelsPage() {
           Le système relance à ta place — canaux : in-app{emailOn ? " + e-mail" : ""}.
         </p>
       </div>
+
+      {!demo && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Bell size={15} className="text-slate-500" />
+            <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">
+              Mes notifications
+            </h2>
+            {unread > 0 && (
+              <span className="text-[11px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
+                {unread}
+              </span>
+            )}
+            {unread > 0 && (
+              <button
+                onClick={markNotificationsRead}
+                className="ml-auto inline-flex items-center gap-1 text-[12px] text-emerald-700 font-medium hover:underline"
+              >
+                <CheckCheck size={14} />
+                Tout marquer comme lu
+              </button>
+            )}
+          </div>
+          <Card>
+            {notifications.length === 0 ? (
+              <div className="p-6 text-center text-[13px] text-slate-400">
+                Aucune notification pour l&apos;instant.
+              </div>
+            ) : (
+              notifications.map((n) => {
+                const Icon = notifIcon[n.kind];
+                return (
+                  <div
+                    key={n.id}
+                    className={`flex items-center gap-3 px-4 py-3 border-b border-slate-100 last:border-0 ${
+                      n.read ? "opacity-60" : ""
+                    }`}
+                  >
+                    <div className={`h-8 w-8 rounded-lg grid place-items-center ${notifTone[n.kind]}`}>
+                      <Icon size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] text-slate-800">{n.message}</div>
+                      <div className="text-[11px] text-slate-400">{fmt(n.createdAt)}</div>
+                    </div>
+                    {!n.read && <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />}
+                  </div>
+                );
+              })
+            )}
+          </Card>
+        </div>
+      )}
 
       {isDir && (
         <Card className="p-4 bg-slate-800 border-slate-800">

@@ -83,7 +83,42 @@ chaque redémarrage) :
 NEXT_PUBLIC_DEMO=1
 ```
 
-## 7. Gestion des comptes et rôles
+## 7. Moteur de relance (rappels, escalade, digest)
+
+Le système relance à la place de la responsable. À chaque exécution du job :
+
+- chaque objet **en relance** (SLA dépassé) → notification à son **propriétaire** ;
+- chaque objet **escaladé** → notification aux **directeurs** (ou admins à défaut) ;
+- un **digest** quotidien (nb escaladés + nb bloqués) → aux directeurs.
+
+Canaux : toujours **in-app** (cloche + page *Rappels*). En plus, **e-mail** si
+Resend est configuré (`RESEND_API_KEY`) — sinon in-app uniquement. Le job est
+**idempotent** : pas de doublon non lu le même jour pour le même objet.
+
+### Déclencher le job
+
+```bash
+npm run reminders      # appelle /api/cron/reminders (le serveur doit tourner)
+```
+
+- Protège la route en LAN/prod en définissant `CRON_SECRET` dans `.env.local`
+  (le script `npm run reminders` lit ce même secret). Sans secret, la route est
+  ouverte (pratique en local).
+- **Planifier chaque matin** :
+  - Windows : *Planificateur de tâches* → action « Démarrer un programme » →
+    `npm` argument `run reminders`, déclencheur quotidien (ex. 08:00), dans le
+    dossier de l'app.
+  - Linux : une entrée `cron`, ex. `0 6 * * * cd /chemin/cap && npm run reminders`.
+  - Alternative : appeler directement l'URL avec le secret
+    (`curl -X POST http://localhost:3000/api/cron/reminders -H "Authorization: Bearer <CRON_SECRET>"`).
+
+### Activer l'e-mail (optionnel)
+
+Créer un compte sur https://resend.com, générer une clé API, puis dans
+`.env.local` : `RESEND_API_KEY=...` (et éventuellement `RESEND_FROM=...` avec un
+domaine vérifié). Sans cela, tout reste in-app.
+
+## 8. Gestion des comptes et rôles
 
 - 1er compte créé = **admin**.
 - L'admin va dans **Administration → Membres & rôles** pour promouvoir un membre

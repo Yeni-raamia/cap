@@ -7,6 +7,8 @@ import { getDb } from "./index";
 import type {
   EventKind,
   Item,
+  Notif,
+  NotifKind,
   ParsedSubject,
   Priorite,
   Profile,
@@ -282,4 +284,99 @@ export function canEditItem(itemId: string, user: Profile): boolean {
     | { owner_id: string }
     | undefined;
   return r ? r.owner_id === user.id : false;
+}
+
+/* ---------- Destinataires des escalades / digest ---------- */
+/** Les directeurs ; à défaut (aucun), les admins — pour ne perdre aucune escalade. */
+export function listEscalationTargets(): Profile[] {
+  const dirs = getDb()
+    .prepare("select * from profiles where role = 'directeur' and active = 1")
+    .all() as ProfileRow[];
+  if (dirs.length) return dirs.map(mapProfile);
+  const admins = getDb()
+    .prepare("select * from profiles where role = 'admin' and active = 1")
+    .all() as ProfileRow[];
+  return admins.map(mapProfile);
+}
+
+export function getEmailById(id: string): string | null {
+  const r = getDb().prepare("select email from profiles where id = ?").get(id) as
+    | { email: string }
+    | undefined;
+  return r?.email ?? null;
+}
+
+/* ---------- Notifications ---------- */
+interface NotifRow {
+  id: string;
+  user_id: string;
+  item_id: string | null;
+  kind: NotifKind;
+  message: string;
+  channel: string;
+  read: number;
+  created_at: string;
+}
+
+function mapNotif(r: NotifRow): Notif {
+  return {
+    id: r.id,
+    userId: r.user_id,
+    itemId: r.item_id,
+    kind: r.kind,
+    message: r.message,
+    channel: r.channel.split(",").filter(Boolean),
+    read: r.read === 1,
+    createdAt: new Date(r.created_at),
+  };
+}
+
+/** Idempotence : une notif identique non lue existe-t-elle déjà aujourd'hui ? */
+export function notifExistsToday(userId: string, itemId: string | null, kind: NotifKind): boolean {
+  const r = getDb()
+    .prepare(
+      "select 1 from notifications where user_id = ? and coalesce(item_id,'') = ? and kind = ? " +
+        "and read = 0 and date(created_at) = date('now') limit 1"
+    )
+    .get(userId, itemId ?? "", kind);
+  return Boolean(r);
+}
+
+export function insertNotification(input: {
+  userId: string;
+  itemId: string | null;
+  kind: NotifKind;
+  message: string;
+  channel: string[];
+}): void {
+  getDb()
+    .prepare(
+      "insert into notifications (id, user_id, item_id, kind, message, channel) values (?,?,?,?,?,?)"
+    )
+    .run(
+      randomUUID(),
+      input.userId,
+      input.itemId,
+      input.kind,
+      input.message,
+      input.channel.join(",")
+    );
+}
+
+export function listNotificationsFor(userId: string, limit = 50): Notif[] {
+  const rows = getDb()
+    .prepare("select * from notifications where user_id = ? order by created_at desc limit ?")
+    .all(userId, limit) as NotifRow[];
+  return rows.map(mapNotif);
+}
+
+export function countUnreadFor(userId: string): number {
+  const r = getDb()
+    .prepare("select count(*) as n from notifications where user_id = ? and read = 0")
+    .get(userId) as { n: number };
+  return r.n;
+}
+
+export function markAllReadFor(userId: string): void {
+  getDb().prepare("update notifications set read = 1 where user_id = ? and read = 0").run(userId);
 }

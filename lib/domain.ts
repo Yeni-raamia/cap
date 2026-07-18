@@ -295,6 +295,20 @@ export function computeScores(items: Item[], profiles: Profile[], now: Date): Sc
   return Object.values(map).sort((a, b) => b.score - a.score);
 }
 
+/* ---------- Notifications (moteur de relance) ---------- */
+export type NotifKind = "relance" | "escalade" | "digest";
+
+export interface Notif {
+  id: string;
+  userId: string;
+  itemId: string | null;
+  kind: NotifKind;
+  message: string;
+  channel: string[];
+  read: boolean;
+  createdAt: Date;
+}
+
 /* ---------- Couleurs de teinte (réutilisées par les atomes UI) ---------- */
 export const toneBg: Record<Tone, string> = {
   emerald: "bg-emerald-100 text-emerald-700",

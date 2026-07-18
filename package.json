@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "start:lan": "next start -H 0.0.0.0 -p 3000",
+    "reminders": "node scripts/run-reminders.mjs",
     "lint": "eslint"
   },
   "dependencies": {
