@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Copy, Plus, X } from "lucide-react";
 import {
   buildRef,
@@ -40,6 +40,15 @@ export function NewSuiviModal() {
   const parsedRaw = useMemo(() => parseSubject(raw), [raw]);
 
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!showNew) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowNew(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showNew, setShowNew]);
 
   if (!showNew) return null;
 
@@ -100,8 +109,13 @@ export function NewSuiviModal() {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <div className="absolute inset-0 bg-slate-900/30" onClick={close} />
-      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl p-5 max-h-[92vh] overflow-y-auto">
+      <div className="absolute inset-0 bg-slate-900/30" onClick={close} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Nouveau suivi"
+        className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl p-5 max-h-[92vh] overflow-y-auto"
+      >
         <div className="flex items-center gap-2 mb-4">
           <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 grid place-items-center">
             <Plus size={17} />

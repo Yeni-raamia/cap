@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import {
   ArrowUp,
   CheckCircle2,
@@ -39,6 +39,16 @@ const evMeta: Record<EventKind, { icon: ComponentType<{ size?: number; className
 export function Drawer() {
   const { open, now, closeItem, act, me, profileById } = useApp();
   const [cause, setCause] = useState(CAUSES[0]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeItem();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, closeItem]);
+
   if (!open) return null;
 
   const item: Item = open;
@@ -48,8 +58,13 @@ export function Drawer() {
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
-      <div className="absolute inset-0 bg-slate-900/30" onClick={closeItem} />
-      <div className="relative w-full max-w-md bg-slate-50 h-full overflow-y-auto shadow-xl">
+      <div className="absolute inset-0 bg-slate-900/30" onClick={closeItem} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Détail du suivi ${item.ref}`}
+        className="relative w-full max-w-md bg-slate-50 h-full overflow-y-auto shadow-xl"
+      >
         <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex items-start gap-2 z-10">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1 flex-wrap">

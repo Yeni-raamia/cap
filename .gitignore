@@ -41,6 +41,9 @@ yarn-error.log*
 *.sqlite-*
 *.db
 
+# Maquette de référence (contient des noms d'exemple non anonymisés — non publiée)
+/reference/
+
 # vercel
 .vercel
 
