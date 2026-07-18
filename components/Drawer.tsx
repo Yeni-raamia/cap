@@ -3,6 +3,7 @@
 import { useEffect, useState, type ComponentType } from "react";
 import {
   ArrowUp,
+  CalendarClock,
   CheckCircle2,
   ChevronRight,
   Circle,
@@ -37,7 +38,7 @@ const evMeta: Record<EventKind, { icon: ComponentType<{ size?: number; className
 };
 
 export function Drawer() {
-  const { open, now, closeItem, act, me, profileById } = useApp();
+  const { open, items, now, closeItem, act, setRelanceDate, me, profileById } = useApp();
   const [cause, setCause] = useState(CAUSES[0]);
 
   useEffect(() => {
@@ -51,8 +52,12 @@ export function Drawer() {
 
   if (!open) return null;
 
-  const item: Item = open;
+  // Objet « live » : reflète les mises à jour (planification de relance, etc.).
+  const item: Item = items.find((x) => x.id === open.id) ?? open;
   const canEdit = me.role === "agent" ? item.ownerId === me.id : true;
+  const relanceValue = item.dateRelancePrevue
+    ? new Date(item.dateRelancePrevue).toISOString().slice(0, 10)
+    : "";
   const owner = profileById(item.ownerId);
   const tl = [...item.timeline].sort((a, b) => b.date.getTime() - a.date.getTime());
 
@@ -164,6 +169,42 @@ export function Drawer() {
               })}
             </div>
           </Card>
+
+          {item.statut !== "Clôturé" && (
+            <Card className="p-3">
+              <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-2 flex items-center gap-1">
+                <CalendarClock size={12} /> Relance planifiée
+              </div>
+              {canEdit ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    aria-label="Date de relance planifiée"
+                    value={relanceValue}
+                    onChange={(e) => setRelanceDate(item, e.target.value || null)}
+                    className="flex-1 text-[13px] border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
+                  />
+                  {relanceValue && (
+                    <button
+                      onClick={() => setRelanceDate(item, null)}
+                      className="text-[12px] text-slate-500 hover:text-rose-600 px-2 py-1.5"
+                    >
+                      Effacer
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-[12px] text-slate-600">
+                  {relanceValue
+                    ? `Relance prévue le ${fmt(new Date(item.dateRelancePrevue!))}`
+                    : "Aucune relance planifiée."}
+                </div>
+              )}
+              <p className="text-[10px] text-slate-400 mt-2">
+                À l&apos;échéance, une notification est envoyée au responsable.
+              </p>
+            </Card>
+          )}
 
           {canEdit && item.statut !== "Clôturé" && (
             <Card className="p-3 space-y-2">

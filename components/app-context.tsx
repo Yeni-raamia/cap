@@ -11,6 +11,7 @@ import {
 import {
   applyAction as mockApply,
   createItem as mockCreate,
+  setRelanceDate as mockSetRelanceDate,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -18,16 +19,23 @@ import {
 } from "@/lib/data";
 import {
   computeScores,
+  DEFAULT_CATALOGUE,
+  reminderState,
+  type Catalogue,
   type Item,
   type Notif,
   type ParsedSubject,
   type Priorite,
   type Profile,
+  type ReminderState,
   type Role,
   type Score,
 } from "@/lib/domain";
 
 type Action = "relance" | "reponse" | "bloque" | "cloture";
+type CatalogueOption =
+  | { kind: "metier"; code: string; label: string; tone: string }
+  | { kind: "type"; code: string; label: string; slaRelance: string; slaEscalade: string; urgent: boolean };
 
 interface AppCtx {
   demo: boolean;
@@ -39,6 +47,8 @@ interface AppCtx {
   setMeId: (id: string) => void;
   profiles: Profile[];
   profileById: (id: string) => Profile;
+  catalogue: Catalogue;
+  rs: (item: Item) => ReminderState;
   scores: Score[];
   emailOn: boolean;
   setEmailOn: (v: boolean) => void;
@@ -49,7 +59,9 @@ interface AppCtx {
   setShowNew: (v: boolean) => void;
   act: (item: Item, action: Action, cause?: string) => void;
   create: (parsed: ParsedSubject, prio: Priorite, dest: string, points: string) => void;
+  setRelanceDate: (item: Item, date: string | null) => void;
   updateRole: (userId: string, role: Role) => Promise<string | null>;
+  addCatalogueOption: (opt: CatalogueOption) => Promise<string | null>;
   notifications: Notif[];
   markNotificationsRead: () => void;
   alerts: number;
@@ -66,6 +78,7 @@ function reviveItem(r: Item): Item {
     ...r,
     dateCreation: new Date(r.dateCreation),
     dateMaj: new Date(r.dateMaj),
+    dateRelancePrevue: r.dateRelancePrevue ? new Date(r.dateRelancePrevue) : null,
     timeline: r.timeline.map((e) => ({ ...e, date: new Date(e.date) })),
   };
 }
@@ -80,6 +93,7 @@ export function AppProvider({
   initialItems,
   initialProfiles,
   initialNotifications,
+  initialCatalogue,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -87,6 +101,7 @@ export function AppProvider({
   initialItems?: Item[];
   initialProfiles?: Profile[];
   initialNotifications?: Notif[];
+  initialCatalogue?: Catalogue;
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -96,6 +111,9 @@ export function AppProvider({
   );
   const [notifications, setNotifications] = useState<Notif[]>(
     demo ? [] : reviveNotifs(initialNotifications ?? [])
+  );
+  const [catalogue, setCatalogue] = useState<Catalogue>(
+    demo || !initialCatalogue ? DEFAULT_CATALOGUE : initialCatalogue
   );
   const [nowState, setNowState] = useState<Date | null>(null);
   const [meId, setMeId] = useState<string>(DEFAULT_USER_ID); // sélecteur démo
@@ -121,6 +139,9 @@ export function AppProvider({
 
   const profileById = (id: string): Profile =>
     profiles.find((p) => p.id === id) ?? FALLBACK_PROFILE;
+
+  // État de relance calculé avec les SLA du catalogue courant (types ajoutés inclus).
+  const rs = (item: Item): ReminderState => reminderState(item, now, catalogue.types);
 
   /* ---------- Mutations ---------- */
   const act = (item: Item, action: Action, cause?: string) => {
@@ -159,6 +180,35 @@ export function AppProvider({
       .catch((e) => console.error("Création échouée :", e));
   };
 
+  const setRelanceDate = (item: Item, date: string | null) => {
+    if (demo) {
+      setItems((prev) => mockSetRelanceDate(prev, item.id, date));
+      return;
+    }
+    fetch("/api/items/relance-date", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemId: item.id, date }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.items) setItems(reviveItems(d.items));
+      })
+      .catch((e) => console.error("Planification échouée :", e));
+  };
+
+  const addCatalogueOption = async (opt: CatalogueOption): Promise<string | null> => {
+    const res = await fetch("/api/admin/catalogue", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(opt),
+    });
+    const d = await res.json();
+    if (!res.ok) return d.error ?? "Erreur.";
+    if (d.catalogue) setCatalogue(d.catalogue);
+    return null;
+  };
+
   const updateRole = async (userId: string, role: Role): Promise<string | null> => {
     const res = await fetch("/api/admin/role", {
       method: "POST",
@@ -189,7 +239,10 @@ export function AppProvider({
     });
   };
 
-  const scores = useMemo(() => computeScores(items, profiles, now), [items, profiles, now]);
+  const scores = useMemo(
+    () => computeScores(items, profiles, now, catalogue.types),
+    [items, profiles, now, catalogue]
+  );
   // Cloche : en démo, dérivée des objets ; en local, nombre de notifications non lues.
   const alerts = demo
     ? listNotifications(items, now, me)
@@ -205,6 +258,8 @@ export function AppProvider({
     setMeId,
     profiles,
     profileById,
+    catalogue,
+    rs,
     scores,
     emailOn,
     setEmailOn,
@@ -215,7 +270,9 @@ export function AppProvider({
     setShowNew,
     act,
     create,
+    setRelanceDate,
     updateRole,
+    addCatalogueOption,
     notifications,
     markNotificationsRead,
     alerts,

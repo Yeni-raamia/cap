@@ -2,17 +2,16 @@
 
 import { useState } from "react";
 import { ArrowUp, Filter, Inbox, ShieldAlert, TrendingUp } from "lucide-react";
-import { METIERS, reminderState } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, KPI, MetierChip, Token, TypeTag } from "@/components/atoms";
 
 export default function VueGlobalePage() {
-  const { items, now, openItem, profiles, profileById } = useApp();
+  const { items, openItem, profiles, profileById, catalogue, rs } = useApp();
   const [fMetier, setFMetier] = useState("Tous");
   const [fAgent, setFAgent] = useState("Tous");
 
   const actifs = items.filter((i) => i.statut !== "Clôturé");
-  const enRetard = actifs.filter((i) => reminderState(i, now).level === "escalade").length;
+  const enRetard = actifs.filter((i) => rs(i).level === "escalade").length;
   const bloques = actifs.filter((i) => i.statut === "Bloqué").length;
   const repondus = items.filter((i) => i.timeline.some((e) => e.kind === "reponse")).length;
   const taux = items.length ? Math.round((repondus / items.length) * 100) : 0;
@@ -47,7 +46,7 @@ export default function VueGlobalePage() {
             className="text-[12px] border border-slate-200 rounded-lg px-2 py-1"
           >
             <option>Tous</option>
-            {Object.keys(METIERS).map((m) => (
+            {Object.keys(catalogue.metiers).map((m) => (
               <option key={m}>{m}</option>
             ))}
           </select>
@@ -68,15 +67,19 @@ export default function VueGlobalePage() {
         </div>
         <div className="divide-y divide-slate-100">
           {rows.map((i) => {
-            const rs = reminderState(i, now);
+            const state = rs(i);
+            const owner = profileById(i.ownerId);
             return (
               <button
                 key={i.id}
                 onClick={() => openItem(i)}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-left"
               >
-                <Avatar init={profileById(i.ownerId).init} size="h-7 w-7" />
-                <div className="flex items-center gap-2 w-40 shrink-0">
+                <div className="flex items-center gap-2 w-36 shrink-0">
+                  <Avatar init={owner.init} size="h-7 w-7" />
+                  <span className="text-[12px] text-slate-600 truncate">{owner.nom}</span>
+                </div>
+                <div className="flex items-center gap-2 w-32 shrink-0">
                   <MetierChip code={i.metier} />
                   <TypeTag t={i.type} />
                 </div>
@@ -84,21 +87,21 @@ export default function VueGlobalePage() {
                   <div className="text-[13px] text-slate-800 truncate">{i.objet}</div>
                   <Token>{i.ref}</Token>
                 </div>
-                <div className="text-[12px] text-slate-500 w-24 text-right hidden sm:block">
+                <div className="text-[12px] text-slate-500 w-24 text-right hidden md:block">
                   {i.statut}
                 </div>
                 <div className="w-28 text-right">
-                  {rs.level === "escalade" && (
-                    <span className="text-[11px] text-rose-600 font-medium">En retard J+{rs.days}</span>
+                  {state.level === "escalade" && (
+                    <span className="text-[11px] text-rose-600 font-medium">En retard J+{state.days}</span>
                   )}
-                  {rs.level === "relance" && (
+                  {state.level === "relance" && (
                     <span className="text-[11px] text-amber-600 font-medium">Relance due</span>
                   )}
-                  {rs.level === "bloque" && (
+                  {state.level === "bloque" && (
                     <span className="text-[11px] text-rose-600 font-medium">Bloqué</span>
                   )}
-                  {rs.level === "ok" && <span className="text-[11px] text-slate-400">à jour</span>}
-                  {rs.level === "none" && <span className="text-[11px] text-slate-300">—</span>}
+                  {state.level === "ok" && <span className="text-[11px] text-slate-400">à jour</span>}
+                  {state.level === "none" && <span className="text-[11px] text-slate-300">—</span>}
                 </div>
               </button>
             );

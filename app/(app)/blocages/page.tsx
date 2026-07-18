@@ -1,19 +1,18 @@
 "use client";
 
 import { ShieldAlert } from "lucide-react";
-import { reminderState } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
 
 export default function BlocagesPage() {
-  const { items, now, openItem, profileById } = useApp();
+  const { items, openItem, profileById, rs } = useApp();
 
   const risk = items
     .filter((i) => {
-      const l = reminderState(i, now).level;
+      const l = rs(i).level;
       return l === "escalade" || l === "bloque";
     })
-    .sort((a, b) => reminderState(b, now).days - reminderState(a, now).days);
+    .sort((a, b) => rs(b).days - rs(a).days);
 
   return (
     <div className="space-y-5">
@@ -29,7 +28,7 @@ export default function BlocagesPage() {
         </Card>
       ) : (
         risk.map((i) => {
-          const rs = reminderState(i, now);
+          const state = rs(i);
           const owner = profileById(i.ownerId);
           return (
             <Card key={i.id} className="p-4 border-l-[3px] border-l-rose-500">
@@ -38,7 +37,7 @@ export default function BlocagesPage() {
                 <TypeTag t={i.type} />
                 <Token>{i.ref}</Token>
                 <span className="ml-auto text-[12px] font-medium text-rose-600">
-                  Sans mouvement depuis {rs.days}j
+                  Sans mouvement depuis {state.days}j
                 </span>
               </div>
               <div className="text-[14px] font-medium text-slate-800 mb-2">{i.objet}</div>

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { DEMO_MODE } from "@/lib/config";
 import { getCurrentUser } from "@/lib/auth/session";
-import { listItems, listNotificationsFor, listProfiles } from "@/lib/db/repo";
+import { getCatalogue, listItems, listNotificationsFor, listProfiles } from "@/lib/db/repo";
 
 export default async function AppGroupLayout({ children }: { children: ReactNode }) {
   // Mode démo : pas d'authentification, l'app s'amorce côté client.
@@ -18,6 +18,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const items = listItems();
   const profiles = listProfiles();
   const notifications = listNotificationsFor(user.id);
+  const catalogue = getCatalogue();
 
   return (
     <AppShell
@@ -25,6 +26,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialItems={items}
       initialProfiles={profiles}
       initialNotifications={notifications}
+      initialCatalogue={catalogue}
     >
       {children}
     </AppShell>

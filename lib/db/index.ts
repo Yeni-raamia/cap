@@ -32,7 +32,7 @@ create table if not exists items (
   owner_id text not null, points_cles text not null default '[]', blocage_cause text,
   relances_count integer not null default 0,
   date_creation text not null default (datetime('now')), date_maj text not null default (datetime('now')),
-  closed_at text
+  closed_at text, date_relance_prevue text
 );
 create table if not exists item_people (
   id text primary key, item_id text not null, name text not null, kind text not null default 'destinataire'
@@ -68,10 +68,21 @@ export function getDb(): Database.Database {
   db.pragma("journal_mode = WAL"); // meilleures écritures concurrentes (multi-utilisateurs LAN)
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA);
+  ensureColumns(db);
   seedCatalogue(db);
 
   _db = db;
   return db;
+}
+
+// Migrations légères pour les bases déjà créées (ajout de colonnes manquantes).
+function ensureColumns(db: Database.Database) {
+  const cols = (db.prepare("pragma table_info(items)").all() as { name: string }[]).map(
+    (c) => c.name
+  );
+  if (!cols.includes("date_relance_prevue")) {
+    db.exec("alter table items add column date_relance_prevue text");
+  }
 }
 
 // Catalogue (9 métiers + 11 types) inséré depuis lib/domain — source unique, jamais dupliquée.

@@ -9,11 +9,13 @@
  * ================================================================== */
 import { reminderState } from "@/lib/domain";
 import {
+  getCatalogue,
   getEmailById,
   insertNotification,
   listEscalationTargets,
   listItems,
   notifExistsToday,
+  setRelanceDate,
 } from "@/lib/db/repo";
 import { isEmailConfigured, sendEmail } from "./email";
 
@@ -21,6 +23,7 @@ export interface ReminderSummary {
   relances: number;
   escalades: number;
   digests: number;
+  echeances: number;
   emailsSent: number;
   emailConfigured: boolean;
 }
@@ -28,6 +31,7 @@ export interface ReminderSummary {
 export async function runReminders(): Promise<ReminderSummary> {
   const now = new Date();
   const items = listItems();
+  const types = getCatalogue().types; // SLA depuis le catalogue (y compris types ajoutés)
   const targets = listEscalationTargets(); // directeurs (ou admins à défaut)
   const emailOn = isEmailConfigured();
   const channel = emailOn ? ["in-app", "e-mail"] : ["in-app"];
@@ -35,12 +39,29 @@ export async function runReminders(): Promise<ReminderSummary> {
   let relances = 0;
   let escalades = 0;
   let digests = 0;
+  let echeances = 0;
   let emailsSent = 0;
 
   const emails: Array<{ to: string; subject: string; text: string }> = [];
 
+  // Échéances de relance planifiées par les utilisateurs (calendrier).
   for (const item of items) {
-    const rs = reminderState(item, now);
+    if (
+      item.statut !== "Clôturé" &&
+      item.dateRelancePrevue &&
+      item.dateRelancePrevue.getTime() <= now.getTime()
+    ) {
+      const message = `Relance planifiée arrivée à échéance : [${item.ref}] ${item.objet}.`;
+      insertNotification({ userId: item.ownerId, itemId: item.id, kind: "echeance", message, channel });
+      echeances++;
+      setRelanceDate(item.id, null); // ne se déclenche qu'une fois
+      const to = getEmailById(item.ownerId);
+      if (emailOn && to) emails.push({ to, subject: `Cap · Relance planifiée (${item.ref})`, text: message });
+    }
+  }
+
+  for (const item of items) {
+    const rs = reminderState(item, now, types);
 
     if (rs.level === "relance") {
       if (!notifExistsToday(item.ownerId, item.id, "relance")) {
@@ -64,7 +85,7 @@ export async function runReminders(): Promise<ReminderSummary> {
   }
 
   // Digest du matin aux directeurs (toujours actif, un par jour et par directeur).
-  const nbEscalades = items.filter((i) => reminderState(i, now).level === "escalade").length;
+  const nbEscalades = items.filter((i) => reminderState(i, now, types).level === "escalade").length;
   const nbBloques = items.filter((i) => i.statut === "Bloqué").length;
   const digestMsg = `Digest du matin : ${nbEscalades} suivi(s) escaladé(s) · ${nbBloques} bloqué(s).`;
   for (const dir of targets) {
@@ -81,5 +102,5 @@ export async function runReminders(): Promise<ReminderSummary> {
     if (await sendEmail(m.to, m.subject, m.text)) emailsSent++;
   }
 
-  return { relances, escalades, digests, emailsSent, emailConfigured: emailOn };
+  return { relances, escalades, digests, echeances, emailsSent, emailConfigured: emailOn };
 }

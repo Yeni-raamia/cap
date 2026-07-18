@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { createItem, listItems } from "@/lib/db/repo";
+import { createItem, getCatalogue, listItems } from "@/lib/db/repo";
 import { getCurrentUser } from "@/lib/auth/session";
-import { METIERS, TYPES, type Priorite } from "@/lib/domain";
+import { type Priorite } from "@/lib/domain";
 
 const PRIOS: Priorite[] = ["Critique", "Élevé", "Moyenne"];
 
@@ -15,12 +15,13 @@ export async function POST(request: Request) {
   const dest = typeof body?.dest === "string" ? body.dest : "";
   const points = typeof body?.points === "string" ? body.points : "";
 
+  const catalogue = getCatalogue();
   if (
     !parsed ||
     !parsed.ref ||
     !parsed.objet ||
-    !METIERS[parsed.metier] ||
-    !TYPES[parsed.type]
+    !catalogue.metiers[parsed.metier] ||
+    !catalogue.types[parsed.type]
   ) {
     return NextResponse.json({ error: "Objet invalide (métier/type hors catalogue)." }, { status: 400 });
   }

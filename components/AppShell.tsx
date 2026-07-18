@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess } from "@/lib/nav";
-import type { Item, Notif, Profile } from "@/lib/domain";
+import type { Catalogue, Item, Notif, Profile } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -50,6 +50,7 @@ export function AppShell({
   initialItems,
   initialProfiles,
   initialNotifications,
+  initialCatalogue,
 }: {
   children: ReactNode;
   demo?: boolean;
@@ -57,6 +58,7 @@ export function AppShell({
   initialItems?: Item[];
   initialProfiles?: Profile[];
   initialNotifications?: Notif[];
+  initialCatalogue?: Catalogue;
 }) {
   return (
     <AppProvider
@@ -65,6 +67,7 @@ export function AppShell({
       initialItems={initialItems}
       initialProfiles={initialProfiles}
       initialNotifications={initialNotifications}
+      initialCatalogue={initialCatalogue}
     >
       <Shell>{children}</Shell>
     </AppProvider>

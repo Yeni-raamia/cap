@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowUp, RotateCcw, ShieldAlert } from "lucide-react";
-import { reminderState, type Item } from "@/lib/domain";
+import { ArrowUp, CalendarClock, RotateCcw, ShieldAlert } from "lucide-react";
+import { fmt, type Item } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { Avatar, MetierChip, Priority, Token, TypeTag } from "./atoms";
 import { Fil } from "./Fil";
@@ -15,8 +15,8 @@ const barByLevel: Record<string, string> = {
 };
 
 export function ItemCard({ item }: { item: Item }) {
-  const { now, openItem, profileById } = useApp();
-  const rs = reminderState(item, now);
+  const { openItem, profileById, rs: rsFor } = useApp();
+  const rs = rsFor(item);
   const owner = profileById(item.ownerId);
 
   return (
@@ -61,6 +61,12 @@ export function ItemCard({ item }: { item: Item }) {
           <span className="ml-auto text-slate-400">Relance dans {rs.dueIn}j</span>
         )}
       </div>
+      {item.dateRelancePrevue && (
+        <div className="mt-2 inline-flex items-center gap-1 text-[11px] text-sky-700 bg-sky-50 border border-sky-200 rounded px-1.5 py-0.5">
+          <CalendarClock size={12} />
+          Relance prévue le {fmt(item.dateRelancePrevue)}
+        </div>
+      )}
     </button>
   );
 }

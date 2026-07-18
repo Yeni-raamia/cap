@@ -28,6 +28,11 @@ réellement appliqués.
   Classement, Rappels, Administration.
 - **Moteur de relance** : rappels aux agents, escalade aux directeurs, digest
   quotidien — in-app, et par e-mail si configuré.
+- **Relance planifiée** : on peut programmer une date de relance sur un suivi ;
+  à l'échéance, le responsable est notifié.
+- **Catalogue éditable** : l'administrateur ajoute des métiers et des types
+  directement depuis *Administration* — ils apparaissent aussitôt dans les
+  formulaires.
 - **Rôles (RBAC)** : *agent*, *directeur*, *admin*, appliqués **côté serveur**.
 - **Classement « culture juste »** avec badges (Relanceur, Closeur, Réactif,
   Zéro oubli).

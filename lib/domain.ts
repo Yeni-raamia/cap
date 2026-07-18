@@ -59,6 +59,8 @@ export interface Item {
   relancesCount: number;
   dateCreation: Date;
   dateMaj: Date;
+  /** Date de relance planifiée par l'utilisateur (calendrier), ou null. */
+  dateRelancePrevue: Date | null;
   timeline: TimelineEvent[];
 }
 
@@ -108,7 +110,23 @@ export const TYPES: Record<string, TypeDef> = {
   CLOTURE: { sla: null, urgent: false },
 };
 
-export const isUrgentType = (type: string): boolean => Boolean(TYPES[type]?.urgent);
+export const isUrgentType = (type: string, types: Record<string, TypeDef> = TYPES): boolean =>
+  Boolean(types[type]?.urgent);
+
+/* ---------- Catalogue (dynamique : éditable en administration) ---------- */
+export interface MetierDef {
+  label: string;
+  tone: Tone;
+}
+export interface Catalogue {
+  metiers: Record<string, MetierDef>;
+  types: Record<string, TypeDef>;
+}
+/** Catalogue par défaut (les 9 métiers + 11 types intégrés). Sert de seed. */
+export const DEFAULT_CATALOGUE: Catalogue = { metiers: METIERS, types: TYPES };
+
+/** Teintes disponibles pour un nouveau métier. */
+export const TONES: Tone[] = ["emerald", "amber", "rose", "sky", "violet", "slate"];
 
 /* ---------- 4.3 · Statuts et avancement du Fil ---------- */
 export const STATUTS: Record<Statut, { pct: number; stage: number; color: Tone }> = {
@@ -158,7 +176,10 @@ export interface ParsedSubject {
   objet: string;
 }
 
-export function parseSubject(raw: string): ParsedSubject | null {
+export function parseSubject(
+  raw: string,
+  catalogue: Catalogue = DEFAULT_CATALOGUE
+): ParsedSubject | null {
   if (!raw) return null;
   let s = raw.trim();
   // Tolère Re: / Fwd: / Tr: / Fw: empilés
@@ -170,7 +191,7 @@ export function parseSubject(raw: string): ParsedSubject | null {
   const metier = m[1].toUpperCase();
   const num = m[2];
   const type = m[3].replace("!", "").toUpperCase();
-  if (!METIERS[metier] || !TYPES[type]) return null; // rejet si hors catalogue
+  if (!catalogue.metiers[metier] || !catalogue.types[type]) return null; // rejet si hors catalogue
   return {
     metier,
     type,
@@ -221,9 +242,13 @@ export interface ReminderState {
   dueIn?: number;
 }
 
-export function reminderState(item: Item, now: Date): ReminderState {
+export function reminderState(
+  item: Item,
+  now: Date,
+  types: Record<string, TypeDef> = TYPES
+): ReminderState {
   if (item.statut === "Clôturé") return { level: "none", days: 0 };
-  const sla = TYPES[item.type]?.sla;
+  const sla = types[item.type]?.sla;
   const d = daysBetween(item.dateMaj, now);
   if (item.statut === "Bloqué") return { level: "bloque", days: d };
   if (!sla) return { level: "none", days: d };
@@ -244,7 +269,12 @@ export interface Score {
   badges: string[];
 }
 
-export function computeScores(items: Item[], profiles: Profile[], now: Date): Score[] {
+export function computeScores(
+  items: Item[],
+  profiles: Profile[],
+  now: Date,
+  types: Record<string, TypeDef> = TYPES
+): Score[] {
   const map: Record<string, Score> = {};
   profiles
     .filter((u) => u.role === "agent")
@@ -277,7 +307,7 @@ export function computeScores(items: Item[], profiles: Profile[], now: Date): Sc
       s.score += 8;
       s.reponses++;
     }
-    if (reminderState(it, now).level === "escalade") {
+    if (reminderState(it, now, types).level === "escalade") {
       s.score -= 4;
       s.retard++;
     }
@@ -296,7 +326,7 @@ export function computeScores(items: Item[], profiles: Profile[], now: Date): Sc
 }
 
 /* ---------- Notifications (moteur de relance) ---------- */
-export type NotifKind = "relance" | "escalade" | "digest";
+export type NotifKind = "relance" | "escalade" | "digest" | "echeance";
 
 export interface Notif {
   id: string;

@@ -5,8 +5,10 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
 import type {
+  Catalogue,
   EventKind,
   Item,
+  MetierDef,
   Notif,
   NotifKind,
   ParsedSubject,
@@ -15,6 +17,8 @@ import type {
   Role,
   Statut,
   TimelineEvent,
+  Tone,
+  TypeDef,
 } from "@/lib/domain";
 
 type Action = "relance" | "reponse" | "bloque" | "cloture";
@@ -126,6 +130,7 @@ interface ItemRow {
   relances_count: number;
   date_creation: string;
   date_maj: string;
+  date_relance_prevue: string | null;
 }
 interface EventRow {
   item_id: string;
@@ -195,8 +200,14 @@ function mapItem(r: ItemRow, events: EventRow[], people: PersonRow[]): Item {
     relancesCount: r.relances_count,
     dateCreation: new Date(r.date_creation),
     dateMaj: new Date(r.date_maj),
+    dateRelancePrevue: r.date_relance_prevue ? new Date(r.date_relance_prevue) : null,
     timeline,
   };
+}
+
+/** Planifie (ou efface avec null) la date de relance d'un objet. */
+export function setRelanceDate(itemId: string, dateISO: string | null): void {
+  getDb().prepare("update items set date_relance_prevue = ? where id = ?").run(dateISO, itemId);
 }
 
 export function createItem(input: {
@@ -379,4 +390,71 @@ export function countUnreadFor(userId: string): number {
 
 export function markAllReadFor(userId: string): void {
   getDb().prepare("update notifications set read = 1 where user_id = ? and read = 0").run(userId);
+}
+
+/* ---------- Catalogue (métiers / types) — éditable en administration ---------- */
+interface MetierRow {
+  code: string;
+  label: string;
+  tone: string;
+  ordre: number;
+}
+interface TypeRow {
+  code: string;
+  label: string;
+  sla_relance: number | null;
+  sla_escalade: number | null;
+  urgent: number;
+  ordre: number;
+}
+
+export function getCatalogue(): Catalogue {
+  const db = getDb();
+  const metiers: Record<string, MetierDef> = {};
+  (db.prepare("select * from ref_metiers order by ordre").all() as MetierRow[]).forEach((m) => {
+    metiers[m.code] = { label: m.label, tone: m.tone as Tone };
+  });
+  const types: Record<string, TypeDef> = {};
+  (db.prepare("select * from ref_types order by ordre").all() as TypeRow[]).forEach((t) => {
+    types[t.code] = {
+      sla:
+        t.sla_relance != null && t.sla_escalade != null
+          ? { relance: t.sla_relance, escalade: t.sla_escalade }
+          : null,
+      urgent: t.urgent === 1,
+    };
+  });
+  return { metiers, types };
+}
+
+function nextOrdre(table: "ref_metiers" | "ref_types"): number {
+  const r = getDb().prepare(`select coalesce(max(ordre),0)+1 as n from ${table}`).get() as {
+    n: number;
+  };
+  return r.n;
+}
+
+export function addMetier(code: string, label: string, tone: Tone): void {
+  getDb()
+    .prepare(
+      "insert into ref_metiers (code, label, tone, ordre) values (?,?,?,?) " +
+        "on conflict(code) do update set label=excluded.label, tone=excluded.tone"
+    )
+    .run(code, label, tone, nextOrdre("ref_metiers"));
+}
+
+export function addType(
+  code: string,
+  label: string,
+  slaRelance: number | null,
+  slaEscalade: number | null,
+  urgent: boolean
+): void {
+  getDb()
+    .prepare(
+      "insert into ref_types (code, label, sla_relance, sla_escalade, urgent, ordre) values (?,?,?,?,?,?) " +
+        "on conflict(code) do update set label=excluded.label, sla_relance=excluded.sla_relance, " +
+        "sla_escalade=excluded.sla_escalade, urgent=excluded.urgent"
+    )
+    .run(code, label, slaRelance, slaEscalade, urgent ? 1 : 0, nextOrdre("ref_types"));
 }

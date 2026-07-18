@@ -6,10 +6,8 @@ import {
   buildRef,
   buildSubjectLine,
   isUrgentType,
-  METIERS,
   nextRefNumber,
   parseSubject,
-  TYPES,
   type ParsedSubject,
   type Priorite,
 } from "@/lib/domain";
@@ -20,7 +18,7 @@ import { MetierChip, Token, TypeTag } from "./atoms";
 type Mode = "codes" | "coller";
 
 export function NewSuiviModal() {
-  const { showNew, setShowNew, create, items } = useApp();
+  const { showNew, setShowNew, create, items, catalogue } = useApp();
 
   const [mode, setMode] = useState<Mode>("codes");
 
@@ -37,7 +35,7 @@ export function NewSuiviModal() {
 
   // Mode « coller » (ancien parseur)
   const [raw, setRaw] = useState("");
-  const parsedRaw = useMemo(() => parseSubject(raw), [raw]);
+  const parsedRaw = useMemo(() => parseSubject(raw, catalogue), [raw, catalogue]);
 
   const [copied, setCopied] = useState(false);
 
@@ -93,7 +91,7 @@ export function NewSuiviModal() {
   const submit = () => {
     let parsed: ParsedSubject | null = null;
     if (mode === "codes" && canCreateCodes) {
-      parsed = { metier, type, urgent: isUrgentType(type), ref, objet: objet.trim() };
+      parsed = { metier, type, urgent: isUrgentType(type, catalogue.types), ref, objet: objet.trim() };
     } else if (mode === "coller" && parsedRaw) {
       parsed = parsedRaw;
     }
@@ -164,7 +162,7 @@ export function NewSuiviModal() {
                   className={inputCls}
                 >
                   <option value="">Choisir…</option>
-                  {Object.entries(METIERS).map(([code, m]) => (
+                  {Object.entries(catalogue.metiers).map(([code, m]) => (
                     <option key={code} value={code}>
                       {code} — {m.label}
                     </option>
@@ -182,7 +180,7 @@ export function NewSuiviModal() {
                   className={inputCls}
                 >
                   <option value="">Choisir…</option>
-                  {Object.keys(TYPES).map((t) => (
+                  {Object.keys(catalogue.types).map((t) => (
                     <option key={t} value={t}>
                       {t}
                     </option>

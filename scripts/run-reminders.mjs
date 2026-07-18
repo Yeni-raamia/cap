@@ -29,7 +29,8 @@ try {
   }
   console.log(
     `Rappels exécutés → ${data.relances} relance(s), ${data.escalades} escalade(s), ` +
-      `${data.digests} digest(s), ${data.emailsSent} e-mail(s)` +
+      `${data.echeances ?? 0} échéance(s) planifiée(s), ${data.digests} digest(s), ` +
+      `${data.emailsSent} e-mail(s)` +
       `${data.emailConfigured ? "" : " (e-mail non configuré : in-app uniquement)"}.`
   );
 } catch (err) {

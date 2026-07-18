@@ -10,16 +10,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { METIERS, STATUTS, type Statut } from "@/lib/domain";
+import { STATUTS, type Statut } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 
 const box = "bg-white border border-slate-200 rounded-xl p-4";
 
 export default function StatsPage() {
-  const { items, profiles } = useApp();
+  const { items, profiles, catalogue } = useApp();
   const agents = profiles.filter((u) => u.role === "agent");
 
-  const parMetier = Object.keys(METIERS)
+  const parMetier = Object.keys(catalogue.metiers)
     .map((m) => ({ name: m, v: items.filter((i) => i.metier === m).length }))
     .filter((x) => x.v);
 

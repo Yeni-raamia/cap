@@ -76,6 +76,7 @@ function mk(
     relancesCount,
     dateCreation: daysAgo(ageDays),
     dateMaj: timeline[timeline.length - 1].date,
+    dateRelancePrevue: null,
     timeline,
   };
 }
@@ -237,12 +238,20 @@ export function createItem(
     relancesCount: 0,
     dateCreation: now,
     dateMaj: now,
+    dateRelancePrevue: null,
     timeline: [
       { date: now, kind: "creation", label: "Objet créé", author: meId },
       { date: now, kind: "envoi", label: "Envoyé", author: meId },
     ],
   };
   return [it, ...items];
+}
+
+/** Planifie (ou efface) la date de relance d'un objet — mode démo. */
+export function setRelanceDate(items: Item[], itemId: string, dateISO: string | null): Item[] {
+  return items.map((it) =>
+    it.id === itemId ? { ...it, dateRelancePrevue: dateISO ? new Date(dateISO) : null } : it
+  );
 }
 
 export function listScores(items: Item[], now: Date) {

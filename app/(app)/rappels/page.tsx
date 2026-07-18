@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowUp, Bell, CalendarClock, CheckCheck, Mail, RotateCcw } from "lucide-react";
-import { fmt, reminderState, type Item, type NotifKind } from "@/lib/domain";
+import { ArrowUp, Bell, CalendarCheck, CalendarClock, CheckCheck, Mail, RotateCcw } from "lucide-react";
+import { fmt, type Item, type NotifKind } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 
@@ -9,25 +9,27 @@ const notifIcon: Record<NotifKind, typeof RotateCcw> = {
   relance: RotateCcw,
   escalade: ArrowUp,
   digest: CalendarClock,
+  echeance: CalendarCheck,
 };
 const notifTone: Record<NotifKind, string> = {
   relance: "bg-amber-100 text-amber-600",
   escalade: "bg-rose-100 text-rose-600",
   digest: "bg-slate-800 text-emerald-300",
+  echeance: "bg-sky-100 text-sky-600",
 };
 
 export default function RappelsPage() {
-  const { demo, items, now, me, emailOn, profileById, notifications, markNotificationsRead } =
+  const { demo, items, me, emailOn, rs, profileById, notifications, markNotificationsRead } =
     useApp();
 
-  const dues = items.filter((i) => reminderState(i, now).level === "relance");
-  const escal = items.filter((i) => reminderState(i, now).level === "escalade");
+  const dues = items.filter((i) => rs(i).level === "relance");
+  const escal = items.filter((i) => rs(i).level === "escalade");
   const bloques = items.filter((i) => i.statut === "Bloqué").length;
   const isDir = me.role === "directeur" || me.role === "admin";
   const unread = notifications.filter((n) => !n.read).length;
 
   const Row = ({ i, tone }: { i: Item; tone: "rose" | "amber" }) => {
-    const rs = reminderState(i, now);
+    const state = rs(i);
     return (
       <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 last:border-0">
         <div
@@ -42,7 +44,7 @@ export default function RappelsPage() {
           <div className="flex items-center gap-2 text-[11px] text-slate-400 flex-wrap">
             <Token>{i.ref}</Token>
             <span>{profileById(i.ownerId).nom}</span>
-            <span>· sans réponse depuis {rs.days}j</span>
+            <span>· sans réponse depuis {state.days}j</span>
           </div>
         </div>
         <div className="flex items-center gap-1 text-[10px] text-slate-400">

@@ -1,18 +1,16 @@
 "use client";
 
 import { Bell, Plus } from "lucide-react";
-import { fmtLong, reminderState } from "@/lib/domain";
+import { fmtLong } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
 import { ItemCard } from "@/components/ItemCard";
 
 export default function MonEspacePage() {
-  const { items, now, me, scores, setShowNew } = useApp();
+  const { items, now, me, scores, rs, setShowNew } = useApp();
 
   const mine = items.filter((i) => i.ownerId === me.id);
-  const attends = mine.filter((i) =>
-    ["relance", "escalade"].includes(reminderState(i, now).level)
-  );
+  const attends = mine.filter((i) => ["relance", "escalade"].includes(rs(i).level));
   const actifs = mine.filter((i) => i.statut !== "Clôturé");
   const rank = scores.findIndex((s) => s.id === me.id);
 

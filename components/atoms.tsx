@@ -1,6 +1,9 @@
+"use client";
+
 import { Flag } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
-import { METIERS, isUrgentType, toneBg, type Priorite, type Tone } from "@/lib/domain";
+import { isUrgentType, toneBg, type Priorite, type Tone } from "@/lib/domain";
+import { useApp } from "./app-context";
 
 /* Référence en police mono — rappel du `//` de la charte documentaire */
 export function Token({ children }: { children: ReactNode }) {
@@ -12,7 +15,8 @@ export function Token({ children }: { children: ReactNode }) {
 }
 
 export function TypeTag({ t }: { t: string }) {
-  const urgent = isUrgentType(t);
+  const { catalogue } = useApp();
+  const urgent = isUrgentType(t, catalogue.types);
   return (
     <span
       className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded ${
@@ -25,8 +29,8 @@ export function TypeTag({ t }: { t: string }) {
 }
 
 export function MetierChip({ code }: { code: string }) {
-  const m = METIERS[code];
-  const tone: Tone = m?.tone ?? "slate";
+  const { catalogue } = useApp();
+  const tone: Tone = catalogue.metiers[code]?.tone ?? "slate";
   return (
     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${toneBg[tone]}`}>
       {code}
