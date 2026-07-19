@@ -5,6 +5,7 @@ import { fmtLong } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
 import { ItemCard } from "@/components/ItemCard";
+import { SuiviExplorer } from "@/components/SuiviExplorer";
 
 export default function MonEspacePage() {
   const { items, now, me, scores, rs, setShowNew } = useApp();
@@ -33,6 +34,7 @@ export default function MonEspacePage() {
         </button>
       </div>
 
+      {/* Ce qui t'attend — en avant */}
       <div>
         <div className="flex items-center gap-2 mb-2">
           <Bell size={15} className="text-amber-500" />
@@ -56,20 +58,17 @@ export default function MonEspacePage() {
         )}
       </div>
 
+      {/* Tous mes suivis — exploration (vues + filtres) */}
       <div>
         <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide mb-2">
-          Mes suivis actifs
+          Mes suivis
         </h2>
-        {actifs.length === 0 ? (
+        {mine.length === 0 ? (
           <Card className="p-6 text-center text-[13px] text-slate-400">
-            Aucun suivi actif. Crée-en un pour commencer.
+            Aucun suivi. Crée-en un pour commencer.
           </Card>
         ) : (
-          <div className="grid md:grid-cols-2 gap-3">
-            {actifs.map((i) => (
-              <ItemCard key={i.id} item={i} />
-            ))}
-          </div>
+          <SuiviExplorer items={mine} showResponsable={false} defaultView="cartes" />
         )}
       </div>
     </div>
