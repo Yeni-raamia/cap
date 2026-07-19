@@ -5,9 +5,10 @@
  *  Aucun cloud, aucun Docker.
  * ================================================================== */
 import Database from "better-sqlite3";
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { METIERS, TYPES } from "@/lib/domain";
+import { DEFAULT_REF_LISTS, METIERS, TYPES } from "@/lib/domain";
 
 // Emplacement du fichier de base — surchargable via DATABASE_PATH.
 const DB_PATH = process.env.DATABASE_PATH || join(process.cwd(), "data", "cap.sqlite");
@@ -83,6 +84,11 @@ create table if not exists activity_log (
   created_at text not null default (datetime('now'))
 );
 create index if not exists idx_activity_created on activity_log(created_at);
+create table if not exists ref_lists (
+  id text primary key, list_key text not null, value text not null,
+  label text not null default '', icon text, ordre integer not null default 0
+);
+create index if not exists idx_reflists_key on ref_lists(list_key);
 create index if not exists idx_items_owner on items(owner_id);
 create index if not exists idx_items_statut on items(statut);
 create index if not exists idx_events_item on events(item_id);
@@ -103,9 +109,26 @@ export function getDb(): Database.Database {
   db.exec(SCHEMA);
   ensureColumns(db);
   seedCatalogue(db);
+  seedRefLists(db);
 
   _db = db;
   return db;
+}
+
+// Listes de référence (appréciations, causes, actions) — seed depuis les valeurs
+// par défaut si la liste est vide. Ensuite éditable en administration.
+function seedRefLists(db: Database.Database) {
+  const count = (key: string) =>
+    (db.prepare("select count(*) as n from ref_lists where list_key=?").get(key) as { n: number }).n;
+  const ins = db.prepare(
+    "insert into ref_lists (id, list_key, value, label, icon, ordre) values (?,?,?,?,?,?)"
+  );
+  if (count("appreciation") === 0)
+    DEFAULT_REF_LISTS.appreciations.forEach((v, i) => ins.run(randomUUID(), "appreciation", v, v, null, i + 1));
+  if (count("cause") === 0)
+    DEFAULT_REF_LISTS.causes.forEach((v, i) => ins.run(randomUUID(), "cause", v, v, null, i + 1));
+  if (count("action") === 0)
+    DEFAULT_REF_LISTS.actions.forEach((a, i) => ins.run(randomUUID(), "action", a.kind, a.label, a.icon, i + 1));
 }
 
 // Migrations légères pour les bases déjà créées (ajout de colonnes manquantes).

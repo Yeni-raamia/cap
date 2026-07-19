@@ -23,9 +23,10 @@ import {
 import {
   computeScores,
   DEFAULT_CATALOGUE,
+  DEFAULT_REF_LISTS,
   reminderState,
   type AppSettings,
-  type BlocageActionKind,
+  type RefLists,
   type Catalogue,
   type Item,
   type Notif,
@@ -60,6 +61,9 @@ type CatalogueAction =
   | { op: "add" | "update"; kind: "metier"; code: string; label: string; tone: string }
   | { op: "add" | "update"; kind: "type"; code: string; label: string; slaRelance: string; slaEscalade: string; urgent: boolean }
   | { op: "delete"; kind: "metier" | "type"; code: string };
+type RefListActionPayload =
+  | { op: "add"; listKey: "appreciation" | "cause" | "action"; label: string; icon?: string }
+  | { op: "delete"; listKey: "appreciation" | "cause" | "action"; value: string };
 
 interface AppCtx {
   demo: boolean;
@@ -86,10 +90,12 @@ interface AppCtx {
   act: (item: Item, action: Action, cause?: string) => void;
   create: (parsed: ParsedSubject, prio: Priorite, dest: string, points: string) => void;
   setRelanceDate: (item: Item, date: string | null) => void;
-  addBlocageAction: (item: Item, kind: BlocageActionKind, concerne: string, note: string) => void;
+  addBlocageAction: (item: Item, kind: string, concerne: string, note: string) => void;
   setAppreciation: (item: Item, appreciation: string | null) => void;
   updateRole: (userId: string, role: Role) => Promise<string | null>;
   catalogueAction: (action: CatalogueAction) => Promise<string | null>;
+  refLists: RefLists;
+  refListAction: (action: RefListActionPayload) => Promise<string | null>;
   notifications: Notif[];
   markNotificationsRead: () => void;
   alerts: number;
@@ -146,6 +152,7 @@ export function AppProvider({
   initialCatalogue,
   initialProjects,
   initialSettings,
+  initialRefLists,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -156,6 +163,7 @@ export function AppProvider({
   initialCatalogue?: Catalogue;
   initialProjects?: Project[];
   initialSettings?: AppSettings;
+  initialRefLists?: RefLists;
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -168,6 +176,9 @@ export function AppProvider({
   );
   const [catalogue, setCatalogue] = useState<Catalogue>(
     demo || !initialCatalogue ? DEFAULT_CATALOGUE : initialCatalogue
+  );
+  const [refLists, setRefLists] = useState<RefLists>(
+    demo || !initialRefLists ? DEFAULT_REF_LISTS : initialRefLists
   );
   const [projects, setProjects] = useState<Project[]>(
     demo ? seedProjects() : reviveProjects(initialProjects ?? [])
@@ -276,7 +287,7 @@ export function AppProvider({
     return null;
   };
 
-  const addBlocageAction = (item: Item, kind: BlocageActionKind, concerne: string, note: string) => {
+  const addBlocageAction = (item: Item, kind: string, concerne: string, note: string) => {
     if (demo) {
       setItems((prev) => mockAddBlocageAction(prev, item.id, kind, concerne, note, meId));
       return;
@@ -308,6 +319,19 @@ export function AppProvider({
         if (d.items) setItems(reviveItems(d.items));
       })
       .catch((e) => console.error("Appréciation échouée :", e));
+  };
+
+  const refListAction = async (action: RefListActionPayload): Promise<string | null> => {
+    if (demo) return "Édition des listes indisponible en mode démo.";
+    const res = await fetch("/api/admin/reflists", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(action),
+    });
+    const d = await res.json();
+    if (!res.ok) return d.error ?? "Erreur.";
+    if (d.refLists) setRefLists(d.refLists);
+    return null;
   };
 
   const updateRole = async (userId: string, role: Role): Promise<string | null> => {
@@ -408,6 +432,8 @@ export function AppProvider({
     setAppreciation,
     updateRole,
     catalogueAction,
+    refLists,
+    refListAction,
     notifications,
     markNotificationsRead,
     alerts,

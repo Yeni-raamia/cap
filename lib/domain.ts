@@ -175,20 +175,36 @@ export const BLOCAGE_ACTIONS: { kind: BlocageActionKind; label: string; icon: st
   { kind: "reunion", label: "Réunion / point", icon: "CalendarClock" },
   { kind: "autre", label: "Autre démarche", icon: "Flag" },
 ];
-export const blocageActionLabel = (k: string): string =>
-  BLOCAGE_ACTIONS.find((a) => a.kind === k)?.label ?? k;
+export const blocageActionLabel = (
+  k: string,
+  actions: { kind: string; label: string }[] = BLOCAGE_ACTIONS
+): string => actions.find((a) => a.kind === k)?.label ?? k;
+
+/** Icônes disponibles pour une action de déblocage personnalisée. */
+export const ACTION_ICONS = [
+  "Phone",
+  "Mail",
+  "ArrowUp",
+  "MessageCircle",
+  "Users",
+  "CalendarClock",
+  "Send",
+  "FileText",
+  "Bell",
+  "Flag",
+];
 
 export interface BlocageAction {
   id: string;
   itemId: string;
-  kind: BlocageActionKind;
+  kind: string; // type de démarche (peut être personnalisé en admin)
   concerne: string; // personne concernée, toujours nommée
   note: string; // compte rendu / message
   authorId: string;
   createdAt: Date;
 }
 
-// Appréciation du motif de blocage par l'agent (liste fermée).
+// Appréciation du motif de blocage par l'agent (valeurs par défaut, éditables en admin).
 export const APPRECIATIONS = [
   "En traitement",
   "Occupation justifiée",
@@ -199,6 +215,18 @@ export const APPRECIATIONS = [
   "Autre",
 ];
 
+/* ---------- Listes de référence configurables (admin) ---------- */
+export interface RefAction {
+  kind: string;
+  label: string;
+  icon: string;
+}
+export interface RefLists {
+  appreciations: string[];
+  causes: string[];
+  actions: RefAction[];
+}
+
 /* ---------- 4.4 · Causes de blocage (liste fermée) ---------- */
 export const CAUSES = [
   "En attente DSI",
@@ -207,6 +235,13 @@ export const CAUSES = [
   "Manque d'information",
   "Dépendance technique",
 ];
+
+/** Listes de référence par défaut (seed + repli si la base est vide). */
+export const DEFAULT_REF_LISTS: RefLists = {
+  appreciations: APPRECIATIONS,
+  causes: CAUSES,
+  actions: BLOCAGE_ACTIONS,
+};
 
 /* ---------- Helpers temps ---------- */
 export const DAY = 864e5;

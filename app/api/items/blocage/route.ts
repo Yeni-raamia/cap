@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { addBlocageAction, canEditItem, getItem, listItems, setAppreciation } from "@/lib/db/repo";
-import { logActivity } from "@/lib/db/admin";
+import { getRefLists, logActivity } from "@/lib/db/admin";
 import { getCurrentUser } from "@/lib/auth/session";
-import { APPRECIATIONS, BLOCAGE_ACTIONS, blocageActionLabel } from "@/lib/domain";
-
-const KINDS = BLOCAGE_ACTIONS.map((a) => a.kind);
+import { blocageActionLabel } from "@/lib/domain";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -18,21 +16,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Droits insuffisants sur ce suivi." }, { status: 403 });
   }
 
+  const refLists = getRefLists();
+
   if (op === "demarche") {
     const kind = String(body?.kind || "");
     const concerne = String(body?.concerne || "").trim();
     const note = String(body?.note || "").trim();
-    if (!KINDS.includes(kind as (typeof KINDS)[number])) {
+    if (!refLists.actions.some((a) => a.kind === kind)) {
       return NextResponse.json({ error: "Type de démarche inconnu." }, { status: 400 });
     }
     if (!concerne) {
       return NextResponse.json({ error: "La personne concernée doit être nommée." }, { status: 400 });
     }
-    addBlocageAction({ itemId, kind: kind as (typeof KINDS)[number], concerne, note, authorId: user.id });
-    logActivity(user.id, "blocage_demarche", `${blocageActionLabel(kind)} · ${getItem(itemId)?.ref ?? ""} · ${concerne}`);
+    addBlocageAction({ itemId, kind, concerne, note, authorId: user.id });
+    logActivity(user.id, "blocage_demarche", `${blocageActionLabel(kind, refLists.actions)} · ${getItem(itemId)?.ref ?? ""} · ${concerne}`);
   } else if (op === "appreciation") {
     const appreciation: string | null = body?.appreciation || null;
-    if (appreciation && !APPRECIATIONS.includes(appreciation)) {
+    if (appreciation && !refLists.appreciations.includes(appreciation)) {
       return NextResponse.json({ error: "Appréciation inconnue." }, { status: 400 });
     }
     setAppreciation(itemId, appreciation);

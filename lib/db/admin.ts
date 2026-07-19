@@ -11,6 +11,8 @@ import type {
   AdminCounts,
   AdminMember,
   AppSettings,
+  RefAction,
+  RefLists,
   Role,
   Tone,
 } from "@/lib/domain";
@@ -128,6 +130,43 @@ export function deleteMetier(code: string): void {
 }
 export function deleteType(code: string): void {
   getDb().prepare("delete from ref_types where code=?").run(code);
+}
+
+/* ---------- Listes de référence (appréciations, causes, actions) ---------- */
+interface RefListRow {
+  value: string;
+  label: string;
+  icon: string | null;
+}
+export function getRefLists(): RefLists {
+  const db = getDb();
+  const rows = (key: string) =>
+    db.prepare("select value, label, icon from ref_lists where list_key=? order by ordre, value").all(key) as RefListRow[];
+  return {
+    appreciations: rows("appreciation").map((r) => r.value),
+    causes: rows("cause").map((r) => r.value),
+    actions: rows("action").map((r): RefAction => ({ kind: r.value, label: r.label || r.value, icon: r.icon || "Flag" })),
+  };
+}
+export function addRefItem(listKey: string, value: string, label: string, icon: string | null): void {
+  const db = getDb();
+  const exists = db.prepare("select 1 from ref_lists where list_key=? and value=?").get(listKey, value);
+  if (exists) {
+    db.prepare("update ref_lists set label=?, icon=? where list_key=? and value=?").run(label, icon, listKey, value);
+    return;
+  }
+  const n = (db.prepare("select coalesce(max(ordre),0)+1 as n from ref_lists where list_key=?").get(listKey) as { n: number }).n;
+  db.prepare("insert into ref_lists (id, list_key, value, label, icon, ordre) values (?,?,?,?,?,?)").run(
+    randomUUID(),
+    listKey,
+    value,
+    label,
+    icon,
+    n
+  );
+}
+export function deleteRefItem(listKey: string, value: string): void {
+  getDb().prepare("delete from ref_lists where list_key=? and value=?").run(listKey, value);
 }
 
 /* ---------- Journal d'activité ---------- */

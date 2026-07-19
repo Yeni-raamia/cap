@@ -5,6 +5,7 @@ import {
   Activity,
   FolderKanban,
   KeyRound,
+  ListChecks,
   ListTree,
   Settings2,
   Trash2,
@@ -12,6 +13,7 @@ import {
   Users2,
 } from "lucide-react";
 import {
+  ACTION_ICONS,
   TONES,
   type ActivityEntry,
   type AdminCounts,
@@ -44,6 +46,8 @@ const ACTION_LABEL: Record<string, string> = {
   member_pages: "Pages accordées",
   blocage_demarche: "Démarche de déblocage",
   blocage_appreciation: "Appréciation du motif",
+  reflist_add: "Liste — ajout",
+  reflist_delete: "Liste — suppression",
   catalogue_add: "Catalogue — ajout",
   catalogue_update: "Catalogue — édition",
   catalogue_delete: "Catalogue — suppression",
@@ -53,7 +57,7 @@ const ACTION_LABEL: Record<string, string> = {
 const dt = (d: string | Date) =>
   new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
-type Section = "membres" | "catalogue" | "parametres" | "journal";
+type Section = "membres" | "catalogue" | "listes" | "parametres" | "journal";
 
 interface Overview {
   members: AdminMember[];
@@ -95,6 +99,7 @@ export default function AdminPage() {
   const TABS: { id: Section; label: string; icon: typeof Users2 }[] = [
     { id: "membres", label: "Membres", icon: Users2 },
     { id: "catalogue", label: "Catalogue", icon: ListTree },
+    { id: "listes", label: "Listes", icon: ListChecks },
     { id: "parametres", label: "Paramètres", icon: Settings2 },
     { id: "journal", label: "Journal & stats", icon: Activity },
   ];
@@ -129,6 +134,8 @@ export default function AdminPage() {
         <MembresSection over={over} setOver={setOver} setErr={setErr} meId={me.id} />
       ) : section === "catalogue" ? (
         <CatalogueSection onChanged={load} setErr={setErr} />
+      ) : section === "listes" ? (
+        <ListesSection onChanged={load} setErr={setErr} />
       ) : section === "parametres" ? (
         <ParametresSection settings={over.settings} onSaved={load} setErr={setErr} />
       ) : (
@@ -466,6 +473,90 @@ function AddTypeForm({ onAdd }: { onAdd: (code: string, label: string, rel: stri
       <label className="flex items-center gap-1"><input type="checkbox" checked={u} onChange={(ev) => setU(ev.target.checked)} className="accent-rose-600" />urg</label>
       <button onClick={() => { if (code && label.trim()) { onAdd(code, label.trim(), r, e, u); setCode(""); setLabel(""); setR(""); setE(""); setU(false); } }} disabled={!code || !label.trim()} className="text-white bg-emerald-600 rounded px-2 py-1 disabled:opacity-40">Ajouter</button>
     </div>
+  );
+}
+
+/* ================= Listes de référence ================= */
+function ListesSection({ onChanged, setErr }: { onChanged: () => void; setErr: (e: string | null) => void }) {
+  const { refLists, refListAction } = useApp();
+  const run = async (p: Parameters<typeof refListAction>[0]) => {
+    setErr(null);
+    const e = await refListAction(p);
+    if (e) setErr(e);
+    else onChanged();
+  };
+
+  return (
+    <div className="grid md:grid-cols-3 gap-4">
+      <SimpleListCard
+        title="Appréciations du motif"
+        values={refLists.appreciations}
+        onAdd={(v) => run({ op: "add", listKey: "appreciation", label: v })}
+        onDelete={(v) => run({ op: "delete", listKey: "appreciation", value: v })}
+      />
+      <SimpleListCard
+        title="Causes de blocage"
+        values={refLists.causes}
+        onAdd={(v) => run({ op: "add", listKey: "cause", label: v })}
+        onDelete={(v) => run({ op: "delete", listKey: "cause", value: v })}
+      />
+      <ActionsListCard
+        actions={refLists.actions}
+        onAdd={(label, icon) => run({ op: "add", listKey: "action", label, icon })}
+        onDelete={(kind) => run({ op: "delete", listKey: "action", value: kind })}
+      />
+    </div>
+  );
+}
+
+function SimpleListCard({ title, values, onAdd, onDelete }: { title: string; values: string[]; onAdd: (v: string) => void; onDelete: (v: string) => void }) {
+  const [val, setVal] = useState("");
+  return (
+    <Card className="p-4">
+      <div className="text-[13px] font-semibold text-slate-700 mb-3">{title} ({values.length})</div>
+      <div className="space-y-1.5">
+        {values.map((v) => (
+          <div key={v} className="flex items-center gap-2 text-[12px]">
+            <span className="flex-1 text-slate-700">{v}</span>
+            <button onClick={() => onDelete(v)} aria-label="Supprimer" className="text-slate-300 hover:text-rose-600"><Trash2 size={13} /></button>
+          </div>
+        ))}
+        {values.length === 0 && <div className="text-[12px] text-slate-400">Liste vide.</div>}
+      </div>
+      <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100">
+        <input value={val} onChange={(e) => setVal(e.target.value)} placeholder="Nouvelle valeur…" className="flex-1 text-[12px] border border-slate-200 rounded-lg px-2 py-1.5" />
+        <button onClick={() => { if (val.trim()) { onAdd(val.trim()); setVal(""); } }} disabled={!val.trim()} className="text-[12px] text-white bg-emerald-600 rounded-lg px-3 py-1.5 disabled:opacity-40">Ajouter</button>
+      </div>
+    </Card>
+  );
+}
+
+function ActionsListCard({ actions, onAdd, onDelete }: { actions: { kind: string; label: string; icon: string }[]; onAdd: (label: string, icon: string) => void; onDelete: (kind: string) => void }) {
+  const [label, setLabel] = useState("");
+  const [icon, setIcon] = useState("Flag");
+  return (
+    <Card className="p-4">
+      <div className="text-[13px] font-semibold text-slate-700 mb-3">Actions de déblocage ({actions.length})</div>
+      <div className="space-y-1.5">
+        {actions.map((a) => (
+          <div key={a.kind} className="flex items-center gap-2 text-[12px]">
+            <span className="text-[10px] text-slate-400 w-16 truncate">{a.icon}</span>
+            <span className="flex-1 text-slate-700 truncate">{a.label}</span>
+            <button onClick={() => onDelete(a.kind)} aria-label="Supprimer" className="text-slate-300 hover:text-rose-600"><Trash2 size={13} /></button>
+          </div>
+        ))}
+        {actions.length === 0 && <div className="text-[12px] text-slate-400">Liste vide.</div>}
+      </div>
+      <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Libellé de l'action…" className="w-full text-[12px] border border-slate-200 rounded-lg px-2 py-1.5" />
+        <div className="flex items-center gap-1.5">
+          <select value={icon} onChange={(e) => setIcon(e.target.value)} aria-label="Icône" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 bg-white flex-1">
+            {ACTION_ICONS.map((i) => (<option key={i}>{i}</option>))}
+          </select>
+          <button onClick={() => { if (label.trim()) { onAdd(label.trim(), icon); setLabel(""); setIcon("Flag"); } }} disabled={!label.trim()} className="text-[12px] text-white bg-emerald-600 rounded-lg px-3 py-1.5 disabled:opacity-40">Ajouter</button>
+        </div>
+      </div>
+    </Card>
   );
 }
 

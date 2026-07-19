@@ -2,20 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { Filter, Flag, ListChecks, Phone, ShieldAlert } from "lucide-react";
-import {
-  APPRECIATIONS,
-  blocageActionLabel,
-  CAUSES,
-  fmt,
-  type Item,
-} from "@/lib/domain";
+import { blocageActionLabel, fmt, type Item } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
 
 type ViewMode = "detaillee" | "compacte" | "cause" | "appreciation";
 
 export default function BlocagesPage() {
-  const { items, rs, openItem, profileById } = useApp();
+  const { items, rs, openItem, profileById, refLists } = useApp();
 
   const [view, setView] = useState<ViewMode>("compacte");
   const [search, setSearch] = useState("");
@@ -126,11 +120,11 @@ export default function BlocagesPage() {
           </select>
           <select value={fCause} onChange={(e) => setFCause(e.target.value)} aria-label="Cause" className={selectCls}>
             <option value="Tous">Toutes causes</option>
-            {CAUSES.map((c) => (<option key={c}>{c}</option>))}
+            {refLists.causes.map((c) => (<option key={c}>{c}</option>))}
           </select>
           <select value={fAppr} onChange={(e) => setFAppr(e.target.value)} aria-label="Appréciation" className={selectCls}>
             <option value="Tous">Toutes appréciations</option>
-            {APPRECIATIONS.map((a) => (<option key={a}>{a}</option>))}
+            {refLists.appreciations.map((a) => (<option key={a}>{a}</option>))}
             <option value="—">Non précisée</option>
           </select>
           <select value={fDem} onChange={(e) => setFDem(e.target.value as "Tous" | "avec" | "sans")} aria-label="Démarches" className={selectCls}>
@@ -248,7 +242,7 @@ function CompacteView({
 
 /* Carte-résumé — cliquer ouvre le drawer pour agir. */
 function BlocageSummary({ item }: { item: Item }) {
-  const { rs, openItem, profileById } = useApp();
+  const { rs, openItem, profileById, refLists } = useApp();
   const owner = profileById(item.ownerId);
   const last = item.blocageActions[0];
   return (
@@ -270,7 +264,7 @@ function BlocageSummary({ item }: { item: Item }) {
           <span className="text-rose-600 font-medium">Aucune démarche — à prendre en main</span>
         ) : (
           <span>
-            {item.blocageActions.length} démarche(s) · dernière : {blocageActionLabel(last.kind)} ({fmt(last.createdAt)})
+            {item.blocageActions.length} démarche(s) · dernière : {blocageActionLabel(last.kind, refLists.actions)} ({fmt(last.createdAt)})
           </span>
         )}
       </div>

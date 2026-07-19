@@ -8,7 +8,6 @@ import { createProjectForItem } from "./projects";
 import { PROJECT_METIER } from "@/lib/domain";
 import type {
   BlocageAction,
-  BlocageActionKind,
   Catalogue,
   EventKind,
   Item,
@@ -158,7 +157,7 @@ interface ItemRow {
 interface BlocageActionRow {
   id: string;
   item_id: string;
-  kind: BlocageActionKind;
+  kind: string;
   concerne: string;
   note: string;
   author_id: string | null;
@@ -252,7 +251,7 @@ function mapItem(r: ItemRow, events: EventRow[], people: PersonRow[], actions: B
 /* ---------- Déblocage : démarches & appréciation ---------- */
 export function addBlocageAction(input: {
   itemId: string;
-  kind: BlocageActionKind;
+  kind: string;
   concerne: string;
   note: string;
   authorId: string;

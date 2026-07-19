@@ -1,26 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUp, CalendarClock, Flag, Mail, MessageCircle, Phone, Users, X } from "lucide-react";
-import {
-  APPRECIATIONS,
-  BLOCAGE_ACTIONS,
-  blocageActionLabel,
-  fmt,
-  type BlocageActionKind,
-  type Item,
-} from "@/lib/domain";
+import { ArrowUp, Bell, CalendarClock, FileText, Flag, Mail, MessageCircle, Phone, Send, Users, X } from "lucide-react";
+import { blocageActionLabel, fmt, type Item } from "@/lib/domain";
 import { useApp } from "./app-context";
 
-const ACT_ICON: Record<string, typeof Phone> = { Phone, Mail, ArrowUp, MessageCircle, Users, CalendarClock, Flag };
+const ACT_ICON: Record<string, typeof Phone> = {
+  Phone,
+  Mail,
+  ArrowUp,
+  MessageCircle,
+  Users,
+  CalendarClock,
+  Send,
+  FileText,
+  Bell,
+  Flag,
+};
 
 /** Bloc de déblocage : appréciation du motif + démarches menées (édition). */
 export function Deblocage({ item }: { item: Item }) {
-  const { me, addBlocageAction, setAppreciation, profileById } = useApp();
+  const { me, addBlocageAction, setAppreciation, profileById, refLists } = useApp();
   const canEdit = me.role === "agent" ? item.ownerId === me.id : true;
 
   const defaultConcerne = item.personnes.find((p) => p.kind === "destinataire")?.name ?? "";
-  const [kind, setKind] = useState<BlocageActionKind>("appel");
+  const [kind, setKind] = useState<string>(refLists.actions[0]?.kind ?? "appel");
   const [concerne, setConcerne] = useState(defaultConcerne);
   const [note, setNote] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -38,7 +42,7 @@ export function Deblocage({ item }: { item: Item }) {
             className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white"
           >
             <option value="">— à qualifier —</option>
-            {APPRECIATIONS.map((a) => (
+            {refLists.appreciations.map((a) => (
               <option key={a}>{a}</option>
             ))}
           </select>
@@ -57,14 +61,14 @@ export function Deblocage({ item }: { item: Item }) {
         ) : (
           <div className="space-y-2">
             {item.blocageActions.map((a) => {
-              const meta = BLOCAGE_ACTIONS.find((x) => x.kind === a.kind);
+              const meta = refLists.actions.find((x) => x.kind === a.kind);
               const Icon = ACT_ICON[meta?.icon ?? "Flag"] ?? Flag;
               return (
                 <div key={a.id} className="flex gap-2 text-[12px]">
                   <Icon size={14} className="text-slate-500 mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="text-slate-700">
-                      <span className="font-medium">{blocageActionLabel(a.kind)}</span> — {a.concerne}
+                      <span className="font-medium">{blocageActionLabel(a.kind, refLists.actions)}</span> — {a.concerne}
                     </div>
                     {a.note && <div className="text-slate-500">{a.note}</div>}
                     <div className="text-[10px] text-slate-400">
@@ -85,8 +89,8 @@ export function Deblocage({ item }: { item: Item }) {
               </button>
             ) : (
               <div className="space-y-2 border-t border-slate-200 pt-2">
-                <select value={kind} onChange={(e) => setKind(e.target.value as BlocageActionKind)} aria-label="Type de démarche" className="w-full text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 bg-white">
-                  {BLOCAGE_ACTIONS.map((a) => (
+                <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Type de démarche" className="w-full text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 bg-white">
+                  {refLists.actions.map((a) => (
                     <option key={a.kind} value={a.kind}>{a.label}</option>
                   ))}
                 </select>

@@ -15,7 +15,6 @@ import {
   X,
 } from "lucide-react";
 import {
-  CAUSES,
   daysBetween,
   fmt,
   STATUTS,
@@ -39,8 +38,8 @@ const evMeta: Record<EventKind, { icon: ComponentType<{ size?: number; className
 };
 
 export function Drawer() {
-  const { open, items, now, closeItem, act, setRelanceDate, rs, me, profileById } = useApp();
-  const [cause, setCause] = useState(CAUSES[0]);
+  const { open, items, now, closeItem, act, setRelanceDate, rs, me, profileById, refLists } = useApp();
+  const [cause, setCause] = useState(refLists.causes[0] ?? "");
 
   useEffect(() => {
     if (!open) return;
@@ -254,7 +253,7 @@ export function Drawer() {
                 aria-label="Cause de blocage"
                 className="w-full text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 text-slate-600"
               >
-                {CAUSES.map((c) => (
+                {refLists.causes.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </select>

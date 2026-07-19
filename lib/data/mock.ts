@@ -280,7 +280,7 @@ export function addBlocageAction(
       ? {
           ...it,
           blocageActions: [
-            { id: rid("ba"), itemId, kind: kind as never, concerne, note, authorId: meId, createdAt: now },
+            { id: rid("ba"), itemId, kind, concerne, note, authorId: meId, createdAt: now },
             ...it.blocageActions,
           ],
         }
