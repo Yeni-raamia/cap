@@ -4,6 +4,8 @@
  * ================================================================== */
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
+import { createProjectForItem } from "./projects";
+import { PROJECT_METIER } from "@/lib/domain";
 import type {
   Catalogue,
   EventKind,
@@ -131,6 +133,7 @@ interface ItemRow {
   date_creation: string;
   date_maj: string;
   date_relance_prevue: string | null;
+  project_id: string | null;
 }
 interface EventRow {
   item_id: string;
@@ -201,6 +204,7 @@ function mapItem(r: ItemRow, events: EventRow[], people: PersonRow[]): Item {
     dateCreation: new Date(r.date_creation),
     dateMaj: new Date(r.date_maj),
     dateRelancePrevue: r.date_relance_prevue ? new Date(r.date_relance_prevue) : null,
+    projectId: r.project_id ?? null,
     timeline,
   };
 }
@@ -257,6 +261,10 @@ export function createItem(input: {
     insEv.run(randomUUID(), id, "envoi", "Envoyé", input.ownerId, now);
   });
   tx();
+  // Suivi de métier PRJ : créer automatiquement le projet lié.
+  if (input.parsed.metier === PROJECT_METIER) {
+    createProjectForItem(id, input.parsed.objet, input.ownerId);
+  }
   return getItem(id)!;
 }
 

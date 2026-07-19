@@ -7,6 +7,7 @@ import {
   BarChart3,
   Bell,
   Compass,
+  FolderKanban,
   LayoutDashboard,
   Settings,
   Trophy,
@@ -20,6 +21,7 @@ import { useApp } from "./app-context";
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   Users,
+  FolderKanban,
   AlertTriangle,
   BarChart3,
   Trophy,

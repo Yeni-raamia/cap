@@ -61,6 +61,8 @@ export interface Item {
   dateMaj: Date;
   /** Date de relance planifiée par l'utilisateur (calendrier), ou null. */
   dateRelancePrevue: Date | null;
+  /** Projet rattaché (ou null). Auto-renseigné pour les suivis de métier PRJ. */
+  projectId: string | null;
   timeline: TimelineEvent[];
 }
 
@@ -338,6 +340,71 @@ export interface Notif {
   read: boolean;
   createdAt: Date;
 }
+
+/* ---------- Module Projet ---------- */
+export type ProjectStatus = "En cours" | "En pause" | "Terminé" | "Annulé";
+export const PROJECT_STATUTS: ProjectStatus[] = ["En cours", "En pause", "Terminé", "Annulé"];
+
+export type TaskStatus = "à faire" | "en cours" | "fait";
+export const TASK_STATUTS: TaskStatus[] = ["à faire", "en cours", "fait"];
+
+export interface ProjectTask {
+  id: string;
+  projectId: string;
+  title: string;
+  assigneeId: string | null;
+  status: TaskStatus;
+  dueDate: Date | null;
+  ordre: number;
+  createdAt: Date;
+}
+
+export interface ProjectNote {
+  id: string;
+  projectId: string;
+  authorId: string;
+  body: string;
+  createdAt: Date;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  ownerId: string;
+  status: ProjectStatus;
+  deadline: Date | null;
+  sourceItemId: string | null; // suivi (métier PRJ) à l'origine du projet
+  createdAt: Date;
+  tasks: ProjectTask[];
+  memberIds: string[];
+  notes: ProjectNote[];
+}
+
+export interface ProjectMetrics {
+  total: number;
+  done: number;
+  open: number;
+  late: number;
+  progress: number; // %
+}
+
+export function projectMetrics(p: Project, now: Date): ProjectMetrics {
+  const total = p.tasks.length;
+  const done = p.tasks.filter((t) => t.status === "fait").length;
+  const late = p.tasks.filter(
+    (t) => t.status !== "fait" && t.dueDate && t.dueDate.getTime() < now.getTime()
+  ).length;
+  return {
+    total,
+    done,
+    open: total - done,
+    late,
+    progress: total ? Math.round((done / total) * 100) : 0,
+  };
+}
+
+export const PROJECT_METIER = "PRJ"; // métier déclencheur d'un projet
 
 /* ---------- Couleurs de teinte (réutilisées par les atomes UI) ---------- */
 export const toneBg: Record<Tone, string> = {

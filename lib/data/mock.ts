@@ -13,6 +13,7 @@ import {
   type PersonKind,
   type Priorite,
   type Profile,
+  type Project,
   type Statut,
   type TimelineEvent,
   type EventKind,
@@ -77,6 +78,7 @@ function mk(
     dateCreation: daysAgo(ageDays),
     dateMaj: timeline[timeline.length - 1].date,
     dateRelancePrevue: null,
+    projectId: null,
     timeline,
   };
 }
@@ -239,6 +241,7 @@ export function createItem(
     dateCreation: now,
     dateMaj: now,
     dateRelancePrevue: null,
+    projectId: null,
     timeline: [
       { date: now, kind: "creation", label: "Objet créé", author: meId },
       { date: now, kind: "envoi", label: "Envoyé", author: meId },
@@ -252,6 +255,50 @@ export function setRelanceDate(items: Item[], itemId: string, dateISO: string | 
   return items.map((it) =>
     it.id === itemId ? { ...it, dateRelancePrevue: dateISO ? new Date(dateISO) : null } : it
   );
+}
+
+/* ---------- Projets de démonstration (lecture seule en mode démo) ---------- */
+export function seedProjects(): Project[] {
+  let n = 0;
+  const tid = () => `t${++n}`;
+  return [
+    {
+      id: "demo-p1",
+      name: "Bascule du collecteur de logs (SIEM)",
+      description: "Migration du collecteur vers la nouvelle plateforme de supervision.",
+      ownerId: "u6",
+      status: "En cours",
+      deadline: daysAgo(-20),
+      sourceItemId: null,
+      createdAt: daysAgo(12),
+      memberIds: ["u6", "u4", "u2"],
+      tasks: [
+        { id: tid(), projectId: "demo-p1", title: "Cartographier les sources de logs", assigneeId: "u4", status: "fait", dueDate: daysAgo(6), ordre: 1, createdAt: daysAgo(12) },
+        { id: tid(), projectId: "demo-p1", title: "Valider la volumétrie avec l'exploitation", assigneeId: "u6", status: "en cours", dueDate: daysAgo(-2), ordre: 2, createdAt: daysAgo(10) },
+        { id: tid(), projectId: "demo-p1", title: "Rédiger la procédure de bascule", assigneeId: "u2", status: "à faire", dueDate: daysAgo(-8), ordre: 3, createdAt: daysAgo(8) },
+        { id: tid(), projectId: "demo-p1", title: "Fenêtre de maintenance", assigneeId: null, status: "à faire", dueDate: daysAgo(-18), ordre: 4, createdAt: daysAgo(8) },
+      ],
+      notes: [
+        { id: "n1", projectId: "demo-p1", authorId: "u6", body: "Point d'avancement : volumétrie confirmée, reste la procédure.", createdAt: daysAgo(2) },
+      ],
+    },
+    {
+      id: "demo-p2",
+      name: "Durcissement de l'annuaire",
+      description: "Plan de remédiation issu de l'audit (élévations de privilèges).",
+      ownerId: "u3",
+      status: "En pause",
+      deadline: null,
+      sourceItemId: null,
+      createdAt: daysAgo(20),
+      memberIds: ["u3", "u6"],
+      tasks: [
+        { id: tid(), projectId: "demo-p2", title: "Prioriser les 12 recommandations", assigneeId: "u3", status: "fait", dueDate: daysAgo(14), ordre: 1, createdAt: daysAgo(20) },
+        { id: tid(), projectId: "demo-p2", title: "Corriger les comptes à privilèges", assigneeId: "u6", status: "à faire", dueDate: daysAgo(-5), ordre: 2, createdAt: daysAgo(18) },
+      ],
+      notes: [],
+    },
+  ];
 }
 
 export function listScores(items: Item[], now: Date) {

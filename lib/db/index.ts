@@ -32,8 +32,28 @@ create table if not exists items (
   owner_id text not null, points_cles text not null default '[]', blocage_cause text,
   relances_count integer not null default 0,
   date_creation text not null default (datetime('now')), date_maj text not null default (datetime('now')),
-  closed_at text, date_relance_prevue text
+  closed_at text, date_relance_prevue text, project_id text
 );
+create table if not exists projects (
+  id text primary key, name text not null, description text not null default '',
+  owner_id text not null, status text not null default 'En cours',
+  deadline text, source_item_id text, created_at text not null default (datetime('now'))
+);
+create table if not exists project_tasks (
+  id text primary key, project_id text not null, title text not null,
+  assignee_id text, status text not null default 'à faire', due_date text,
+  ordre integer not null default 0, created_at text not null default (datetime('now'))
+);
+create table if not exists project_members (
+  id text primary key, project_id text not null, profile_id text not null
+);
+create table if not exists project_notes (
+  id text primary key, project_id text not null, author_id text, body text not null,
+  created_at text not null default (datetime('now'))
+);
+create index if not exists idx_tasks_project on project_tasks(project_id);
+create index if not exists idx_pmembers_project on project_members(project_id);
+create index if not exists idx_pnotes_project on project_notes(project_id);
 create table if not exists item_people (
   id text primary key, item_id text not null, name text not null, kind text not null default 'destinataire'
 );
@@ -82,6 +102,9 @@ function ensureColumns(db: Database.Database) {
   );
   if (!cols.includes("date_relance_prevue")) {
     db.exec("alter table items add column date_relance_prevue text");
+  }
+  if (!cols.includes("project_id")) {
+    db.exec("alter table items add column project_id text");
   }
 }
 

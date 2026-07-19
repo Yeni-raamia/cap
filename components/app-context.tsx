@@ -12,6 +12,7 @@ import {
   applyAction as mockApply,
   createItem as mockCreate,
   setRelanceDate as mockSetRelanceDate,
+  seedProjects,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -27,12 +28,29 @@ import {
   type ParsedSubject,
   type Priorite,
   type Profile,
+  type Project,
+  type ProjectStatus,
   type ReminderState,
   type Role,
   type Score,
+  type TaskStatus,
 } from "@/lib/domain";
 
 type Action = "relance" | "reponse" | "bloque" | "cloture";
+interface TaskPayload {
+  projectId?: string;
+  taskId?: string;
+  title?: string;
+  assigneeId?: string | null;
+  status?: TaskStatus;
+  dueDate?: string | null;
+}
+interface ProjectFields {
+  name?: string;
+  description?: string;
+  status?: ProjectStatus;
+  deadline?: string | null;
+}
 type CatalogueOption =
   | { kind: "metier"; code: string; label: string; tone: string }
   | { kind: "type"; code: string; label: string; slaRelance: string; slaEscalade: string; urgent: boolean };
@@ -66,6 +84,15 @@ interface AppCtx {
   markNotificationsRead: () => void;
   alerts: number;
   signOut: () => void;
+  // Module Projet
+  projects: Project[];
+  projectById: (id: string) => Project | null;
+  createProject: (name: string, description: string, deadline: string | null) => Promise<string | null>;
+  updateProject: (id: string, fields: ProjectFields) => Promise<string | null>;
+  projectTask: (action: "add" | "update" | "delete", payload: TaskPayload) => Promise<string | null>;
+  projectMember: (action: "add" | "remove", projectId: string, profileId: string) => Promise<string | null>;
+  projectNote: (projectId: string, body: string) => Promise<string | null>;
+  attachItemToProject: (itemId: string, projectId: string | null) => Promise<string | null>;
 }
 
 const EPOCH = new Date(0);
@@ -85,6 +112,18 @@ function reviveItem(r: Item): Item {
 const reviveItems = (arr: Item[]): Item[] => arr.map(reviveItem);
 const reviveNotifs = (arr: Notif[]): Notif[] =>
   arr.map((n) => ({ ...n, createdAt: new Date(n.createdAt) }));
+const reviveProject = (p: Project): Project => ({
+  ...p,
+  deadline: p.deadline ? new Date(p.deadline) : null,
+  createdAt: new Date(p.createdAt),
+  tasks: p.tasks.map((t) => ({
+    ...t,
+    dueDate: t.dueDate ? new Date(t.dueDate) : null,
+    createdAt: new Date(t.createdAt),
+  })),
+  notes: p.notes.map((nt) => ({ ...nt, createdAt: new Date(nt.createdAt) })),
+});
+const reviveProjects = (arr: Project[]): Project[] => arr.map(reviveProject);
 
 export function AppProvider({
   children,
@@ -94,6 +133,7 @@ export function AppProvider({
   initialProfiles,
   initialNotifications,
   initialCatalogue,
+  initialProjects,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -102,6 +142,7 @@ export function AppProvider({
   initialProfiles?: Profile[];
   initialNotifications?: Notif[];
   initialCatalogue?: Catalogue;
+  initialProjects?: Project[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -114,6 +155,9 @@ export function AppProvider({
   );
   const [catalogue, setCatalogue] = useState<Catalogue>(
     demo || !initialCatalogue ? DEFAULT_CATALOGUE : initialCatalogue
+  );
+  const [projects, setProjects] = useState<Project[]>(
+    demo ? seedProjects() : reviveProjects(initialProjects ?? [])
   );
   const [nowState, setNowState] = useState<Date | null>(null);
   const [meId, setMeId] = useState<string>(DEFAULT_USER_ID); // sélecteur démo
@@ -239,6 +283,36 @@ export function AppProvider({
     });
   };
 
+  /* ---------- Projets ---------- */
+  const projectById = (id: string): Project | null => projects.find((p) => p.id === id) ?? null;
+
+  const DEMO_MSG = "Édition des projets indisponible en mode démo.";
+  const postProjects = async (url: string, body: unknown): Promise<string | null> => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const d = await res.json();
+    if (!res.ok) return d.error ?? "Erreur.";
+    if (d.projects) setProjects(reviveProjects(d.projects));
+    if (d.items) setItems(reviveItems(d.items));
+    return null;
+  };
+
+  const createProject = async (name: string, description: string, deadline: string | null) =>
+    demo ? DEMO_MSG : postProjects("/api/projects", { name, description, deadline });
+  const updateProject = async (id: string, fields: ProjectFields) =>
+    demo ? DEMO_MSG : postProjects("/api/projects/update", { id, ...fields });
+  const projectTask = async (action: "add" | "update" | "delete", payload: TaskPayload) =>
+    demo ? DEMO_MSG : postProjects("/api/projects/tasks", { action, ...payload });
+  const projectMember = async (action: "add" | "remove", projectId: string, profileId: string) =>
+    demo ? DEMO_MSG : postProjects("/api/projects/members", { action, projectId, profileId });
+  const projectNote = async (projectId: string, body: string) =>
+    demo ? DEMO_MSG : postProjects("/api/projects/notes", { projectId, body });
+  const attachItemToProject = async (itemId: string, projectId: string | null) =>
+    demo ? DEMO_MSG : postProjects("/api/projects/attach", { itemId, projectId });
+
   const scores = useMemo(
     () => computeScores(items, profiles, now, catalogue.types),
     [items, profiles, now, catalogue]
@@ -277,6 +351,14 @@ export function AppProvider({
     markNotificationsRead,
     alerts,
     signOut,
+    projects,
+    projectById,
+    createProject,
+    updateProject,
+    projectTask,
+    projectMember,
+    projectNote,
+    attachItemToProject,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
