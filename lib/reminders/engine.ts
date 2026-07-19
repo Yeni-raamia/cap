@@ -17,6 +17,7 @@ import {
   notifExistsToday,
   setRelanceDate,
 } from "@/lib/db/repo";
+import { getSettings, logActivity } from "@/lib/db/admin";
 import { isEmailConfigured, sendEmail } from "./email";
 
 export interface ReminderSummary {
@@ -33,7 +34,8 @@ export async function runReminders(): Promise<ReminderSummary> {
   const items = listItems();
   const types = getCatalogue().types; // SLA depuis le catalogue (y compris types ajoutés)
   const targets = listEscalationTargets(); // directeurs (ou admins à défaut)
-  const emailOn = isEmailConfigured();
+  // E-mail effectif = Resend configuré ET activé dans les paramètres d'admin.
+  const emailOn = isEmailConfigured() && getSettings().emailEnabled;
   const channel = emailOn ? ["in-app", "e-mail"] : ["in-app"];
 
   let relances = 0;
@@ -101,6 +103,12 @@ export async function runReminders(): Promise<ReminderSummary> {
   for (const m of emails) {
     if (await sendEmail(m.to, m.subject, m.text)) emailsSent++;
   }
+
+  logActivity(
+    null,
+    "reminders_run",
+    `${relances} relance(s), ${escalades} escalade(s), ${echeances} échéance(s), ${digests} digest(s), ${emailsSent} e-mail(s)`
+  );
 
   return { relances, escalades, digests, echeances, emailsSent, emailConfigured: emailOn };
 }

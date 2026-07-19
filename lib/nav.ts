@@ -17,7 +17,7 @@ export const NAV: NavItem[] = [
   { id: "stats", href: "/stats", label: "Statistiques", icon: "BarChart3", roles: ["directeur", "admin"] },
   { id: "classement", href: "/classement", label: "Classement", icon: "Trophy", roles: ["agent", "directeur", "admin"] },
   { id: "rappels", href: "/rappels", label: "Rappels", icon: "Bell", roles: ["agent", "directeur", "admin"] },
-  { id: "admin", href: "/admin", label: "Administration", icon: "Settings", roles: ["directeur", "admin"] },
+  { id: "admin", href: "/admin", label: "Administration", icon: "Settings", roles: ["admin"] },
 ];
 
 export const navForRole = (role: Role): NavItem[] =>

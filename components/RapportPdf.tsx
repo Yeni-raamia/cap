@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Download } from "lucide-react";
 import { fmt, fmtLong, type Item } from "@/lib/domain";
 import { computeBreakdowns, type CauseStat, type CritStat, type DestStat } from "@/lib/stats";
-import { APP_NAME, ORG_NAME } from "@/lib/config";
+import { APP_NAME } from "@/lib/config";
 import { useApp } from "./app-context";
 
 type Preset = "hebdo" | "mensuel" | "trimestriel" | "annuel" | "perso";
@@ -25,6 +25,7 @@ interface AgentRow {
   clotures: number;
 }
 interface Report {
+  orgName: string;
   fromLabel: string;
   toLabel: string;
   editedAt: string;
@@ -45,7 +46,7 @@ interface Report {
 }
 
 export function RapportPdf() {
-  const { items, profiles, catalogue, now, rs, scores, profileById } = useApp();
+  const { items, profiles, catalogue, now, rs, scores, profileById, orgName } = useApp();
   const [preset, setPreset] = useState<Preset>("mensuel");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -107,6 +108,7 @@ export function RapportPdf() {
     const bd = computeBreakdowns(items, profiles, now, catalogue.types);
 
     setReport({
+      orgName,
       fromLabel: fmtLong(new Date(fromT)),
       toLabel: fmtLong(new Date(toT)),
       editedAt: fmtLong(now),
@@ -193,7 +195,7 @@ function ReportDocument({ report }: { report: Report }) {
     <div className="print-report">
       <div style={{ borderBottom: "2px solid #0f172a", paddingBottom: 10, marginBottom: 16 }}>
         <div style={{ fontSize: 20, fontWeight: 700 }}>{APP_NAME} — Rapport d&apos;activité</div>
-        <div style={{ fontSize: 12, color: "#475569" }}>{ORG_NAME}</div>
+        <div style={{ fontSize: 12, color: "#475569" }}>{report.orgName}</div>
         <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>
           Période : du {report.fromLabel} au {report.toLabel} · Édité le {report.editedAt}
         </div>

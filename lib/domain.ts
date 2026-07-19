@@ -406,6 +406,39 @@ export function projectMetrics(p: Project, now: Date): ProjectMetrics {
 
 export const PROJECT_METIER = "PRJ"; // métier déclencheur d'un projet
 
+/* ---------- Administration ---------- */
+export interface AdminMember {
+  id: string;
+  nom: string;
+  email: string;
+  poste: string;
+  role: Role;
+  init: string;
+  active: boolean;
+}
+
+export interface ActivityEntry {
+  id: string;
+  actorNom: string;
+  action: string;
+  detail: string;
+  createdAt: Date;
+}
+
+export interface AdminCounts {
+  members: number;
+  activeMembers: number;
+  items: number;
+  projects: number;
+  notifications: number;
+}
+
+export interface AppSettings {
+  orgName: string;
+  emailEnabled: boolean;
+  digestHour: string; // "08:00"
+}
+
 /* ---------- Couleurs de teinte (réutilisées par les atomes UI) ---------- */
 export const toneBg: Record<Tone, string> = {
   emerald: "bg-emerald-100 text-emerald-700",

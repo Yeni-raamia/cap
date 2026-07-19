@@ -13,6 +13,9 @@ export async function POST(request: Request) {
   if (!row || !verifyPassword(password, row.password_hash)) {
     return NextResponse.json({ error: "E-mail ou mot de passe incorrect." }, { status: 401 });
   }
+  if (row.active !== 1) {
+    return NextResponse.json({ error: "Ce compte est désactivé." }, { status: 403 });
+  }
 
   const token = createSession(row.id);
   const res = NextResponse.json({ user: getProfileById(row.id) });

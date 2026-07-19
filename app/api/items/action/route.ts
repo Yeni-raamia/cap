@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { applyAction, canEditItem, listItems } from "@/lib/db/repo";
+import { applyAction, canEditItem, getItem, listItems } from "@/lib/db/repo";
+import { logActivity } from "@/lib/db/admin";
 import { getCurrentUser } from "@/lib/auth/session";
 
 const ACTIONS = ["relance", "reponse", "bloque", "cloture"] as const;
@@ -24,5 +25,6 @@ export async function POST(request: Request) {
   }
 
   applyAction(itemId, action, cause, user.id);
+  logActivity(user.id, `item_${action}`, getItem(itemId)?.ref ?? itemId);
   return NextResponse.json({ items: listItems() });
 }

@@ -19,7 +19,7 @@ const notifTone: Record<NotifKind, string> = {
 };
 
 export default function RappelsPage() {
-  const { demo, items, me, emailOn, rs, profileById, notifications, markNotificationsRead } =
+  const { demo, items, me, emailEnabled: emailOn, rs, profileById, notifications, markNotificationsRead } =
     useApp();
 
   const dues = items.filter((i) => rs(i).level === "relance");

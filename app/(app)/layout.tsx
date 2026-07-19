@@ -5,6 +5,7 @@ import { DEMO_MODE } from "@/lib/config";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCatalogue, listItems, listNotificationsFor, listProfiles } from "@/lib/db/repo";
 import { listProjects } from "@/lib/db/projects";
+import { getSettings } from "@/lib/db/admin";
 
 export default async function AppGroupLayout({ children }: { children: ReactNode }) {
   // Mode démo : pas d'authentification, l'app s'amorce côté client.
@@ -21,6 +22,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const notifications = listNotificationsFor(user.id);
   const catalogue = getCatalogue();
   const projects = listProjects();
+  const settings = getSettings();
 
   return (
     <AppShell
@@ -30,6 +32,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialNotifications={notifications}
       initialCatalogue={catalogue}
       initialProjects={projects}
+      initialSettings={settings}
     >
       {children}
     </AppShell>

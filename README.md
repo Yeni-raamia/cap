@@ -36,6 +36,12 @@ réellement appliqués.
 - **Rôles (RBAC)** : *agent*, *directeur*, *admin*, appliqués **côté serveur**.
 - **Classement « culture juste »** avec badges (Relanceur, Closeur, Réactif,
   Zéro oubli).
+- **Administration complète** (admin) : gestion des membres (créer, désactiver,
+  réinitialiser le mot de passe, rôle, poste), catalogue éditable/supprimable,
+  paramètres persistés (nom d'organisation, activation e-mail, digest), journal
+  d'activité et statistiques.
+- **Statistiques détaillées** (par émetteur, destinataire, criticité, cause de
+  blocage) et **rapport PDF** sur une période libre.
 
 ---
 

@@ -34,6 +34,7 @@ interface ProfileRow {
   initials: string;
   poste: string | null;
   role: Role;
+  active: number;
 }
 
 function mapProfile(r: ProfileRow): Profile {
@@ -110,6 +111,11 @@ export function getSessionUser(token: string): Profile | null {
     deleteSession(token);
     return null;
   }
+  // Un membre désactivé n'a plus de session valide.
+  const act = getDb().prepare("select active from profiles where id = ?").get(row.user_id) as
+    | { active: number }
+    | undefined;
+  if (!act || act.active !== 1) return null;
   return getProfileById(row.user_id);
 }
 

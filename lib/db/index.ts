@@ -70,6 +70,14 @@ create table if not exists sessions (
   token text primary key, user_id text not null,
   created_at text not null default (datetime('now')), expires_at text not null
 );
+create table if not exists settings (
+  key text primary key, value text not null
+);
+create table if not exists activity_log (
+  id text primary key, actor_id text, action text not null, detail text not null default '',
+  created_at text not null default (datetime('now'))
+);
+create index if not exists idx_activity_created on activity_log(created_at);
 create index if not exists idx_items_owner on items(owner_id);
 create index if not exists idx_items_statut on items(statut);
 create index if not exists idx_events_item on events(item_id);

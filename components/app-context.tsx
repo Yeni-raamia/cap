@@ -22,6 +22,7 @@ import {
   computeScores,
   DEFAULT_CATALOGUE,
   reminderState,
+  type AppSettings,
   type Catalogue,
   type Item,
   type Notif,
@@ -35,6 +36,7 @@ import {
   type Score,
   type TaskStatus,
 } from "@/lib/domain";
+import { ORG_NAME } from "@/lib/config";
 
 type Action = "relance" | "reponse" | "bloque" | "cloture";
 interface TaskPayload {
@@ -51,9 +53,10 @@ interface ProjectFields {
   status?: ProjectStatus;
   deadline?: string | null;
 }
-type CatalogueOption =
-  | { kind: "metier"; code: string; label: string; tone: string }
-  | { kind: "type"; code: string; label: string; slaRelance: string; slaEscalade: string; urgent: boolean };
+type CatalogueAction =
+  | { op: "add" | "update"; kind: "metier"; code: string; label: string; tone: string }
+  | { op: "add" | "update"; kind: "type"; code: string; label: string; slaRelance: string; slaEscalade: string; urgent: boolean }
+  | { op: "delete"; kind: "metier" | "type"; code: string };
 
 interface AppCtx {
   demo: boolean;
@@ -68,8 +71,10 @@ interface AppCtx {
   catalogue: Catalogue;
   rs: (item: Item) => ReminderState;
   scores: Score[];
-  emailOn: boolean;
-  setEmailOn: (v: boolean) => void;
+  orgName: string;
+  emailEnabled: boolean;
+  digestHour: string;
+  applySettings: (s: AppSettings) => void;
   open: Item | null;
   openItem: (i: Item) => void;
   closeItem: () => void;
@@ -79,7 +84,7 @@ interface AppCtx {
   create: (parsed: ParsedSubject, prio: Priorite, dest: string, points: string) => void;
   setRelanceDate: (item: Item, date: string | null) => void;
   updateRole: (userId: string, role: Role) => Promise<string | null>;
-  addCatalogueOption: (opt: CatalogueOption) => Promise<string | null>;
+  catalogueAction: (action: CatalogueAction) => Promise<string | null>;
   notifications: Notif[];
   markNotificationsRead: () => void;
   alerts: number;
@@ -134,6 +139,7 @@ export function AppProvider({
   initialNotifications,
   initialCatalogue,
   initialProjects,
+  initialSettings,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -143,6 +149,7 @@ export function AppProvider({
   initialNotifications?: Notif[];
   initialCatalogue?: Catalogue;
   initialProjects?: Project[];
+  initialSettings?: AppSettings;
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -161,9 +168,17 @@ export function AppProvider({
   );
   const [nowState, setNowState] = useState<Date | null>(null);
   const [meId, setMeId] = useState<string>(DEFAULT_USER_ID); // sélecteur démo
-  const [emailOn, setEmailOn] = useState(true);
+  const [orgName, setOrgName] = useState(initialSettings?.orgName ?? ORG_NAME);
+  const [emailEnabled, setEmailEnabled] = useState(initialSettings?.emailEnabled ?? true);
+  const [digestHour, setDigestHour] = useState(initialSettings?.digestHour ?? "08:00");
   const [open, setOpen] = useState<Item | null>(null);
   const [showNew, setShowNew] = useState(false);
+
+  const applySettings = (s: AppSettings) => {
+    setOrgName(s.orgName);
+    setEmailEnabled(s.emailEnabled);
+    setDigestHour(s.digestHour);
+  };
 
   // Horloge posée côté client uniquement (évite tout écart d'hydratation).
   useEffect(() => {
@@ -242,11 +257,12 @@ export function AppProvider({
       .catch((e) => console.error("Planification échouée :", e));
   };
 
-  const addCatalogueOption = async (opt: CatalogueOption): Promise<string | null> => {
+  const catalogueAction = async (action: CatalogueAction): Promise<string | null> => {
+    if (demo) return "Édition du catalogue indisponible en mode démo.";
     const res = await fetch("/api/admin/catalogue", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(opt),
+      body: JSON.stringify(action),
     });
     const d = await res.json();
     if (!res.ok) return d.error ?? "Erreur.";
@@ -336,8 +352,10 @@ export function AppProvider({
     catalogue,
     rs,
     scores,
-    emailOn,
-    setEmailOn,
+    orgName,
+    emailEnabled,
+    digestHour,
+    applySettings,
     open,
     openItem: (i) => setOpen(i),
     closeItem: () => setOpen(null),
@@ -347,7 +365,7 @@ export function AppProvider({
     create,
     setRelanceDate,
     updateRole,
-    addCatalogueOption,
+    catalogueAction,
     notifications,
     markNotificationsRead,
     alerts,
