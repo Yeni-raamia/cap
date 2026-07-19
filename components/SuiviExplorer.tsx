@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
+  CalendarRange,
   Filter,
   Inbox,
   LayoutGrid,
@@ -14,17 +15,26 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { STATUTS, type Item, type ReminderLevel, type Statut } from "@/lib/domain";
+import { fmt, STATUTS, type Item, type ReminderLevel, type Statut } from "@/lib/domain";
 import { useApp } from "./app-context";
-import { Avatar, Card, KPI, MetierChip, Token, TypeTag } from "./atoms";
+import { Avatar, Card, KPI, MetierChip, Priority, Token, TypeTag } from "./atoms";
 import { ItemCard } from "./ItemCard";
 
-type ViewMode = "liste" | "cartes" | "kanban" | "groupe";
-type GroupBy = "agent" | "metier";
+type ViewMode = "liste" | "cartes" | "kanban" | "groupe" | "chrono";
+type GroupBy = "agent" | "metier" | "priorite" | "statut";
 type SortKey = "maj" | "responsable" | "metier" | "type" | "objet" | "statut" | "jours";
+type Periode = "tout" | "7" | "30" | "90" | "annee" | "perso";
 
 const PRIORITES = ["Critique", "Élevé", "Moyenne"];
 const STATUT_ORDER = Object.keys(STATUTS) as Statut[];
+const PERIODES: { value: Periode; label: string }[] = [
+  { value: "tout", label: "Toute période" },
+  { value: "7", label: "7 derniers jours" },
+  { value: "30", label: "30 derniers jours" },
+  { value: "90", label: "90 derniers jours" },
+  { value: "annee", label: "Cette année" },
+  { value: "perso", label: "Période personnalisée" },
+];
 const ETATS: { value: ReminderLevel | "Tous"; label: string }[] = [
   { value: "Tous", label: "Tous les états" },
   { value: "ok", label: "À jour" },
@@ -71,8 +81,24 @@ export function SuiviExplorer({
   const [fPriorite, setFPriorite] = useState("Tous");
   const [fAgent, setFAgent] = useState("Tous");
   const [fEtat, setFEtat] = useState<ReminderLevel | "Tous">("Tous");
+  const [fProjet, setFProjet] = useState<"Tous" | "avec" | "sans">("Tous");
+  const [fPeriode, setFPeriode] = useState<Periode>("tout");
+  const [fFrom, setFFrom] = useState("");
+  const [fTo, setFTo] = useState("");
   const [search, setSearch] = useState("");
   const [includeClosed, setIncludeClosed] = useState(false);
+
+  const periodRange = useMemo((): [number, number] | null => {
+    if (fPeriode === "tout") return null;
+    const end = Date.now() + 864e5; // inclut aujourd'hui
+    if (fPeriode === "perso") {
+      const from = fFrom ? new Date(`${fFrom}T00:00:00`).getTime() : 0;
+      const to = fTo ? new Date(`${fTo}T23:59:59`).getTime() : end;
+      return [from, to];
+    }
+    if (fPeriode === "annee") return [new Date(new Date().getFullYear(), 0, 1).getTime(), end];
+    return [Date.now() - Number(fPeriode) * 864e5, end];
+  }, [fPeriode, fFrom, fTo]);
 
   const [sortKey, setSortKey] = useState<SortKey>("maj");
   const [sortAsc, setSortAsc] = useState(false);
@@ -87,10 +113,16 @@ export function SuiviExplorer({
       if (fPriorite !== "Tous" && i.priorite !== fPriorite) return false;
       if (showResponsable && fAgent !== "Tous" && i.ownerId !== fAgent) return false;
       if (fEtat !== "Tous" && rs(i).level !== fEtat) return false;
+      if (fProjet === "avec" && !i.projectId) return false;
+      if (fProjet === "sans" && i.projectId) return false;
+      if (periodRange) {
+        const t = i.dateCreation.getTime();
+        if (t < periodRange[0] || t > periodRange[1]) return false;
+      }
       if (q && !`${i.objet} ${i.ref}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [items, includeClosed, fMetier, fType, fStatut, fPriorite, fAgent, fEtat, search, showResponsable, rs]);
+  }, [items, includeClosed, fMetier, fType, fStatut, fPriorite, fAgent, fEtat, fProjet, periodRange, search, showResponsable, rs]);
 
   const enRetard = filtered.filter((i) => rs(i).level === "escalade").length;
   const bloques = filtered.filter((i) => i.statut === "Bloqué").length;
@@ -131,6 +163,10 @@ export function SuiviExplorer({
     setFPriorite("Tous");
     setFAgent("Tous");
     setFEtat("Tous");
+    setFProjet("Tous");
+    setFPeriode("tout");
+    setFFrom("");
+    setFTo("");
     setSearch("");
     setIncludeClosed(false);
   };
@@ -142,6 +178,8 @@ export function SuiviExplorer({
     (fPriorite !== "Tous" ? 1 : 0) +
     (showResponsable && fAgent !== "Tous" ? 1 : 0) +
     (fEtat !== "Tous" ? 1 : 0) +
+    (fProjet !== "Tous" ? 1 : 0) +
+    (fPeriode !== "tout" ? 1 : 0) +
     (search.trim() ? 1 : 0) +
     (includeClosed ? 1 : 0);
 
@@ -152,6 +190,7 @@ export function SuiviExplorer({
     { id: "cartes", label: "Cartes", icon: LayoutGrid },
     { id: "kanban", label: "Kanban", icon: LayoutList },
     { id: "groupe", label: "Regroupée", icon: Rows3 },
+    { id: "chrono", label: "Chronologie", icon: CalendarRange },
   ];
 
   const onSort = (k: SortKey) => {
@@ -249,6 +288,46 @@ export function SuiviExplorer({
               ))}
             </select>
           )}
+          <select
+            value={fProjet}
+            onChange={(e) => setFProjet(e.target.value as "Tous" | "avec" | "sans")}
+            aria-label="Filtrer par projet"
+            className={selectCls}
+          >
+            <option value="Tous">Projet : tous</option>
+            <option value="avec">Rattachés à un projet</option>
+            <option value="sans">Sans projet</option>
+          </select>
+          <select
+            value={fPeriode}
+            onChange={(e) => setFPeriode(e.target.value as Periode)}
+            aria-label="Filtrer par période de création"
+            className={selectCls}
+          >
+            {PERIODES.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.label}
+              </option>
+            ))}
+          </select>
+          {fPeriode === "perso" && (
+            <>
+              <input
+                type="date"
+                value={fFrom}
+                onChange={(e) => setFFrom(e.target.value)}
+                aria-label="Du"
+                className={selectCls}
+              />
+              <input
+                type="date"
+                value={fTo}
+                onChange={(e) => setFTo(e.target.value)}
+                aria-label="Au"
+                className={selectCls}
+              />
+            </>
+          )}
           <label className="flex items-center gap-1.5 text-[12px] text-slate-600 cursor-pointer">
             <input
               type="checkbox"
@@ -276,6 +355,8 @@ export function SuiviExplorer({
             >
               {showResponsable && <option value="agent">Grouper par responsable</option>}
               <option value="metier">Grouper par métier</option>
+              <option value="priorite">Grouper par priorité</option>
+              <option value="statut">Grouper par statut</option>
             </select>
           )}
         </div>
@@ -304,6 +385,8 @@ export function SuiviExplorer({
         </div>
       ) : view === "kanban" ? (
         <KanbanView items={filtered} includeClosed={includeClosed} />
+      ) : view === "chrono" ? (
+        <ChronoView items={filtered} rs={rs} profileById={profileById} onOpen={openItem} />
       ) : (
         <GroupeView items={filtered} groupBy={groupBy} profileById={profileById} catalogue={catalogue} />
       )}
@@ -427,6 +510,8 @@ function KanbanView({ items, includeClosed }: { items: Item[]; includeClosed: bo
 }
 
 /* ---------- Vue Regroupée ---------- */
+const PRIORITE_ORDER: Record<string, number> = { Critique: 0, Élevé: 1, Moyenne: 2 };
+
 function GroupeView({
   items,
   groupBy,
@@ -438,45 +523,115 @@ function GroupeView({
   profileById: ReturnType<typeof useApp>["profileById"];
   catalogue: ReturnType<typeof useApp>["catalogue"];
 }) {
+  const keyOf = (i: Item) =>
+    groupBy === "agent"
+      ? i.ownerId
+      : groupBy === "metier"
+        ? i.metier
+        : groupBy === "priorite"
+          ? i.priorite
+          : i.statut;
+
   const groups = useMemo(() => {
     const map = new Map<string, Item[]>();
     for (const i of items) {
-      const key = groupBy === "agent" ? i.ownerId : i.metier;
-      const list = map.get(key) ?? [];
-      list.push(i);
-      map.set(key, list);
+      const k = keyOf(i);
+      map.set(k, [...(map.get(k) ?? []), i]);
     }
-    return [...map.entries()].sort((a, b) => b[1].length - a[1].length);
+    const entries = [...map.entries()];
+    if (groupBy === "priorite")
+      return entries.sort((a, b) => (PRIORITE_ORDER[a[0]] ?? 9) - (PRIORITE_ORDER[b[0]] ?? 9));
+    if (groupBy === "statut")
+      return entries.sort(
+        (a, b) => STATUT_ORDER.indexOf(a[0] as Statut) - STATUT_ORDER.indexOf(b[0] as Statut)
+      );
+    return entries.sort((a, b) => b[1].length - a[1].length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, groupBy]);
 
   return (
     <div className="space-y-5">
-      {groups.map(([key, list]) => {
-        const title =
-          groupBy === "agent"
-            ? profileById(key).nom
-            : `${key} — ${catalogue.metiers[key]?.label ?? key}`;
-        return (
-          <div key={key}>
-            <div className="flex items-center gap-2 mb-2">
-              {groupBy === "agent" ? (
-                <Avatar init={profileById(key).init} size="h-6 w-6" />
-              ) : (
-                <MetierChip code={key} />
-              )}
-              <h2 className="text-[13px] font-semibold text-slate-700">{title}</h2>
-              <span className="text-[11px] text-slate-400 bg-slate-100 rounded-full px-2">
-                {list.length}
-              </span>
-            </div>
-            <div className="grid md:grid-cols-2 gap-3">
-              {list.map((i) => (
-                <ItemCard key={i.id} item={i} />
-              ))}
-            </div>
+      {groups.map(([key, list]) => (
+        <div key={key}>
+          <div className="flex items-center gap-2 mb-2">
+            {groupBy === "agent" && <Avatar init={profileById(key).init} size="h-6 w-6" />}
+            {groupBy === "metier" && <MetierChip code={key} />}
+            {groupBy === "priorite" && <Priority p={key as "Critique" | "Élevé" | "Moyenne"} />}
+            <h2 className="text-[13px] font-semibold text-slate-700">
+              {groupBy === "agent"
+                ? profileById(key).nom
+                : groupBy === "metier"
+                  ? `${key} — ${catalogue.metiers[key]?.label ?? key}`
+                  : key}
+            </h2>
+            <span className="text-[11px] text-slate-400 bg-slate-100 rounded-full px-2">{list.length}</span>
           </div>
-        );
-      })}
+          <div className="grid md:grid-cols-2 gap-3">
+            {list.map((i) => (
+              <ItemCard key={i.id} item={i} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- Vue Chronologie (par jour de dernière mise à jour) ---------- */
+function ChronoView({
+  items,
+  rs,
+  profileById,
+  onOpen,
+}: {
+  items: Item[];
+  rs: ReturnType<typeof useApp>["rs"];
+  profileById: ReturnType<typeof useApp>["profileById"];
+  onOpen: (i: Item) => void;
+}) {
+  const days = useMemo(() => {
+    const sorted = [...items].sort((a, b) => b.dateMaj.getTime() - a.dateMaj.getTime());
+    const map = new Map<string, Item[]>();
+    for (const i of sorted) {
+      const k = i.dateMaj.toISOString().slice(0, 10);
+      map.set(k, [...(map.get(k) ?? []), i]);
+    }
+    return [...map.entries()];
+  }, [items]);
+
+  return (
+    <div className="space-y-5">
+      {days.map(([day, list]) => (
+        <div key={day}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[12px] font-semibold text-slate-600">{fmt(new Date(day))}</span>
+            <span className="text-[11px] text-slate-400 bg-slate-100 rounded-full px-2">{list.length}</span>
+            <div className="flex-1 h-px bg-slate-100" />
+          </div>
+          <Card>
+            <div className="divide-y divide-slate-100">
+              {list.map((i) => {
+                const state = rs(i);
+                const owner = profileById(i.ownerId);
+                return (
+                  <button
+                    key={i.id}
+                    onClick={() => onOpen(i)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left"
+                  >
+                    <MetierChip code={i.metier} />
+                    <TypeTag t={i.type} />
+                    <span className="flex-1 min-w-0 text-[13px] text-slate-800 truncate">{i.objet}</span>
+                    <span className="text-[11px] text-slate-400 hidden sm:block">{owner.nom}</span>
+                    <span className="text-[12px] text-slate-500 w-20 text-right hidden md:block">{i.statut}</span>
+                    <div className="w-24 text-right">{etatBadge(state.level, state.days)}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createItem, getCatalogue, listItems } from "@/lib/db/repo";
+import { listProjects } from "@/lib/db/projects";
 import { getCurrentUser } from "@/lib/auth/session";
 import { type Priorite } from "@/lib/domain";
 
@@ -28,5 +29,6 @@ export async function POST(request: Request) {
 
   // L'objet appartient toujours à son créateur.
   createItem({ parsed, prio, dest, pointsRaw: points, ownerId: user.id });
-  return NextResponse.json({ items: listItems() });
+  // On renvoie aussi les projets : un suivi PRJ crée son projet à la volée.
+  return NextResponse.json({ items: listItems(), projects: listProjects() });
 }

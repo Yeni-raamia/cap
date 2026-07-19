@@ -220,6 +220,7 @@ export function AppProvider({
       .then((r) => r.json())
       .then((d) => {
         if (d.items) setItems(reviveItems(d.items));
+        if (d.projects) setProjects(reviveProjects(d.projects)); // suivi PRJ → projet visible aussitôt
       })
       .catch((e) => console.error("Création échouée :", e));
   };

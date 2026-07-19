@@ -33,6 +33,24 @@ body {
   outline-offset: 2px;
 }
 
+/* Rapport imprimable (export PDF) : masque l'app, n'imprime que le rapport */
+.print-report {
+  display: none;
+}
+@media print {
+  .app-shell {
+    display: none !important;
+  }
+  .print-report {
+    display: block !important;
+    padding: 24px;
+    color: #0f172a;
+  }
+  @page {
+    margin: 16mm;
+  }
+}
+
 /* Respect des préférences de mouvement réduit */
 @media (prefers-reduced-motion: reduce) {
   *,
