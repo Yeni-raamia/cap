@@ -11,14 +11,17 @@ import {
   YAxis,
 } from "recharts";
 import { STATUTS, type Statut } from "@/lib/domain";
+import { computeBreakdowns } from "@/lib/stats";
 import { useApp } from "@/components/app-context";
 import { RapportPdf } from "@/components/RapportPdf";
 
 const box = "bg-white border border-slate-200 rounded-xl p-4";
 
 export default function StatsPage() {
-  const { items, profiles, catalogue } = useApp();
+  const { items, profiles, catalogue, now } = useApp();
   const agents = profiles.filter((u) => u.role === "agent");
+  const bd = computeBreakdowns(items, profiles, now, catalogue.types);
+  const maxCause = Math.max(1, ...bd.causes.map((c) => c.n));
 
   const parMetier = Object.keys(catalogue.metiers)
     .map((m) => ({ name: m, v: items.filter((i) => i.metier === m).length }))
@@ -116,6 +119,139 @@ export default function StatsPage() {
               );
             })}
           </div>
+        </div>
+      </div>
+
+      {/* ---------- Statistiques détaillées (imputabilité) ---------- */}
+      <div>
+        <h2 className="text-[15px] font-semibold text-slate-800">Détail par partie prenante</h2>
+        <p className="text-[13px] text-slate-500">
+          Qui envoie, qui reçoit, qui bloque — pour que toutes les parties soient rendues
+          responsables.
+        </p>
+      </div>
+
+      {/* Par émetteur (agent) */}
+      <div className={box}>
+        <div className="text-[13px] font-semibold text-slate-700 mb-3">
+          État par émetteur (agent responsable)
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="text-left text-slate-500 border-b border-slate-200">
+                <th className="py-1.5 pr-3">Agent</th>
+                <th className="py-1.5 pr-3">Suivis</th>
+                <th className="py-1.5 pr-3">Relances</th>
+                <th className="py-1.5 pr-3">Réponses</th>
+                <th className="py-1.5 pr-3">Retards</th>
+                <th className="py-1.5 pr-3">Bloqués</th>
+                <th className="py-1.5 pr-3">Clôtures</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bd.parAgent.map((a) => (
+                <tr key={a.id} className="border-b border-slate-100">
+                  <td className="py-1.5 pr-3 text-slate-800">{a.nom}</td>
+                  <td className="py-1.5 pr-3">{a.suivis}</td>
+                  <td className="py-1.5 pr-3">{a.relances}</td>
+                  <td className="py-1.5 pr-3">{a.reponses}</td>
+                  <td className={`py-1.5 pr-3 ${a.retards ? "text-rose-600 font-medium" : "text-slate-400"}`}>{a.retards}</td>
+                  <td className={`py-1.5 pr-3 ${a.bloques ? "text-rose-600 font-medium" : "text-slate-400"}`}>{a.bloques}</td>
+                  <td className="py-1.5 pr-3 text-emerald-700">{a.clotures}</td>
+                </tr>
+              ))}
+              {bd.parAgent.length === 0 && (
+                <tr><td className="py-3 text-slate-400" colSpan={7}>Aucune donnée.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Par destinataire */}
+      <div className={box}>
+        <div className="text-[13px] font-semibold text-slate-700 mb-1">État par destinataire</div>
+        <p className="text-[11px] text-slate-400 mb-3">
+          Trié par blocages et retards — met en évidence les tiers dont on attend une action.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="text-left text-slate-500 border-b border-slate-200">
+                <th className="py-1.5 pr-3">Destinataire</th>
+                <th className="py-1.5 pr-3">Mails reçus</th>
+                <th className="py-1.5 pr-3">Relances</th>
+                <th className="py-1.5 pr-3">Réponses</th>
+                <th className="py-1.5 pr-3">Retards</th>
+                <th className="py-1.5 pr-3">Bloqués</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bd.parDestinataire.map((d) => (
+                <tr key={d.name} className="border-b border-slate-100">
+                  <td className="py-1.5 pr-3 text-slate-800">{d.name}</td>
+                  <td className="py-1.5 pr-3">{d.suivis}</td>
+                  <td className="py-1.5 pr-3">{d.relances}</td>
+                  <td className="py-1.5 pr-3">{d.reponses}</td>
+                  <td className={`py-1.5 pr-3 ${d.retards ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.retards}</td>
+                  <td className={`py-1.5 pr-3 ${d.bloques ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.bloques}</td>
+                </tr>
+              ))}
+              {bd.parDestinataire.length === 0 && (
+                <tr><td className="py-3 text-slate-400" colSpan={6}>Aucun destinataire renseigné.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Par criticité */}
+        <div className={box}>
+          <div className="text-[13px] font-semibold text-slate-700 mb-3">Par criticité</div>
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="text-left text-slate-500 border-b border-slate-200">
+                <th className="py-1.5 pr-3">Priorité</th>
+                <th className="py-1.5 pr-3">Suivis</th>
+                <th className="py-1.5 pr-3">Retards</th>
+                <th className="py-1.5 pr-3">Bloqués</th>
+                <th className="py-1.5 pr-3">Taux rép.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bd.parCriticite.map((c) => (
+                <tr key={c.priorite} className="border-b border-slate-100">
+                  <td className="py-1.5 pr-3 text-slate-800">{c.priorite}</td>
+                  <td className="py-1.5 pr-3">{c.suivis}</td>
+                  <td className={`py-1.5 pr-3 ${c.retards ? "text-rose-600 font-medium" : "text-slate-400"}`}>{c.retards}</td>
+                  <td className={`py-1.5 pr-3 ${c.bloques ? "text-rose-600 font-medium" : "text-slate-400"}`}>{c.bloques}</td>
+                  <td className="py-1.5 pr-3">{c.tauxReponse}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Causes de blocage */}
+        <div className={box}>
+          <div className="text-[13px] font-semibold text-slate-700 mb-3">Causes de blocage</div>
+          {bd.causes.length === 0 ? (
+            <div className="text-[13px] text-slate-400 text-center py-6">Rien de bloqué. Tout avance.</div>
+          ) : (
+            <div className="space-y-2 mt-2">
+              {bd.causes.map((c) => (
+                <div key={c.cause} className="flex items-center gap-2 text-[12px]">
+                  <span className="w-40 text-slate-600 truncate">{c.cause}</span>
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-rose-400" style={{ width: `${(c.n / maxCause) * 100}%` }} />
+                  </div>
+                  <span className="w-6 text-right text-slate-500">{c.n}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Download } from "lucide-react";
 import { fmt, fmtLong, type Item } from "@/lib/domain";
+import { computeBreakdowns, type CauseStat, type CritStat, type DestStat } from "@/lib/stats";
 import { APP_NAME, ORG_NAME } from "@/lib/config";
 import { useApp } from "./app-context";
 
@@ -38,6 +39,9 @@ interface Report {
   parMetier: { code: string; label: string; created: number }[];
   statuts: { statut: string; n: number }[];
   classement: { nom: string; score: number }[];
+  parDestinataire: DestStat[];
+  parCriticite: CritStat[];
+  causes: CauseStat[];
 }
 
 export function RapportPdf() {
@@ -100,6 +104,8 @@ export function RapportPdf() {
       n: items.filter((i) => i.statut === s).length,
     }));
 
+    const bd = computeBreakdowns(items, profiles, now, catalogue.types);
+
     setReport({
       fromLabel: fmtLong(new Date(fromT)),
       toLabel: fmtLong(new Date(toT)),
@@ -117,6 +123,9 @@ export function RapportPdf() {
         .sort((a, b) => b.created - a.created),
       statuts,
       classement: scores.slice(0, 5).map((s) => ({ nom: profileById(s.id).nom, score: s.score })),
+      parDestinataire: bd.parDestinataire.slice(0, 12),
+      parCriticite: bd.parCriticite,
+      causes: bd.causes,
     });
 
     // Laisse le portail se peindre avant d'ouvrir la boîte d'impression.
@@ -278,6 +287,83 @@ function ReportDocument({ report }: { report: Report }) {
                   <td className={td} style={{ textAlign: "right" }}>{c.score}</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 13, fontWeight: 600, margin: "20px 0 6px" }}>
+        Imputabilité par destinataire (à ce jour)
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20 }}>
+        <thead>
+          <tr>
+            <th className={th}>Destinataire</th>
+            <th className={th}>Reçus</th>
+            <th className={th}>Relances</th>
+            <th className={th}>Réponses</th>
+            <th className={th}>Retards</th>
+            <th className={th}>Bloqués</th>
+          </tr>
+        </thead>
+        <tbody>
+          {report.parDestinataire.length === 0 ? (
+            <tr><td className={td} colSpan={6}>Aucun destinataire renseigné.</td></tr>
+          ) : (
+            report.parDestinataire.map((d) => (
+              <tr key={d.name}>
+                <td className={td}>{d.name}</td>
+                <td className={td}>{d.suivis}</td>
+                <td className={td}>{d.relances}</td>
+                <td className={td}>{d.reponses}</td>
+                <td className={td}>{d.retards}</td>
+                <td className={td}>{d.bloques}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Par criticité (à ce jour)</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th className={th}>Priorité</th>
+                <th className={th}>Suivis</th>
+                <th className={th}>Retards</th>
+                <th className={th}>Bloqués</th>
+                <th className={th}>Tx rép.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.parCriticite.map((c) => (
+                <tr key={c.priorite}>
+                  <td className={td}>{c.priorite}</td>
+                  <td className={td}>{c.suivis}</td>
+                  <td className={td}>{c.retards}</td>
+                  <td className={td}>{c.bloques}</td>
+                  <td className={td}>{c.tauxReponse}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Causes de blocage</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <tbody>
+              {report.causes.length === 0 ? (
+                <tr><td className={td}>Aucun blocage.</td></tr>
+              ) : (
+                report.causes.map((c) => (
+                  <tr key={c.cause}>
+                    <td className={td}>{c.cause}</td>
+                    <td className={td} style={{ textAlign: "right" }}>{c.n}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
