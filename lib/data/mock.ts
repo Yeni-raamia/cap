@@ -79,6 +79,8 @@ function mk(
     dateMaj: timeline[timeline.length - 1].date,
     dateRelancePrevue: null,
     projectId: null,
+    appreciation: null,
+    blocageActions: [],
     timeline,
   };
 }
@@ -86,7 +88,7 @@ function mk(
 /* ---------- ~14 objets de démo (texte neutre, aucune donnée sensible) ---------- */
 export function seedItems(): Item[] {
   seq = 0;
-  return [
+  const base: Item[] = [
     mk("SOC-2026-0042", "SOC", "ALERTE", "Vulnérabilité critique sur serveur de messagerie non corrigée", "u4", "En traitement", "Critique",
       [P("Service informatique — Systèmes"), P("Prestataire messagerie", "copie")], 6,
       ["Correctif disponible", "Fenêtre de maintenance à planifier"], null, 1,
@@ -157,6 +159,17 @@ export function seedItems(): Item[] {
       ["Contrôle mensuel", "Retours attendus"], null, 0,
       [ev(5, "creation", "Objet créé", "u1"), ev(5, "envoi", "Demande à l'équipe", "u1")]),
   ];
+
+  // Démonstration : appréciation + démarches sur l'objet bloqué (CASE-1188).
+  const blocked = base.find((i) => i.ref === "CASE-1188");
+  if (blocked) {
+    blocked.appreciation = "Occupation justifiée";
+    blocked.blocageActions = [
+      { id: rid("ba"), itemId: blocked.id, kind: "appel", concerne: "Responsable réseau (M. le chef de service)", note: "Appelé — action réseau promise sous 48 h.", authorId: "u2", createdAt: daysAgo(1) },
+      { id: rid("ba"), itemId: blocked.id, kind: "whatsapp", concerne: "Groupe Alerte SSI", note: "Rappel posté dans le groupe.", authorId: "u2", createdAt: daysAgo(2) },
+    ];
+  }
+  return base;
 }
 
 /* ==================================================================
@@ -242,12 +255,42 @@ export function createItem(
     dateMaj: now,
     dateRelancePrevue: null,
     projectId: null,
+    appreciation: null,
+    blocageActions: [],
     timeline: [
       { date: now, kind: "creation", label: "Objet créé", author: meId },
       { date: now, kind: "envoi", label: "Envoyé", author: meId },
     ],
   };
   return [it, ...items];
+}
+
+/** Ajoute une démarche de déblocage — mode démo. */
+export function addBlocageAction(
+  items: Item[],
+  itemId: string,
+  kind: string,
+  concerne: string,
+  note: string,
+  meId: string
+): Item[] {
+  const now = new Date();
+  return items.map((it) =>
+    it.id === itemId
+      ? {
+          ...it,
+          blocageActions: [
+            { id: rid("ba"), itemId, kind: kind as never, concerne, note, authorId: meId, createdAt: now },
+            ...it.blocageActions,
+          ],
+        }
+      : it
+  );
+}
+
+/** Renseigne l'appréciation du motif de blocage — mode démo. */
+export function setAppreciation(items: Item[], itemId: string, appreciation: string | null): Item[] {
+  return items.map((it) => (it.id === itemId ? { ...it, appreciation } : it));
 }
 
 /** Planifie (ou efface) la date de relance d'un objet — mode démo. */

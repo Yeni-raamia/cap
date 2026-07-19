@@ -7,6 +7,8 @@ import { getDb } from "./index";
 import { createProjectForItem } from "./projects";
 import { PROJECT_METIER } from "@/lib/domain";
 import type {
+  BlocageAction,
+  BlocageActionKind,
   Catalogue,
   EventKind,
   Item,
@@ -140,6 +142,16 @@ interface ItemRow {
   date_maj: string;
   date_relance_prevue: string | null;
   project_id: string | null;
+  appreciation: string | null;
+}
+interface BlocageActionRow {
+  id: string;
+  item_id: string;
+  kind: BlocageActionKind;
+  concerne: string;
+  note: string;
+  author_id: string | null;
+  created_at: string;
 }
 interface EventRow {
   item_id: string;
@@ -159,21 +171,18 @@ export function listItems(): Item[] {
   const items = db.prepare("select * from items order by date_maj desc").all() as ItemRow[];
   const events = db.prepare("select * from events").all() as EventRow[];
   const people = db.prepare("select * from item_people").all() as PersonRow[];
+  const actions = db.prepare("select * from blocage_actions").all() as BlocageActionRow[];
 
   const evByItem = new Map<string, EventRow[]>();
-  events.forEach((e) => {
-    const list = evByItem.get(e.item_id) ?? [];
-    list.push(e);
-    evByItem.set(e.item_id, list);
-  });
+  events.forEach((e) => evByItem.set(e.item_id, [...(evByItem.get(e.item_id) ?? []), e]));
   const pByItem = new Map<string, PersonRow[]>();
-  people.forEach((p) => {
-    const list = pByItem.get(p.item_id) ?? [];
-    list.push(p);
-    pByItem.set(p.item_id, list);
-  });
+  people.forEach((p) => pByItem.set(p.item_id, [...(pByItem.get(p.item_id) ?? []), p]));
+  const aByItem = new Map<string, BlocageActionRow[]>();
+  actions.forEach((a) => aByItem.set(a.item_id, [...(aByItem.get(a.item_id) ?? []), a]));
 
-  return items.map((r) => mapItem(r, evByItem.get(r.id) ?? [], pByItem.get(r.id) ?? []));
+  return items.map((r) =>
+    mapItem(r, evByItem.get(r.id) ?? [], pByItem.get(r.id) ?? [], aByItem.get(r.id) ?? [])
+  );
 }
 
 export function getItem(id: string): Item | null {
@@ -182,10 +191,11 @@ export function getItem(id: string): Item | null {
   if (!r) return null;
   const events = db.prepare("select * from events where item_id = ?").all(id) as EventRow[];
   const people = db.prepare("select * from item_people where item_id = ?").all(id) as PersonRow[];
-  return mapItem(r, events, people);
+  const actions = db.prepare("select * from blocage_actions where item_id = ?").all(id) as BlocageActionRow[];
+  return mapItem(r, events, people, actions);
 }
 
-function mapItem(r: ItemRow, events: EventRow[], people: PersonRow[]): Item {
+function mapItem(r: ItemRow, events: EventRow[], people: PersonRow[], actions: BlocageActionRow[]): Item {
   const timeline: TimelineEvent[] = events
     .map((e) => ({
       date: new Date(e.created_at),
@@ -194,6 +204,17 @@ function mapItem(r: ItemRow, events: EventRow[], people: PersonRow[]): Item {
       author: e.author_id ?? "",
     }))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
+  const blocageActions: BlocageAction[] = actions
+    .map((a) => ({
+      id: a.id,
+      itemId: a.item_id,
+      kind: a.kind,
+      concerne: a.concerne,
+      note: a.note,
+      authorId: a.author_id ?? "",
+      createdAt: new Date(a.created_at),
+    }))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   return {
     id: r.id,
     ref: r.ref,
@@ -211,8 +232,29 @@ function mapItem(r: ItemRow, events: EventRow[], people: PersonRow[]): Item {
     dateMaj: new Date(r.date_maj),
     dateRelancePrevue: r.date_relance_prevue ? new Date(r.date_relance_prevue) : null,
     projectId: r.project_id ?? null,
+    appreciation: r.appreciation ?? null,
+    blocageActions,
     timeline,
   };
+}
+
+/* ---------- Déblocage : démarches & appréciation ---------- */
+export function addBlocageAction(input: {
+  itemId: string;
+  kind: BlocageActionKind;
+  concerne: string;
+  note: string;
+  authorId: string;
+}): void {
+  getDb()
+    .prepare(
+      "insert into blocage_actions (id, item_id, kind, concerne, note, author_id) values (?,?,?,?,?,?)"
+    )
+    .run(randomUUID(), input.itemId, input.kind, input.concerne, input.note, input.authorId);
+}
+
+export function setAppreciation(itemId: string, appreciation: string | null): void {
+  getDb().prepare("update items set appreciation = ? where id = ?").run(appreciation, itemId);
 }
 
 /** Planifie (ou efface avec null) la date de relance d'un objet. */

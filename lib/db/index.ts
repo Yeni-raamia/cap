@@ -32,8 +32,13 @@ create table if not exists items (
   owner_id text not null, points_cles text not null default '[]', blocage_cause text,
   relances_count integer not null default 0,
   date_creation text not null default (datetime('now')), date_maj text not null default (datetime('now')),
-  closed_at text, date_relance_prevue text, project_id text
+  closed_at text, date_relance_prevue text, project_id text, appreciation text
 );
+create table if not exists blocage_actions (
+  id text primary key, item_id text not null, kind text not null, concerne text not null default '',
+  note text not null default '', author_id text, created_at text not null default (datetime('now'))
+);
+create index if not exists idx_blocage_item on blocage_actions(item_id);
 create table if not exists projects (
   id text primary key, name text not null, description text not null default '',
   owner_id text not null, status text not null default 'En cours',
@@ -113,6 +118,9 @@ function ensureColumns(db: Database.Database) {
   }
   if (!cols.includes("project_id")) {
     db.exec("alter table items add column project_id text");
+  }
+  if (!cols.includes("appreciation")) {
+    db.exec("alter table items add column appreciation text");
   }
 }
 

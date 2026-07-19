@@ -12,6 +12,8 @@ import {
   applyAction as mockApply,
   createItem as mockCreate,
   setRelanceDate as mockSetRelanceDate,
+  addBlocageAction as mockAddBlocageAction,
+  setAppreciation as mockSetAppreciation,
   seedProjects,
   DEFAULT_USER_ID,
   listNotifications,
@@ -23,6 +25,7 @@ import {
   DEFAULT_CATALOGUE,
   reminderState,
   type AppSettings,
+  type BlocageActionKind,
   type Catalogue,
   type Item,
   type Notif,
@@ -83,6 +86,8 @@ interface AppCtx {
   act: (item: Item, action: Action, cause?: string) => void;
   create: (parsed: ParsedSubject, prio: Priorite, dest: string, points: string) => void;
   setRelanceDate: (item: Item, date: string | null) => void;
+  addBlocageAction: (item: Item, kind: BlocageActionKind, concerne: string, note: string) => void;
+  setAppreciation: (item: Item, appreciation: string | null) => void;
   updateRole: (userId: string, role: Role) => Promise<string | null>;
   catalogueAction: (action: CatalogueAction) => Promise<string | null>;
   notifications: Notif[];
@@ -111,6 +116,7 @@ function reviveItem(r: Item): Item {
     dateCreation: new Date(r.dateCreation),
     dateMaj: new Date(r.dateMaj),
     dateRelancePrevue: r.dateRelancePrevue ? new Date(r.dateRelancePrevue) : null,
+    blocageActions: (r.blocageActions ?? []).map((a) => ({ ...a, createdAt: new Date(a.createdAt) })),
     timeline: r.timeline.map((e) => ({ ...e, date: new Date(e.date) })),
   };
 }
@@ -270,6 +276,40 @@ export function AppProvider({
     return null;
   };
 
+  const addBlocageAction = (item: Item, kind: BlocageActionKind, concerne: string, note: string) => {
+    if (demo) {
+      setItems((prev) => mockAddBlocageAction(prev, item.id, kind, concerne, note, meId));
+      return;
+    }
+    fetch("/api/items/blocage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "demarche", itemId: item.id, kind, concerne, note }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.items) setItems(reviveItems(d.items));
+      })
+      .catch((e) => console.error("Démarche échouée :", e));
+  };
+
+  const setAppreciation = (item: Item, appreciation: string | null) => {
+    if (demo) {
+      setItems((prev) => mockSetAppreciation(prev, item.id, appreciation));
+      return;
+    }
+    fetch("/api/items/blocage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "appreciation", itemId: item.id, appreciation }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.items) setItems(reviveItems(d.items));
+      })
+      .catch((e) => console.error("Appréciation échouée :", e));
+  };
+
   const updateRole = async (userId: string, role: Role): Promise<string | null> => {
     const res = await fetch("/api/admin/role", {
       method: "POST",
@@ -364,6 +404,8 @@ export function AppProvider({
     act,
     create,
     setRelanceDate,
+    addBlocageAction,
+    setAppreciation,
     updateRole,
     catalogueAction,
     notifications,

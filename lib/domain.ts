@@ -63,6 +63,10 @@ export interface Item {
   dateRelancePrevue: Date | null;
   /** Projet rattaché (ou null). Auto-renseigné pour les suivis de métier PRJ. */
   projectId: string | null;
+  /** Appréciation du motif de blocage par l'agent (ou null). */
+  appreciation: string | null;
+  /** Démarches menées pour lever le blocage. */
+  blocageActions: BlocageAction[];
   timeline: TimelineEvent[];
 }
 
@@ -149,6 +153,49 @@ export function filStage(item: Item): number {
   const aReponse = item.timeline.some((e) => e.kind === "reponse");
   return aReponse && st < 3 ? 3 : st;
 }
+
+/* ---------- Déblocage : démarches menées & appréciation du motif ---------- */
+export type BlocageActionKind =
+  | "appel"
+  | "mail"
+  | "escalade"
+  | "whatsapp"
+  | "rencontre"
+  | "reunion"
+  | "autre";
+
+export const BLOCAGE_ACTIONS: { kind: BlocageActionKind; label: string; icon: string }[] = [
+  { kind: "appel", label: "Appel téléphonique", icon: "Phone" },
+  { kind: "mail", label: "Mail de relance", icon: "Mail" },
+  { kind: "escalade", label: "Escalade au DG (rapport)", icon: "ArrowUp" },
+  { kind: "whatsapp", label: "Message WhatsApp — Alerte SSI", icon: "MessageCircle" },
+  { kind: "rencontre", label: "Rencontre en personne", icon: "Users" },
+  { kind: "reunion", label: "Réunion / point", icon: "CalendarClock" },
+  { kind: "autre", label: "Autre démarche", icon: "Flag" },
+];
+export const blocageActionLabel = (k: string): string =>
+  BLOCAGE_ACTIONS.find((a) => a.kind === k)?.label ?? k;
+
+export interface BlocageAction {
+  id: string;
+  itemId: string;
+  kind: BlocageActionKind;
+  concerne: string; // personne concernée, toujours nommée
+  note: string; // compte rendu / message
+  authorId: string;
+  createdAt: Date;
+}
+
+// Appréciation du motif de blocage par l'agent (liste fermée).
+export const APPRECIATIONS = [
+  "En traitement",
+  "Occupation justifiée",
+  "Manque de moyens",
+  "Négligence",
+  "Congé / absence",
+  "Sabotage",
+  "Autre",
+];
 
 /* ---------- 4.4 · Causes de blocage (liste fermée) ---------- */
 export const CAUSES = [
