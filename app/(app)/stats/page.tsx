@@ -22,6 +22,7 @@ export default function StatsPage() {
   const agents = profiles.filter((u) => u.role === "agent");
   const bd = computeBreakdowns(items, profiles, now, catalogue.types);
   const maxCause = Math.max(1, ...bd.causes.map((c) => c.n));
+  const maxAppr = Math.max(1, ...bd.parAppreciation.map((a) => a.n));
 
   const parMetier = Object.keys(catalogue.metiers)
     .map((m) => ({ name: m, v: items.filter((i) => i.metier === m).length }))
@@ -232,6 +233,28 @@ export default function StatsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Par appréciation du motif */}
+        <div className={box}>
+          <div className="text-[13px] font-semibold text-slate-700 mb-3">
+            Par appréciation du motif (suivis à risque)
+          </div>
+          {bd.parAppreciation.length === 0 ? (
+            <div className="text-[13px] text-slate-400 text-center py-6">Aucun suivi à risque.</div>
+          ) : (
+            <div className="space-y-2 mt-2">
+              {bd.parAppreciation.map((a) => (
+                <div key={a.appreciation} className="flex items-center gap-2 text-[12px]">
+                  <span className="w-40 text-slate-600 truncate">{a.appreciation}</span>
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-400" style={{ width: `${(a.n / maxAppr) * 100}%` }} />
+                  </div>
+                  <span className="w-6 text-right text-slate-500">{a.n}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Causes de blocage */}

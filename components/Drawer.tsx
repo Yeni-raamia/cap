@@ -25,6 +25,7 @@ import {
 import { useApp } from "./app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "./atoms";
 import { Fil } from "./Fil";
+import { Deblocage } from "./Deblocage";
 
 const evMeta: Record<EventKind, { icon: ComponentType<{ size?: number; className?: string }>; c: string }> = {
   creation: { icon: Circle, c: "text-slate-400" },
@@ -38,7 +39,7 @@ const evMeta: Record<EventKind, { icon: ComponentType<{ size?: number; className
 };
 
 export function Drawer() {
-  const { open, items, now, closeItem, act, setRelanceDate, me, profileById } = useApp();
+  const { open, items, now, closeItem, act, setRelanceDate, rs, me, profileById } = useApp();
   const [cause, setCause] = useState(CAUSES[0]);
 
   useEffect(() => {
@@ -148,6 +149,14 @@ export function Drawer() {
             <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-[12px] text-rose-700 flex items-center gap-2">
               <ShieldAlert size={15} /> Bloqué — {item.blocageCause}
             </div>
+          )}
+
+          {/* Déblocage : motif + démarches (l'agent renseigne ici) */}
+          {["bloque", "escalade"].includes(rs(item).level) && (
+            <Card className="p-3">
+              <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">Déblocage</div>
+              <Deblocage item={item} />
+            </Card>
           )}
 
           <Card className="p-3">

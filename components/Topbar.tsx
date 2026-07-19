@@ -44,7 +44,7 @@ export function Topbar() {
               const id = e.target.value;
               setMeId(id);
               const next = profiles.find((u) => u.id === id);
-              if (next && !canAccess(window.location.pathname, next.role)) {
+              if (next && !canAccess(window.location.pathname, next)) {
                 router.push("/espace");
               }
             }}

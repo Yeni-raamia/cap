@@ -34,11 +34,16 @@ export interface CauseStat {
   cause: string;
   n: number;
 }
+export interface ApprStat {
+  appreciation: string;
+  n: number;
+}
 export interface Breakdowns {
   parAgent: AgentStat[];
   parDestinataire: DestStat[];
   parCriticite: CritStat[];
   causes: CauseStat[];
+  parAppreciation: ApprStat[];
 }
 
 const PRIORITES: Priorite[] = ["Critique", "Élevé", "Moyenne"];
@@ -121,7 +126,17 @@ export function computeBreakdowns(
       cMap.set(c, (cMap.get(c) ?? 0) + 1);
     });
 
+  /* --- Par appréciation du motif (sur les suivis à risque) --- */
+  const apprMap = new Map<string, number>();
+  items
+    .filter((i) => i.statut === "Bloqué" || isLate(i))
+    .forEach((i) => {
+      const a = i.appreciation || "Non précisée";
+      apprMap.set(a, (apprMap.get(a) ?? 0) + 1);
+    });
+
   return {
+    parAppreciation: [...apprMap.entries()].map(([appreciation, n]) => ({ appreciation, n })).sort((a, b) => b.n - a.n),
     parAgent: [...aMap.values()].sort((a, b) => b.suivis - a.suivis),
     parDestinataire: [...dMap.values()].sort(
       (a, b) => b.retards + b.bloques - (a.retards + a.bloques) || b.suivis - a.suivis

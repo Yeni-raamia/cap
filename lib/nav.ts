@@ -1,4 +1,4 @@
-import type { Role } from "./domain";
+import type { Profile, Role } from "./domain";
 
 export interface NavItem {
   id: string;
@@ -20,10 +20,16 @@ export const NAV: NavItem[] = [
   { id: "admin", href: "/admin", label: "Administration", icon: "Settings", roles: ["admin"] },
 ];
 
-export const navForRole = (role: Role): NavItem[] =>
-  NAV.filter((n) => n.roles.includes(role));
+/** Pages qu'un admin peut accorder individuellement (hors administration). */
+export const GRANTABLE_PAGES = NAV.filter((n) => n.id !== "admin");
 
-export const canAccess = (href: string, role: Role): boolean => {
-  const item = NAV.find((n) => href.startsWith(n.href));
-  return item ? item.roles.includes(role) : true;
+const allowed = (item: NavItem, role: Role, extraPages: string[]) =>
+  item.roles.includes(role) || extraPages.includes(item.id);
+
+export const navForUser = (me: Profile): NavItem[] =>
+  NAV.filter((n) => allowed(n, me.role, me.extraPages ?? []));
+
+export const canAccess = (href: string, me: Profile): boolean => {
+  const item = NAV.find((n) => href === n.href || href.startsWith(n.href + "/"));
+  return item ? allowed(item, me.role, me.extraPages ?? []) : true;
 };

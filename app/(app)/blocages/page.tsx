@@ -1,49 +1,26 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  ArrowUp,
-  CalendarClock,
-  Filter,
-  Flag,
-  ListChecks,
-  Mail,
-  MessageCircle,
-  Phone,
-  ShieldAlert,
-  Users,
-  X,
-} from "lucide-react";
+import { Filter, Flag, ListChecks, Phone, ShieldAlert } from "lucide-react";
 import {
   APPRECIATIONS,
-  BLOCAGE_ACTIONS,
   blocageActionLabel,
   CAUSES,
   fmt,
-  type BlocageActionKind,
   type Item,
 } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
 
-const ACT_ICON: Record<string, typeof Phone> = {
-  Phone,
-  Mail,
-  ArrowUp,
-  MessageCircle,
-  Users,
-  CalendarClock,
-  Flag,
-};
-
-type ViewMode = "detaillee" | "cause" | "appreciation";
+type ViewMode = "detaillee" | "compacte" | "cause" | "appreciation";
 
 export default function BlocagesPage() {
-  const { items, me, rs } = useApp();
+  const { items, rs, openItem, profileById } = useApp();
 
-  const [view, setView] = useState<ViewMode>("detaillee");
+  const [view, setView] = useState<ViewMode>("compacte");
   const [search, setSearch] = useState("");
   const [fMetier, setFMetier] = useState("Tous");
+  const [fResp, setFResp] = useState("Tous");
   const [fCause, setFCause] = useState("Tous");
   const [fAppr, setFAppr] = useState("Tous");
   const [fDem, setFDem] = useState<"Tous" | "avec" | "sans">("Tous");
@@ -60,6 +37,7 @@ export default function BlocagesPage() {
     const q = search.trim().toLowerCase();
     return risk.filter((i) => {
       if (fMetier !== "Tous" && i.metier !== fMetier) return false;
+      if (fResp !== "Tous" && i.ownerId !== fResp) return false;
       if (fCause !== "Tous" && (i.blocageCause || "—") !== fCause) return false;
       if (fAppr !== "Tous" && (i.appreciation || "—") !== fAppr) return false;
       if (fDem === "avec" && i.blocageActions.length === 0) return false;
@@ -67,7 +45,7 @@ export default function BlocagesPage() {
       if (q && !`${i.objet} ${i.ref}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [risk, search, fMetier, fCause, fAppr, fDem]);
+  }, [risk, search, fMetier, fResp, fCause, fAppr, fDem]);
 
   // Stats d'avancement
   const total = risk.length;
@@ -77,6 +55,7 @@ export default function BlocagesPage() {
   const pctEngage = total ? Math.round((avec / total) * 100) : 0;
 
   const metiers = [...new Set(risk.map((i) => i.metier))];
+  const responsables = [...new Set(risk.map((i) => i.ownerId))];
   const selectCls = "text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white";
 
   const groupBy = view === "cause" ? "cause" : view === "appreciation" ? "appreciation" : null;
@@ -90,21 +69,24 @@ export default function BlocagesPage() {
     return [...map.entries()].sort((a, b) => b[1].length - a[1].length);
   }, [filtered, groupBy]);
 
+  const VIEWS: { id: ViewMode; label: string }[] = [
+    { id: "compacte", label: "Compacte" },
+    { id: "detaillee", label: "Détaillée" },
+    { id: "cause", label: "Par cause" },
+    { id: "appreciation", label: "Par appréciation" },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold text-slate-800">Ce qui ne bouge pas</h1>
           <p className="text-[13px] text-slate-500">
-            Les suivis à risque — et surtout ce que l&apos;équipe fait pour les débloquer.
+            Les suivis à risque. Clique un suivi pour qualifier le motif et enregistrer les démarches.
           </p>
         </div>
-        <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-[12px] bg-white">
-          {[
-            { id: "detaillee" as const, label: "Détaillée" },
-            { id: "cause" as const, label: "Par cause" },
-            { id: "appreciation" as const, label: "Par appréciation" },
-          ].map((v) => (
+        <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-[12px] bg-white flex-wrap">
+          {VIEWS.map((v) => (
             <button
               key={v.id}
               onClick={() => setView(v.id)}
@@ -133,10 +115,14 @@ export default function BlocagesPage() {
       <Card className="p-3">
         <div className="flex items-center gap-2 flex-wrap">
           <Filter size={15} className="text-slate-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher…" aria-label="Rechercher" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 flex-1 min-w-[10rem]" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher…" aria-label="Rechercher" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 flex-1 min-w-[9rem]" />
           <select value={fMetier} onChange={(e) => setFMetier(e.target.value)} aria-label="Métier" className={selectCls}>
             <option value="Tous">Tous métiers</option>
             {metiers.map((m) => (<option key={m}>{m}</option>))}
+          </select>
+          <select value={fResp} onChange={(e) => setFResp(e.target.value)} aria-label="Responsable" className={selectCls}>
+            <option value="Tous">Tous responsables</option>
+            {responsables.map((id) => (<option key={id} value={id}>{profileById(id).nom}</option>))}
           </select>
           <select value={fCause} onChange={(e) => setFCause(e.target.value)} aria-label="Cause" className={selectCls}>
             <option value="Tous">Toutes causes</option>
@@ -160,6 +146,8 @@ export default function BlocagesPage() {
         <Card className="p-8 text-center text-[13px] text-slate-400">
           {total === 0 ? "Rien de bloqué. Tout avance." : "Aucun suivi ne correspond à ces filtres."}
         </Card>
+      ) : view === "compacte" ? (
+        <CompacteView rows={filtered} rs={rs} openItem={openItem} profileById={profileById} />
       ) : groups ? (
         <div className="space-y-5">
           {groups.map(([key, list]) => (
@@ -168,25 +156,17 @@ export default function BlocagesPage() {
                 <h2 className="text-[13px] font-semibold text-slate-700">{key}</h2>
                 <span className="text-[11px] text-slate-400 bg-slate-100 rounded-full px-2">{list.length}</span>
               </div>
-              <div className="space-y-3">
-                {list.map((i) => (
-                  <BlocageCard key={i.id} item={i} />
-                ))}
+              <div className="grid md:grid-cols-2 gap-3">
+                {list.map((i) => (<BlocageSummary key={i.id} item={i} />))}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((i) => (
-            <BlocageCard key={i.id} item={i} />
-          ))}
+        <div className="grid md:grid-cols-2 gap-3">
+          {filtered.map((i) => (<BlocageSummary key={i.id} item={i} />))}
         </div>
       )}
-
-      <p className="text-[11px] text-slate-400 text-center">
-        Connecté : {me.nom} — les démarches que tu enregistres sont visibles par le directeur.
-      </p>
     </div>
   );
 }
@@ -209,116 +189,94 @@ function StatCard({ icon: Icon, tone, value, label }: { icon: typeof Phone; tone
   );
 }
 
-function BlocageCard({ item }: { item: Item }) {
-  const { me, rs, openItem, profileById, addBlocageAction, setAppreciation } = useApp();
-  const state = rs(item);
-  const owner = profileById(item.ownerId);
-  const canEdit = me.role === "agent" ? item.ownerId === me.id : true;
+const apprBadge = (a: string | null) =>
+  !a ? "bg-slate-100 text-slate-400" : a === "En traitement" ? "bg-sky-100 text-sky-700" : a === "Occupation justifiée" ? "bg-slate-100 text-slate-600" : "bg-amber-100 text-amber-700";
 
-  const defaultConcerne = item.personnes.find((p) => p.kind === "destinataire")?.name ?? "";
-  const [kind, setKind] = useState<BlocageActionKind>("appel");
-  const [concerne, setConcerne] = useState(defaultConcerne);
-  const [note, setNote] = useState("");
-  const [showForm, setShowForm] = useState(false);
-
+/* Vue compacte — tableau dense, scalable à beaucoup d'utilisateurs. */
+function CompacteView({
+  rows,
+  rs,
+  openItem,
+  profileById,
+}: {
+  rows: Item[];
+  rs: ReturnType<typeof useApp>["rs"];
+  openItem: (i: Item) => void;
+  profileById: ReturnType<typeof useApp>["profileById"];
+}) {
   return (
-    <Card className="p-4 border-l-[3px] border-l-rose-500">
+    <Card>
+      <div className="hidden md:flex items-center gap-3 px-4 py-2 border-b border-slate-100 bg-slate-50/60 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+        <span className="w-32 shrink-0">Responsable</span>
+        <span className="flex-1">Objet</span>
+        <span className="w-40 shrink-0">Cause</span>
+        <span className="w-32 shrink-0">Appréciation</span>
+        <span className="w-16 text-center shrink-0">Démarches</span>
+        <span className="w-16 text-right shrink-0">Depuis</span>
+      </div>
+      <div className="divide-y divide-slate-100">
+        {rows.map((i) => {
+          const owner = profileById(i.ownerId);
+          const nb = i.blocageActions.length;
+          return (
+            <button key={i.id} onClick={() => openItem(i)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left">
+              <div className="flex items-center gap-2 w-32 shrink-0">
+                <Avatar init={owner.init} size="h-6 w-6" />
+                <span className="text-[12px] text-slate-600 truncate">{owner.nom}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <MetierChip code={i.metier} />
+                  <TypeTag t={i.type} />
+                  <span className="text-[13px] text-slate-800 truncate">{i.objet}</span>
+                </div>
+                <Token>{i.ref}</Token>
+              </div>
+              <span className="w-40 shrink-0 text-[12px] text-slate-500 truncate hidden md:block">{i.blocageCause || "—"}</span>
+              <span className={`w-32 shrink-0 hidden md:block`}>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded ${apprBadge(i.appreciation)}`}>{i.appreciation ?? "à qualifier"}</span>
+              </span>
+              <span className={`w-16 text-center shrink-0 text-[12px] font-medium ${nb === 0 ? "text-rose-600" : "text-slate-600"}`}>{nb}</span>
+              <span className="w-16 text-right shrink-0 text-[12px] text-rose-600 font-medium">{rs(i).days}j</span>
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+/* Carte-résumé — cliquer ouvre le drawer pour agir. */
+function BlocageSummary({ item }: { item: Item }) {
+  const { rs, openItem, profileById } = useApp();
+  const owner = profileById(item.ownerId);
+  const last = item.blocageActions[0];
+  return (
+    <Card className="p-4 border-l-[3px] border-l-rose-500 h-full flex flex-col">
       <div className="flex items-center gap-2 mb-2 flex-wrap">
         <MetierChip code={item.metier} />
         <TypeTag t={item.type} />
         <Token>{item.ref}</Token>
-        <span className="ml-auto text-[12px] font-medium text-rose-600">Sans mouvement depuis {state.days}j</span>
+        <span className="ml-auto text-[12px] font-medium text-rose-600">{rs(item).days}j</span>
       </div>
-      <button onClick={() => openItem(item)} className="text-[14px] font-medium text-slate-800 mb-2 text-left hover:underline">
-        {item.objet}
-      </button>
-      <div className="flex items-center gap-3 text-[12px] text-slate-500 flex-wrap mb-3">
+      <div className="text-[14px] font-medium text-slate-800 mb-2">{item.objet}</div>
+      <div className="flex items-center gap-2 text-[12px] text-slate-500 flex-wrap mb-2">
         <span className="flex items-center gap-1"><Avatar init={owner.init} size="h-5 w-5" />{owner.nom}</span>
-        <span className="flex items-center gap-1 text-rose-600 font-medium"><ShieldAlert size={13} />{item.blocageCause || "Escaladé — sans réponse"}</span>
+        <span className="flex items-center gap-1 text-rose-600"><ShieldAlert size={13} />{item.blocageCause || "Escaladé"}</span>
+        <span className={`text-[10px] px-1.5 py-0.5 rounded ${apprBadge(item.appreciation)}`}>{item.appreciation ?? "à qualifier"}</span>
       </div>
-
-      {/* Appréciation du motif */}
-      <div className="flex items-center gap-2 text-[12px] mb-3">
-        <span className="text-slate-500">Appréciation du motif :</span>
-        {canEdit ? (
-          <select
-            value={item.appreciation ?? ""}
-            onChange={(e) => setAppreciation(item, e.target.value || null)}
-            aria-label="Appréciation du motif"
-            className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white"
-          >
-            <option value="">— à qualifier —</option>
-            {APPRECIATIONS.map((a) => (<option key={a}>{a}</option>))}
-          </select>
-        ) : (
-          <span className="font-medium text-slate-700">{item.appreciation ?? "—"}</span>
-        )}
-      </div>
-
-      {/* Démarches menées */}
-      <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
-        <div className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">
-          Démarches menées ({item.blocageActions.length})
-        </div>
+      <div className="text-[12px] text-slate-500 mb-3">
         {item.blocageActions.length === 0 ? (
-          <div className="text-[12px] text-slate-400">Aucune démarche enregistrée — dossier à prendre en main.</div>
+          <span className="text-rose-600 font-medium">Aucune démarche — à prendre en main</span>
         ) : (
-          <div className="space-y-2">
-            {item.blocageActions.map((a) => {
-              const meta = BLOCAGE_ACTIONS.find((x) => x.kind === a.kind);
-              const Icon = ACT_ICON[meta?.icon ?? "Flag"] ?? Flag;
-              return (
-                <div key={a.id} className="flex gap-2 text-[12px]">
-                  <Icon size={14} className="text-slate-500 mt-0.5 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-slate-700">
-                      <span className="font-medium">{blocageActionLabel(a.kind)}</span> — {a.concerne}
-                    </div>
-                    {a.note && <div className="text-slate-500">{a.note}</div>}
-                    <div className="text-[10px] text-slate-400">{profileById(a.authorId).nom} · {fmt(a.createdAt)}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {canEdit && (
-          <div className="mt-2">
-            {!showForm ? (
-              <button onClick={() => setShowForm(true)} className="text-[12px] text-emerald-700 font-medium hover:underline">
-                + Enregistrer une démarche
-              </button>
-            ) : (
-              <div className="space-y-2 border-t border-slate-200 pt-2">
-                <div className="grid md:grid-cols-2 gap-2">
-                  <select value={kind} onChange={(e) => setKind(e.target.value as BlocageActionKind)} aria-label="Type de démarche" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 bg-white">
-                    {BLOCAGE_ACTIONS.map((a) => (<option key={a.kind} value={a.kind}>{a.label}</option>))}
-                  </select>
-                  <input value={concerne} onChange={(e) => setConcerne(e.target.value)} placeholder="Personne concernée (nommée) *" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5" />
-                </div>
-                <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Compte rendu / message (ex. rapport pour le DG, contenu de la relance…)" className="w-full text-[12px] border border-slate-200 rounded-lg px-2 py-1.5" />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      if (!concerne.trim()) return;
-                      addBlocageAction(item, kind, concerne.trim(), note.trim());
-                      setNote("");
-                      setShowForm(false);
-                    }}
-                    disabled={!concerne.trim()}
-                    className="text-[12px] font-medium text-white bg-emerald-600 rounded-lg px-3 py-1.5 disabled:opacity-40"
-                  >
-                    Enregistrer la démarche
-                  </button>
-                  <button onClick={() => setShowForm(false)} className="text-[12px] text-slate-500 inline-flex items-center gap-1"><X size={13} />Annuler</button>
-                </div>
-                <p className="text-[10px] text-slate-400">La personne concernée doit toujours être nommée.</p>
-              </div>
-            )}
-          </div>
+          <span>
+            {item.blocageActions.length} démarche(s) · dernière : {blocageActionLabel(last.kind)} ({fmt(last.createdAt)})
+          </span>
         )}
       </div>
+      <button onClick={() => openItem(item)} className="mt-auto text-[12px] text-emerald-700 font-medium hover:underline text-left">
+        Ouvrir pour agir →
+      </button>
     </Card>
   );
 }

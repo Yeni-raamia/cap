@@ -15,7 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { APP_BASELINE, APP_MOTTO, APP_NAME } from "@/lib/config";
-import { navForRole } from "@/lib/nav";
+import { navForUser } from "@/lib/nav";
 import { useApp } from "./app-context";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -32,7 +32,7 @@ const ICONS: Record<string, LucideIcon> = {
 export function Sidebar() {
   const { me, alerts } = useApp();
   const pathname = usePathname();
-  const nav = navForRole(me.role);
+  const nav = navForUser(me);
 
   return (
     <aside className="w-60 bg-slate-900 text-slate-300 flex flex-col shrink-0">

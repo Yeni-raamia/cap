@@ -106,7 +106,7 @@ interface AppCtx {
 }
 
 const EPOCH = new Date(0);
-const FALLBACK_PROFILE: Profile = { id: "", nom: "…", poste: "", role: "agent", init: "?" };
+const FALLBACK_PROFILE: Profile = { id: "", nom: "…", poste: "", role: "agent", init: "?", extraPages: [] };
 const Ctx = createContext<AppCtx | null>(null);
 
 /** Reconvertit les dates (ISO string) d'une réponse JSON en objets Date. */

@@ -17,8 +17,8 @@ function Shell({ children }: { children: ReactNode }) {
 
   // Garde de rôle applicative : redirige si le rôle courant n'a pas accès.
   useEffect(() => {
-    if (ready && !canAccess(pathname, me.role)) router.replace("/espace");
-  }, [pathname, me.role, ready, router]);
+    if (ready && !canAccess(pathname, me)) router.replace("/espace");
+  }, [pathname, me, ready, router]);
 
   return (
     <div className="app-shell flex h-screen bg-slate-50 text-slate-900">

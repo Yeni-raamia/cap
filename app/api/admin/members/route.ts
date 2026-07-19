@@ -10,13 +10,16 @@ import {
   logActivity,
   resetMemberPassword,
   setMemberActive,
+  setMemberPages,
   setMemberPoste,
   setMemberRole,
 } from "@/lib/db/admin";
 import { getProfileById } from "@/lib/db/repo";
+import { GRANTABLE_PAGES } from "@/lib/nav";
 import { type Role } from "@/lib/domain";
 
 const ROLES: Role[] = ["agent", "directeur", "admin"];
+const GRANTABLE = GRANTABLE_PAGES.map((p) => p.id);
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -67,6 +70,12 @@ export async function POST(request: Request) {
   } else if (action === "poste") {
     setMemberPoste(targetId, String(body?.poste || "").trim());
     logActivity(user.id, "member_poste", nameOf(targetId));
+  } else if (action === "pages") {
+    const pages: string[] = Array.isArray(body?.pages)
+      ? body.pages.filter((p: string) => GRANTABLE.includes(p))
+      : [];
+    setMemberPages(targetId, pages);
+    logActivity(user.id, "member_pages", `${nameOf(targetId)} → ${pages.join(", ") || "aucune"}`);
   } else if (action === "password") {
     const password = String(body?.password || "");
     if (password.length < 6) {

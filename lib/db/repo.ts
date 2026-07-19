@@ -37,10 +37,21 @@ interface ProfileRow {
   poste: string | null;
   role: Role;
   active: number;
+  extra_pages: string;
 }
 
+export const parsePages = (csv: string | null | undefined): string[] =>
+  (csv ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+
 function mapProfile(r: ProfileRow): Profile {
-  return { id: r.id, nom: r.full_name, poste: r.poste ?? "", role: r.role, init: r.initials };
+  return {
+    id: r.id,
+    nom: r.full_name,
+    poste: r.poste ?? "",
+    role: r.role,
+    init: r.initials,
+    extraPages: parsePages(r.extra_pages),
+  };
 }
 
 export function countProfiles(): number {

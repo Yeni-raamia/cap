@@ -20,10 +20,13 @@ import {
   type Role,
   type Tone,
 } from "@/lib/domain";
+import { GRANTABLE_PAGES, NAV } from "@/lib/nav";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, TypeTag } from "@/components/atoms";
 
 const ROLES: Role[] = ["agent", "directeur", "admin"];
+const roleHasPage = (role: Role, pageId: string) =>
+  Boolean(NAV.find((n) => n.id === pageId)?.roles.includes(role));
 const roleBadge = (r: string) =>
   r === "directeur" ? "bg-emerald-100 text-emerald-700" : r === "admin" ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-600";
 
@@ -38,6 +41,9 @@ const ACTION_LABEL: Record<string, string> = {
   member_active: "Statut de compte",
   member_poste: "Poste modifié",
   member_password: "Mot de passe réinitialisé",
+  member_pages: "Pages accordées",
+  blocage_demarche: "Démarche de déblocage",
+  blocage_appreciation: "Appréciation du motif",
   catalogue_add: "Catalogue — ajout",
   catalogue_update: "Catalogue — édition",
   catalogue_delete: "Catalogue — suppression",
@@ -255,27 +261,65 @@ function MembresSection({
               </div>
 
               {expanded === u.id && (
-                <div className="mt-2 pl-10 grid md:grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2">
-                    <input value={posteVal} onChange={(e) => setPosteVal(e.target.value)} placeholder="Poste" className="flex-1 text-[12px] border border-slate-200 rounded-lg px-2 py-1.5" />
-                    <button onClick={() => call({ action: "poste", id: u.id, poste: posteVal })} className="text-[12px] text-white bg-slate-800 rounded-lg px-2.5 py-1.5">
-                      Poste
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1 flex-1 border border-slate-200 rounded-lg px-2">
-                      <KeyRound size={13} className="text-slate-400" />
-                      <input value={pwdVal} onChange={(e) => setPwdVal(e.target.value)} placeholder="Nouveau mot de passe (≥ 6)" className="flex-1 text-[12px] py-1.5 outline-none font-mono" />
+                <div className="mt-2 pl-10 space-y-3">
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="flex items-center gap-2">
+                      <input value={posteVal} onChange={(e) => setPosteVal(e.target.value)} placeholder="Poste" className="flex-1 text-[12px] border border-slate-200 rounded-lg px-2 py-1.5" />
+                      <button onClick={() => call({ action: "poste", id: u.id, poste: posteVal })} className="text-[12px] text-white bg-slate-800 rounded-lg px-2.5 py-1.5">
+                        Poste
+                      </button>
                     </div>
-                    <button
-                      onClick={async () => {
-                        if (await call({ action: "password", id: u.id, password: pwdVal })) setPwdVal("");
-                      }}
-                      disabled={pwdVal.length < 6}
-                      className="text-[12px] text-white bg-slate-800 rounded-lg px-2.5 py-1.5 disabled:opacity-40"
-                    >
-                      Réinitialiser
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 flex-1 border border-slate-200 rounded-lg px-2">
+                        <KeyRound size={13} className="text-slate-400" />
+                        <input value={pwdVal} onChange={(e) => setPwdVal(e.target.value)} placeholder="Nouveau mot de passe (≥ 6)" className="flex-1 text-[12px] py-1.5 outline-none font-mono" />
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (await call({ action: "password", id: u.id, password: pwdVal })) setPwdVal("");
+                        }}
+                        disabled={pwdVal.length < 6}
+                        className="text-[12px] text-white bg-slate-800 rounded-lg px-2.5 py-1.5 disabled:opacity-40"
+                      >
+                        Réinitialiser
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pages accessibles au-delà du rôle */}
+                  <div>
+                    <div className="text-[11px] text-slate-500 mb-1.5">
+                      Pages accessibles (le rôle « {u.role} » donne déjà accès à certaines)
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {GRANTABLE_PAGES.map((p) => {
+                        const byRole = roleHasPage(u.role, p.id);
+                        const granted = byRole || u.extraPages.includes(p.id);
+                        return (
+                          <label
+                            key={p.id}
+                            className={`inline-flex items-center gap-1 text-[11px] border rounded-full px-2 py-1 cursor-pointer ${
+                              granted ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "border-slate-200 text-slate-500"
+                            } ${byRole ? "opacity-70 cursor-not-allowed" : ""}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={granted}
+                              disabled={byRole}
+                              onChange={(e) => {
+                                const next = e.target.checked
+                                  ? [...u.extraPages, p.id]
+                                  : u.extraPages.filter((x) => x !== p.id);
+                                call({ action: "pages", id: u.id, pages: next });
+                              }}
+                              className="h-3 w-3 accent-emerald-600"
+                            />
+                            {p.label}
+                            {byRole && " · rôle"}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}

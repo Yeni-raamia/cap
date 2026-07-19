@@ -44,6 +44,7 @@ interface MemberRow {
   poste: string | null;
   role: Role;
   active: number;
+  extra_pages: string;
 }
 function mapMember(r: MemberRow): AdminMember {
   return {
@@ -54,6 +55,7 @@ function mapMember(r: MemberRow): AdminMember {
     role: r.role,
     init: r.initials,
     active: r.active === 1,
+    extraPages: (r.extra_pages ?? "").split(",").map((s) => s.trim()).filter(Boolean),
   };
 }
 
@@ -84,6 +86,9 @@ export function setMemberRole(id: string, role: Role): void {
 }
 export function setMemberPoste(id: string, poste: string): void {
   getDb().prepare("update profiles set poste = ? where id = ?").run(poste, id);
+}
+export function setMemberPages(id: string, pages: string[]): void {
+  getDb().prepare("update profiles set extra_pages = ? where id = ?").run(pages.join(","), id);
 }
 export function resetMemberPassword(id: string, password: string): void {
   getDb().prepare("update profiles set password_hash = ? where id = ?").run(hashPassword(password), id);

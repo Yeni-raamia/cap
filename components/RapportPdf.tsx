@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Download } from "lucide-react";
 import { fmt, fmtLong, type Item } from "@/lib/domain";
-import { computeBreakdowns, type CauseStat, type CritStat, type DestStat } from "@/lib/stats";
+import { computeBreakdowns, type ApprStat, type CauseStat, type CritStat, type DestStat } from "@/lib/stats";
 import { APP_NAME } from "@/lib/config";
 import { useApp } from "./app-context";
 
@@ -43,6 +43,7 @@ interface Report {
   parDestinataire: DestStat[];
   parCriticite: CritStat[];
   causes: CauseStat[];
+  parAppreciation: ApprStat[];
 }
 
 export function RapportPdf() {
@@ -128,6 +129,7 @@ export function RapportPdf() {
       parDestinataire: bd.parDestinataire.slice(0, 12),
       parCriticite: bd.parCriticite,
       causes: bd.causes,
+      parAppreciation: bd.parAppreciation,
     });
 
     // Laisse le portail se peindre avant d'ouvrir la boîte d'impression.
@@ -354,7 +356,7 @@ function ReportDocument({ report }: { report: Report }) {
         </div>
         <div>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Causes de blocage</div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
             <tbody>
               {report.causes.length === 0 ? (
                 <tr><td className={td}>Aucun blocage.</td></tr>
@@ -363,6 +365,21 @@ function ReportDocument({ report }: { report: Report }) {
                   <tr key={c.cause}>
                     <td className={td}>{c.cause}</td>
                     <td className={td} style={{ textAlign: "right" }}>{c.n}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Par appréciation du motif</div>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <tbody>
+              {report.parAppreciation.length === 0 ? (
+                <tr><td className={td}>Aucun suivi à risque.</td></tr>
+              ) : (
+                report.parAppreciation.map((a) => (
+                  <tr key={a.appreciation}>
+                    <td className={td}>{a.appreciation}</td>
+                    <td className={td} style={{ textAlign: "right" }}>{a.n}</td>
                   </tr>
                 ))
               )}

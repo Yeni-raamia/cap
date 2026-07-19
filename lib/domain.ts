@@ -76,6 +76,8 @@ export interface Profile {
   poste: string;
   role: Role;
   init: string;
+  /** Pages supplémentaires accordées par l'admin, au-delà du rôle. */
+  extraPages: string[];
 }
 
 export interface Sla {
@@ -462,6 +464,7 @@ export interface AdminMember {
   role: Role;
   init: string;
   active: boolean;
+  extraPages: string[];
 }
 
 export interface ActivityEntry {

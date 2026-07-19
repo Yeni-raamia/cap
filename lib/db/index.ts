@@ -24,7 +24,7 @@ create table if not exists profiles (
   id text primary key, email text unique not null, password_hash text not null,
   full_name text not null, initials text not null, poste text,
   role text not null default 'agent', active integer not null default 1,
-  created_at text not null default (datetime('now'))
+  extra_pages text not null default '', created_at text not null default (datetime('now'))
 );
 create table if not exists items (
   id text primary key, ref text not null, metier_code text not null, type_code text not null,
@@ -121,6 +121,10 @@ function ensureColumns(db: Database.Database) {
   }
   if (!cols.includes("appreciation")) {
     db.exec("alter table items add column appreciation text");
+  }
+  const pcols = (db.prepare("pragma table_info(profiles)").all() as { name: string }[]).map((c) => c.name);
+  if (!pcols.includes("extra_pages")) {
+    db.exec("alter table profiles add column extra_pages text not null default ''");
   }
 }
 
