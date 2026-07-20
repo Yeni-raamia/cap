@@ -174,6 +174,7 @@ interface PersonRow {
   item_id: string;
   name: string;
   kind: "destinataire" | "copie" | "impliqué";
+  service: string | null;
 }
 
 export function listItems(): Item[] {
@@ -234,7 +235,7 @@ function mapItem(r: ItemRow, events: EventRow[], people: PersonRow[], actions: B
     ownerId: r.owner_id,
     statut: r.statut,
     priorite: r.priorite,
-    personnes: people.map((p) => ({ name: p.name, kind: p.kind })),
+    personnes: people.map((p) => ({ name: p.name, kind: p.kind, service: p.service ?? null })),
     pointsCles: JSON.parse(r.points_cles || "[]"),
     blocageCause: r.blocage_cause,
     relancesCount: r.relances_count,
@@ -276,6 +277,7 @@ export function createItem(input: {
   parsed: ParsedSubject;
   prio: Priorite;
   dest: string;
+  destService?: string | null;
   pointsRaw: string;
   ownerId: string;
 }): Item {
@@ -305,11 +307,12 @@ export function createItem(input: {
       now
     );
     if (input.dest.trim()) {
-      db.prepare("insert into item_people (id, item_id, name, kind) values (?,?,?,?)").run(
+      db.prepare("insert into item_people (id, item_id, name, kind, service) values (?,?,?,?,?)").run(
         randomUUID(),
         id,
         input.dest.trim(),
-        "destinataire"
+        "destinataire",
+        input.destService?.trim() || null
       );
     }
     const insEv = db.prepare(

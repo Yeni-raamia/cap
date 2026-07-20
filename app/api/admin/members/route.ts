@@ -18,7 +18,7 @@ import { getProfileById } from "@/lib/db/repo";
 import { GRANTABLE_PAGES } from "@/lib/nav";
 import { type Role } from "@/lib/domain";
 
-const ROLES: Role[] = ["agent", "directeur", "admin"];
+const ROLES: Role[] = ["agent", "directeur", "admin", "dsi"];
 const GRANTABLE = GRANTABLE_PAGES.map((p) => p.id);
 
 export async function POST(request: Request) {

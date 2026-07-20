@@ -62,7 +62,7 @@ type CatalogueAction =
   | { op: "add" | "update"; kind: "metier"; code: string; label: string; tone: string }
   | { op: "add" | "update"; kind: "type"; code: string; label: string; slaRelance: string; slaEscalade: string; urgent: boolean }
   | { op: "delete"; kind: "metier" | "type"; code: string };
-type RefListKey = "appreciation" | "cause" | "action" | "decision";
+type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service";
 type RefListActionPayload =
   | { op: "add"; listKey: RefListKey; label: string; icon?: string }
   | { op: "delete"; listKey: RefListKey; value: string };
@@ -90,7 +90,7 @@ interface AppCtx {
   showNew: boolean;
   setShowNew: (v: boolean) => void;
   act: (item: Item, action: Action, cause?: string) => void;
-  create: (parsed: ParsedSubject, prio: Priorite, dest: string, points: string) => void;
+  create: (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string) => void;
   setRelanceDate: (item: Item, date: string | null) => void;
   addBlocageAction: (item: Item, kind: string, concerne: string, note: string) => void;
   setAppreciation: (item: Item, appreciation: string | null) => void;
@@ -101,6 +101,7 @@ interface AppCtx {
   negligences: Negligence[];
   negligenceById: (id: string) => Negligence | null;
   negligenceByItem: (itemId: string) => Negligence | null;
+  createNegligence: (itemId: string) => Promise<string | null>;
   updateNegligence: (id: string, fields: { gravite?: string; risque?: string; impact?: string; description?: string }) => Promise<string | null>;
   setNegligenceStatus: (id: string, status: string) => Promise<string | null>;
   setNegligenceDecisions: (id: string, decisions: string[]) => Promise<string | null>;
@@ -258,16 +259,16 @@ export function AppProvider({
       .catch((e) => console.error("Action échouée :", e));
   };
 
-  const create = (parsed: ParsedSubject, prio: Priorite, dest: string, points: string) => {
+  const create = (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string) => {
     setShowNew(false);
     if (demo) {
-      setItems((prev) => mockCreate(prev, parsed, prio, dest, points, meId));
+      setItems((prev) => mockCreate(prev, parsed, prio, dest, destService, points, meId));
       return;
     }
     fetch("/api/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ parsed, prio, dest, points }),
+      body: JSON.stringify({ parsed, prio, dest, destService, points }),
     })
       .then((r) => r.json())
       .then((d) => {
@@ -372,16 +373,26 @@ export function AppProvider({
   const patchNeg = (id: string, patch: Partial<Negligence>) =>
     setNegligences((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: new Date() } : n)));
 
-  const postNeg = async (op: string, id: string, extra: Record<string, unknown>): Promise<string | null> => {
+  const postNeg = async (body: Record<string, unknown>): Promise<string | null> => {
     const res = await fetch("/api/negligences", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ op, id, ...extra }),
+      body: JSON.stringify(body),
     });
     const d = await res.json();
     if (!res.ok) return d.error ?? "Erreur.";
     if (d.negligences) setNegligences(reviveNegs(d.negligences));
+    if (d.items) setItems(reviveItems(d.items));
     return null;
+  };
+
+  const createNegligence = async (itemId: string): Promise<string | null> => {
+    if (demo) {
+      const it = items.find((i) => i.id === itemId);
+      if (it) setAppreciation(it, "Négligence");
+      return null;
+    }
+    return postNeg({ op: "create", itemId });
   };
 
   const updateNegligence = async (id: string, fields: { gravite?: string; risque?: string; impact?: string; description?: string }) => {
@@ -389,21 +400,21 @@ export function AppProvider({
       patchNeg(id, fields);
       return null;
     }
-    return postNeg("update", id, fields);
+    return postNeg({ op: "update", id, ...fields });
   };
   const setNegligenceStatus = async (id: string, status: string) => {
     if (demo) {
       patchNeg(id, { status });
       return null;
     }
-    return postNeg("status", id, { status });
+    return postNeg({ op: "status", id, status });
   };
   const setNegligenceDecisions = async (id: string, decisions: string[]) => {
     if (demo) {
       patchNeg(id, { decisions, decidedBy: me.id, decidedAt: new Date(), status: decisions.length ? "Décision rendue" : "Transmise au DG" });
       return null;
     }
-    return postNeg("decisions", id, { decisions });
+    return postNeg({ op: "decisions", id, decisions });
   };
 
   const refListAction = async (action: RefListActionPayload): Promise<string | null> => {
@@ -522,6 +533,7 @@ export function AppProvider({
     negligences,
     negligenceById,
     negligenceByItem,
+    createNegligence,
     updateNegligence,
     setNegligenceStatus,
     setNegligenceDecisions,

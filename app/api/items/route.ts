@@ -15,6 +15,7 @@ export async function POST(request: Request) {
   const parsed = body?.parsed;
   const prio: Priorite = PRIOS.includes(body?.prio) ? body.prio : "Moyenne";
   const dest = typeof body?.dest === "string" ? body.dest : "";
+  const destService = typeof body?.destService === "string" ? body.destService : "";
   const points = typeof body?.points === "string" ? body.points : "";
 
   const catalogue = getCatalogue();
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
   }
 
   // L'objet appartient toujours à son créateur.
-  createItem({ parsed, prio, dest, pointsRaw: points, ownerId: user.id });
+  createItem({ parsed, prio, dest, destService, pointsRaw: points, ownerId: user.id });
   logActivity(user.id, "item_create", `${parsed.ref} — ${parsed.objet}`);
   // On renvoie aussi les projets : un suivi PRJ crée son projet à la volée.
   return NextResponse.json({ items: listItems(), projects: listProjects() });

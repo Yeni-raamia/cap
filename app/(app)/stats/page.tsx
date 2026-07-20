@@ -172,9 +172,44 @@ export default function StatsPage() {
         </div>
       </div>
 
+      {/* Par service destinataire */}
+      <div className={box}>
+        <div className="text-[13px] font-semibold text-slate-700 mb-1">État par service destinataire</div>
+        <p className="text-[11px] text-slate-400 mb-3">Réseau, systèmes, prestataire… — où se concentrent les blocages.</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="text-left text-slate-500 border-b border-slate-200">
+                <th className="py-1.5 pr-3">Service</th>
+                <th className="py-1.5 pr-3">Mails</th>
+                <th className="py-1.5 pr-3">Relances</th>
+                <th className="py-1.5 pr-3">Réponses</th>
+                <th className="py-1.5 pr-3">Retards</th>
+                <th className="py-1.5 pr-3">Bloqués</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bd.parService.map((d) => (
+                <tr key={d.name} className="border-b border-slate-100">
+                  <td className="py-1.5 pr-3 text-slate-800">{d.name}</td>
+                  <td className="py-1.5 pr-3">{d.suivis}</td>
+                  <td className="py-1.5 pr-3">{d.relances}</td>
+                  <td className="py-1.5 pr-3">{d.reponses}</td>
+                  <td className={`py-1.5 pr-3 ${d.retards ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.retards}</td>
+                  <td className={`py-1.5 pr-3 ${d.bloques ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.bloques}</td>
+                </tr>
+              ))}
+              {bd.parService.length === 0 && (
+                <tr><td className="py-3 text-slate-400" colSpan={6}>Aucun service renseigné.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Par destinataire */}
       <div className={box}>
-        <div className="text-[13px] font-semibold text-slate-700 mb-1">État par destinataire</div>
+        <div className="text-[13px] font-semibold text-slate-700 mb-1">État par destinataire (nom)</div>
         <p className="text-[11px] text-slate-400 mb-3">
           Trié par blocages et retards — met en évidence les tiers dont on attend une action.
         </p>

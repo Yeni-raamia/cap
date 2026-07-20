@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { canAccess } from "@/lib/nav";
+import { canAccess, navForUser } from "@/lib/nav";
 import type { AppSettings, Catalogue, Item, Negligence, Notif, Profile, Project, RefLists } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
@@ -17,7 +17,10 @@ function Shell({ children }: { children: ReactNode }) {
 
   // Garde de rôle applicative : redirige si le rôle courant n'a pas accès.
   useEffect(() => {
-    if (ready && !canAccess(pathname, me)) router.replace("/espace");
+    if (ready && !canAccess(pathname, me)) {
+      // Redirige vers la première page autorisée (utile pour les rôles restreints, ex. DSI).
+      router.replace(navForUser(me)[0]?.href ?? "/espace");
+    }
   }, [pathname, me, ready, router]);
 
   return (

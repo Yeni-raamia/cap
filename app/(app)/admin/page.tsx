@@ -26,11 +26,11 @@ import { GRANTABLE_PAGES, NAV } from "@/lib/nav";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, TypeTag } from "@/components/atoms";
 
-const ROLES: Role[] = ["agent", "directeur", "admin"];
+const ROLES: Role[] = ["agent", "directeur", "admin", "dsi"];
 const roleHasPage = (role: Role, pageId: string) =>
   Boolean(NAV.find((n) => n.id === pageId)?.roles.includes(role));
 const roleBadge = (r: string) =>
-  r === "directeur" ? "bg-emerald-100 text-emerald-700" : r === "admin" ? "bg-violet-100 text-violet-700" : "bg-slate-100 text-slate-600";
+  r === "directeur" ? "bg-emerald-100 text-emerald-700" : r === "admin" ? "bg-violet-100 text-violet-700" : r === "dsi" ? "bg-sky-100 text-sky-700" : "bg-slate-100 text-slate-600";
 
 const ACTION_LABEL: Record<string, string> = {
   item_create: "Suivi créé",
@@ -514,6 +514,12 @@ function ListesSection({ onChanged, setErr }: { onChanged: () => void; setErr: (
         values={refLists.decisions}
         onAdd={(v) => run({ op: "add", listKey: "decision", label: v })}
         onDelete={(v) => run({ op: "delete", listKey: "decision", value: v })}
+      />
+      <SimpleListCard
+        title="Services (destinataires)"
+        values={refLists.services}
+        onAdd={(v) => run({ op: "add", listKey: "service", label: v })}
+        onDelete={(v) => run({ op: "delete", listKey: "service", value: v })}
       />
     </div>
   );

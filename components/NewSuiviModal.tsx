@@ -18,12 +18,13 @@ import { MetierChip, Token, TypeTag } from "./atoms";
 type Mode = "codes" | "coller";
 
 export function NewSuiviModal() {
-  const { showNew, setShowNew, create, items, catalogue } = useApp();
+  const { showNew, setShowNew, create, items, catalogue, refLists } = useApp();
 
   const [mode, setMode] = useState<Mode>("codes");
 
   // Champs communs
   const [prio, setPrio] = useState<Priorite>("Moyenne");
+  const [destService, setDestService] = useState("");
   const [dest, setDest] = useState("");
   const [points, setPoints] = useState("");
 
@@ -67,6 +68,7 @@ export function NewSuiviModal() {
     setCaseNum("");
     setRaw("");
     setPrio("Moyenne");
+    setDestService("");
     setDest("");
     setPoints("");
     setCopied(false);
@@ -96,7 +98,7 @@ export function NewSuiviModal() {
       parsed = parsedRaw;
     }
     if (!parsed) return;
-    create(parsed, prio, dest, points);
+    create(parsed, prio, dest, destService, points);
     reset();
   };
 
@@ -302,17 +304,33 @@ export function NewSuiviModal() {
             </select>
           </div>
           <div>
-            <label className="text-[12px] font-medium text-slate-600" htmlFor="dest">
-              Destinataire principal
+            <label className="text-[12px] font-medium text-slate-600" htmlFor="destService">
+              Service destinataire
             </label>
-            <input
-              id="dest"
-              value={dest}
-              onChange={(e) => setDest(e.target.value)}
-              placeholder="Service informatique — Réseau"
+            <select
+              id="destService"
+              value={destService}
+              onChange={(e) => setDestService(e.target.value)}
               className={inputCls}
-            />
+            >
+              <option value="">— service —</option>
+              {refLists.services.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
           </div>
+        </div>
+        <div className="mt-3">
+          <label className="text-[12px] font-medium text-slate-600" htmlFor="dest">
+            Destinataire (nom de la personne)
+          </label>
+          <input
+            id="dest"
+            value={dest}
+            onChange={(e) => setDest(e.target.value)}
+            placeholder="Nom de la personne à qui le mail est adressé"
+            className={inputCls}
+          />
         </div>
 
         <label className="text-[12px] font-medium text-slate-600 mt-3 block" htmlFor="points">

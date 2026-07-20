@@ -147,6 +147,7 @@ export function getRefLists(): RefLists {
     causes: rows("cause").map((r) => r.value),
     actions: rows("action").map((r): RefAction => ({ kind: r.value, label: r.label || r.value, icon: r.icon || "Flag" })),
     decisions: rows("decision").map((r) => r.value),
+    services: rows("service").map((r) => r.value),
   };
 }
 export function addRefItem(listKey: string, value: string, label: string, icon: string | null): void {

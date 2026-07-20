@@ -39,7 +39,7 @@ export const profileById = (id: string): Profile =>
 let seq = 0;
 const rid = (ref: string) => `${ref}-${(++seq).toString(36)}`;
 
-const P = (name: string, kind: PersonKind = "destinataire"): Person => ({ name, kind });
+const P = (name: string, kind: PersonKind = "destinataire", service: string | null = null): Person => ({ name, kind, service });
 const ev = (ago: number, kind: EventKind, label: string, author: string): TimelineEvent => ({
   date: daysAgo(ago),
   kind,
@@ -230,6 +230,7 @@ export function createItem(
   parsed: ParsedSubject,
   prio: Priorite,
   dest: string,
+  destService: string,
   pointsRaw: string,
   meId: string
 ): Item[] {
@@ -247,7 +248,7 @@ export function createItem(
     ownerId: meId,
     statut: "Envoyé",
     priorite: prio,
-    personnes: dest ? [{ name: dest, kind: "destinataire" }] : [],
+    personnes: dest ? [{ name: dest, kind: "destinataire", service: destService || null }] : [],
     pointsCles: points.length ? points : ["—"],
     blocageCause: null,
     relancesCount: 0,

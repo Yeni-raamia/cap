@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { canEditItem, getItem } from "@/lib/db/repo";
+import { canEditItem, getItem, listItems, setAppreciation } from "@/lib/db/repo";
 import { getRefLists, logActivity } from "@/lib/db/admin";
 import {
+  ensureNegligence,
   getNegligence,
   getNegligenceItemId,
   listNegligences,
   setNegligenceDecisions,
   updateNegligence,
 } from "@/lib/db/negligences";
-import { NEGLIGENCE_GRAVITES, NEGLIGENCE_RISQUES, NEGLIGENCE_STATUTS } from "@/lib/domain";
+import { APPRECIATION_NEGLIGENCE, NEGLIGENCE_GRAVITES, NEGLIGENCE_RISQUES, NEGLIGENCE_STATUTS } from "@/lib/domain";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -17,11 +18,25 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const op: string = body?.op;
+  const isDG = user.role === "directeur" || user.role === "admin";
+
+  // Création manuelle depuis la page Négligences.
+  if (op === "create") {
+    const targetItem: string = body?.itemId;
+    if (!targetItem || !getItem(targetItem)) {
+      return NextResponse.json({ error: "Suivi introuvable." }, { status: 404 });
+    }
+    const canOpen = isDG || user.role === "dsi" || canEditItem(targetItem, user);
+    if (!canOpen) return NextResponse.json({ error: "Droits insuffisants." }, { status: 403 });
+    const negId = ensureNegligence(targetItem, user.id);
+    setAppreciation(targetItem, APPRECIATION_NEGLIGENCE);
+    logActivity(user.id, "negligence_open", getItem(targetItem)?.ref ?? "");
+    return NextResponse.json({ negligences: listNegligences(), items: listItems(), negligence: getNegligence(negId) });
+  }
+
   const id: string = body?.id;
   const itemId = id ? getNegligenceItemId(id) : null;
   if (!id || !itemId) return NextResponse.json({ error: "Fiche introuvable." }, { status: 404 });
-
-  const isDG = user.role === "directeur" || user.role === "admin";
 
   if (op === "update") {
     // Évaluation (gravité, risque, impact, description) : propriétaire ou directeur/admin.

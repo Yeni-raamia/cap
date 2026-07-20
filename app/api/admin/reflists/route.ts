@@ -3,8 +3,8 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { addRefItem, deleteRefItem, getRefLists, logActivity } from "@/lib/db/admin";
 import { ACTION_ICONS } from "@/lib/domain";
 
-const LISTS = ["appreciation", "cause", "action", "decision"];
-const LABELS: Record<string, string> = { appreciation: "appréciation", cause: "cause", action: "action", decision: "décision" };
+const LISTS = ["appreciation", "cause", "action", "decision", "service"];
+const LABELS: Record<string, string> = { appreciation: "appréciation", cause: "cause", action: "action", decision: "décision", service: "service" };
 
 // slug pour le "kind" d'une action personnalisée
 const slug = (s: string) =>

@@ -32,6 +32,7 @@ export interface DestStat {
   bloques: number;
   reponses: number;
 }
+export type ServiceStat = DestStat;
 export interface CritStat {
   priorite: Priorite;
   suivis: number;
@@ -50,6 +51,7 @@ export interface ApprStat {
 export interface Breakdowns {
   parAgent: AgentStat[];
   parDestinataire: DestStat[];
+  parService: ServiceStat[];
   parCriticite: CritStat[];
   causes: CauseStat[];
   parAppreciation: ApprStat[];
@@ -117,16 +119,18 @@ export function computeBreakdowns(
     return a;
   };
 
-  /* --- Par destinataire --- */
+  /* --- Par destinataire / par service --- */
   const dMap = new Map<string, DestStat>();
-  const ensureD = (name: string): DestStat => {
-    let d = dMap.get(name);
+  const sMap = new Map<string, ServiceStat>();
+  const ensureBucket = (map: Map<string, DestStat>, name: string): DestStat => {
+    let d = map.get(name);
     if (!d) {
       d = { name, suivis: 0, relances: 0, retards: 0, bloques: 0, reponses: 0 };
-      dMap.set(name, d);
+      map.set(name, d);
     }
     return d;
   };
+  const ensureD = (name: string) => ensureBucket(dMap, name);
 
   items.forEach((i) => {
     const late = isLate(i);
@@ -141,7 +145,8 @@ export function computeBreakdowns(
     if (blocked) a.bloques++;
     if (late) a.retards++;
 
-    const dests = [...new Set(i.personnes.filter((p) => p.kind === "destinataire").map((p) => p.name))];
+    const destPersons = i.personnes.filter((p) => p.kind === "destinataire");
+    const dests = [...new Set(destPersons.map((p) => p.name))];
     dests.forEach((name) => {
       const d = ensureD(name);
       d.suivis++;
@@ -149,6 +154,15 @@ export function computeBreakdowns(
       if (rep) d.reponses++;
       if (blocked) d.bloques++;
       if (late) d.retards++;
+    });
+    const services = [...new Set(destPersons.map((p) => p.service || "Non précisé"))];
+    services.forEach((svc) => {
+      const s = ensureBucket(sMap, svc);
+      s.suivis++;
+      s.relances += i.relancesCount;
+      if (rep) s.reponses++;
+      if (blocked) s.bloques++;
+      if (late) s.retards++;
     });
   });
 
@@ -189,6 +203,7 @@ export function computeBreakdowns(
     parDestinataire: [...dMap.values()].sort(
       (a, b) => b.retards + b.bloques - (a.retards + a.bloques) || b.suivis - a.suivis
     ),
+    parService: [...sMap.values()].sort((a, b) => b.suivis - a.suivis),
     parCriticite,
     causes: [...cMap.entries()].map(([cause, n]) => ({ cause, n })).sort((a, b) => b.n - a.n),
   };

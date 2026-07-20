@@ -61,7 +61,8 @@ create index if not exists idx_tasks_project on project_tasks(project_id);
 create index if not exists idx_pmembers_project on project_members(project_id);
 create index if not exists idx_pnotes_project on project_notes(project_id);
 create table if not exists item_people (
-  id text primary key, item_id text not null, name text not null, kind text not null default 'destinataire'
+  id text primary key, item_id text not null, name text not null, kind text not null default 'destinataire',
+  service text
 );
 create table if not exists events (
   id text primary key, item_id text not null, kind text not null, label text not null,
@@ -143,6 +144,8 @@ function seedRefLists(db: Database.Database) {
     DEFAULT_REF_LISTS.actions.forEach((a, i) => ins.run(randomUUID(), "action", a.kind, a.label, a.icon, i + 1));
   if (count("decision") === 0)
     DEFAULT_REF_LISTS.decisions.forEach((v, i) => ins.run(randomUUID(), "decision", v, v, null, i + 1));
+  if (count("service") === 0)
+    DEFAULT_REF_LISTS.services.forEach((v, i) => ins.run(randomUUID(), "service", v, v, null, i + 1));
 }
 
 // Migrations légères pour les bases déjà créées (ajout de colonnes manquantes).
@@ -162,6 +165,10 @@ function ensureColumns(db: Database.Database) {
   const pcols = (db.prepare("pragma table_info(profiles)").all() as { name: string }[]).map((c) => c.name);
   if (!pcols.includes("extra_pages")) {
     db.exec("alter table profiles add column extra_pages text not null default ''");
+  }
+  const ipcols = (db.prepare("pragma table_info(item_people)").all() as { name: string }[]).map((c) => c.name);
+  if (!ipcols.includes("service")) {
+    db.exec("alter table item_people add column service text");
   }
 }
 

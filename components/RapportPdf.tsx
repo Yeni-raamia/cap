@@ -41,6 +41,7 @@ interface Report {
   statuts: { statut: string; n: number }[];
   classement: { nom: string; score: number }[];
   parDestinataire: DestStat[];
+  parService: DestStat[];
   parCriticite: CritStat[];
   causes: CauseStat[];
   parAppreciation: ApprStat[];
@@ -127,6 +128,7 @@ export function RapportPdf() {
       statuts,
       classement: scores.slice(0, 5).map((s) => ({ nom: profileById(s.id).nom, score: s.score })),
       parDestinataire: bd.parDestinataire.slice(0, 12),
+      parService: bd.parService,
       parCriticite: bd.parCriticite,
       causes: bd.causes,
       parAppreciation: bd.parAppreciation,
@@ -295,6 +297,38 @@ function ReportDocument({ report }: { report: Report }) {
           </table>
         </div>
       </div>
+
+      <div style={{ fontSize: 13, fontWeight: 600, margin: "20px 0 6px" }}>
+        Imputabilité par service (à ce jour)
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>
+        <thead>
+          <tr>
+            <th className={th}>Service</th>
+            <th className={th}>Mails</th>
+            <th className={th}>Relances</th>
+            <th className={th}>Réponses</th>
+            <th className={th}>Retards</th>
+            <th className={th}>Bloqués</th>
+          </tr>
+        </thead>
+        <tbody>
+          {report.parService.length === 0 ? (
+            <tr><td className={td} colSpan={6}>Aucun service renseigné.</td></tr>
+          ) : (
+            report.parService.map((d) => (
+              <tr key={d.name}>
+                <td className={td}>{d.name}</td>
+                <td className={td}>{d.suivis}</td>
+                <td className={td}>{d.relances}</td>
+                <td className={td}>{d.reponses}</td>
+                <td className={td}>{d.retards}</td>
+                <td className={td}>{d.bloques}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
 
       <div style={{ fontSize: 13, fontWeight: 600, margin: "20px 0 6px" }}>
         Imputabilité par destinataire (à ce jour)

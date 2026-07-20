@@ -5,7 +5,8 @@
  * ================================================================== */
 
 /* ---------- Types ---------- */
-export type Role = "agent" | "directeur" | "admin";
+export type Role = "agent" | "directeur" | "admin" | "dsi";
+export const ROLES: Role[] = ["agent", "directeur", "admin", "dsi"];
 
 export type Statut =
   | "Brouillon"
@@ -35,6 +36,8 @@ export type Tone = "emerald" | "amber" | "rose" | "sky" | "violet" | "slate";
 export interface Person {
   name: string;
   kind: PersonKind;
+  /** Service du destinataire (Réseau, Systèmes, Prestataire…). */
+  service?: string | null;
 }
 
 export interface TimelineEvent {
@@ -226,7 +229,23 @@ export interface RefLists {
   causes: string[];
   actions: RefAction[];
   decisions: string[];
+  services: string[];
 }
+
+/** Services de destinataire par défaut (éditables en admin). */
+export const DEFAULT_SERVICES = [
+  "Réseau",
+  "Télécom",
+  "Bases de données",
+  "Systèmes",
+  "Applications",
+  "Sécurité",
+  "Poste de travail",
+  "Exploitation",
+  "Prestataire",
+  "Direction",
+  "Autre",
+];
 
 /* ---------- 4.4 · Causes de blocage (liste fermée) ---------- */
 export const CAUSES = [
@@ -279,6 +298,7 @@ export const DEFAULT_REF_LISTS: RefLists = {
   causes: CAUSES,
   actions: BLOCAGE_ACTIONS,
   decisions: DEFAULT_DECISIONS,
+  services: DEFAULT_SERVICES,
 };
 
 /* ---------- Helpers temps ---------- */

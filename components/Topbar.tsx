@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Bell, LogOut, Search } from "lucide-react";
-import { canAccess } from "@/lib/nav";
+import { canAccess, navForUser } from "@/lib/nav";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
 
@@ -45,7 +45,7 @@ export function Topbar() {
               setMeId(id);
               const next = profiles.find((u) => u.id === id);
               if (next && !canAccess(window.location.pathname, next)) {
-                router.push("/espace");
+                router.push(navForUser(next)[0]?.href ?? "/espace");
               }
             }}
             className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white"
