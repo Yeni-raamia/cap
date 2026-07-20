@@ -325,6 +325,8 @@ export function seedProjects(): Project[] {
       notes: [
         { id: "n1", projectId: "demo-p1", authorId: "u6", body: "Point d'avancement : volumétrie confirmée, reste la procédure.", createdAt: daysAgo(2) },
       ],
+      pendingStatus: null,
+      pendingBy: null,
     },
     {
       id: "demo-p2",
@@ -341,6 +343,8 @@ export function seedProjects(): Project[] {
         { id: tid(), projectId: "demo-p2", title: "Corriger les comptes à privilèges", assigneeId: "u6", status: "à faire", dueDate: daysAgo(-5), ordre: 2, createdAt: daysAgo(18) },
       ],
       notes: [],
+      pendingStatus: null,
+      pendingBy: null,
     },
   ];
 }

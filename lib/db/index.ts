@@ -43,7 +43,8 @@ create index if not exists idx_blocage_item on blocage_actions(item_id);
 create table if not exists projects (
   id text primary key, name text not null, description text not null default '',
   owner_id text not null, status text not null default 'En cours',
-  deadline text, source_item_id text, created_at text not null default (datetime('now'))
+  deadline text, source_item_id text, created_at text not null default (datetime('now')),
+  pending_status text, pending_by text
 );
 create table if not exists project_tasks (
   id text primary key, project_id text not null, title text not null,
@@ -192,6 +193,11 @@ function ensureColumns(db: Database.Database) {
   const ntcols = (db.prepare("pragma table_info(notifications)").all() as { name: string }[]).map((c) => c.name);
   if (!ntcols.includes("conversation_id")) {
     db.exec("alter table notifications add column conversation_id text");
+  }
+  const pjcols = (db.prepare("pragma table_info(projects)").all() as { name: string }[]).map((c) => c.name);
+  if (!pjcols.includes("pending_status")) {
+    db.exec("alter table projects add column pending_status text");
+    db.exec("alter table projects add column pending_by text");
   }
   // Négligences : reconstruction si ancien schéma (item_id NOT NULL/UNIQUE, sans objet/service/concerne).
   const ncols = (db.prepare("pragma table_info(negligences)").all() as { name: string }[]).map((c) => c.name);

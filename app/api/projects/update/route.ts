@@ -17,9 +17,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Droits insuffisants sur ce projet." }, { status: 403 });
   }
 
-  const status: ProjectStatus | undefined = PROJECT_STATUTS.includes(body?.status)
-    ? body.status
-    : undefined;
+  // Le changement de statut direct est réservé au directeur/admin (validateurs).
+  // Les autres passent par le workflow de proposition (/api/projects/status).
+  const canSetStatus = user.role === "directeur" || user.role === "admin";
+  const status: ProjectStatus | undefined =
+    canSetStatus && PROJECT_STATUTS.includes(body?.status) ? body.status : undefined;
 
   updateProject(id, {
     name: typeof body?.name === "string" ? body.name.trim() : undefined,

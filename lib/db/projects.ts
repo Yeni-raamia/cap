@@ -20,6 +20,8 @@ interface ProjectRow {
   deadline: string | null;
   source_item_id: string | null;
   created_at: string;
+  pending_status: string | null;
+  pending_by: string | null;
 }
 interface TaskRow {
   id: string;
@@ -91,7 +93,36 @@ export function listProjects(): Project[] {
     tasks: (tByP.get(p.id) ?? []).map(mapTask),
     memberIds: mByP.get(p.id) ?? [],
     notes: (nByP.get(p.id) ?? []).map(mapNote),
+    pendingStatus: p.pending_status,
+    pendingBy: p.pending_by,
   }));
+}
+
+/* ---------- Workflow de validation du statut ----------
+ * Un manager (ou le responsable) propose un nouveau statut ; le
+ * changement reste « en attente » jusqu'à validation du directeur. */
+export function requestStatusChange(projectId: string, status: string, byId: string): void {
+  getDb().prepare("update projects set pending_status=?, pending_by=? where id=?").run(status, byId, projectId);
+}
+
+/** Valide (approve=true) ou rejette la proposition de statut. */
+export function decideStatusChange(projectId: string, approve: boolean): string | null {
+  const cur = getDb().prepare("select * from projects where id=?").get(projectId) as ProjectRow | undefined;
+  if (!cur || !cur.pending_status) return null;
+  const target = cur.pending_status;
+  if (approve) {
+    getDb().prepare("update projects set status=?, pending_status=null, pending_by=null where id=?").run(target, projectId);
+  } else {
+    getDb().prepare("update projects set pending_status=null, pending_by=null where id=?").run(projectId);
+  }
+  return approve ? target : null;
+}
+
+export function getProjectPending(projectId: string): { pendingStatus: string | null; pendingBy: string | null; ownerId: string } | null {
+  const r = getDb().prepare("select pending_status, pending_by, owner_id from projects where id=?").get(projectId) as
+    | { pending_status: string | null; pending_by: string | null; owner_id: string }
+    | undefined;
+  return r ? { pendingStatus: r.pending_status, pendingBy: r.pending_by, ownerId: r.owner_id } : null;
 }
 
 export function getProjectOwner(projectId: string): string | null {

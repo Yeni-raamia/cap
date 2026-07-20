@@ -473,7 +473,7 @@ export function computeScores(
 }
 
 /* ---------- Notifications (moteur de relance) ---------- */
-export type NotifKind = "relance" | "escalade" | "digest" | "echeance" | "message";
+export type NotifKind = "relance" | "escalade" | "digest" | "echeance" | "message" | "projet";
 
 export interface Notif {
   id: string;
@@ -524,6 +524,9 @@ export interface Project {
   tasks: ProjectTask[];
   memberIds: string[];
   notes: ProjectNote[];
+  /** Changement de statut proposé, en attente de validation du directeur. */
+  pendingStatus: string | null;
+  pendingBy: string | null;
 }
 
 export interface ProjectMetrics {

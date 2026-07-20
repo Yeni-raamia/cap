@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   CalendarClock,
   Check,
+  Gavel,
   ListChecks,
   MessageSquare,
   Plus,
@@ -50,6 +51,8 @@ export default function ProjetDetailPage() {
     projectMember,
     projectNote,
     attachItemToProject,
+    requestProjectStatus,
+    decideProjectStatus,
   } = useApp();
 
   const project = projectById(id);
@@ -79,6 +82,11 @@ export default function ProjetDetailPage() {
   const owner = profileById(project.ownerId);
   const canManage = !demo && (me.role === "directeur" || me.role === "admin" || project.ownerId === me.id);
   const canContribute = !demo && (canManage || project.memberIds.includes(me.id));
+  // Workflow de statut : le directeur/admin valide ; le manager/responsable propose.
+  const isDirector = !demo && (me.role === "directeur" || me.role === "admin");
+  const canProposeStatus =
+    !demo && (isDirector || me.role === "manager" || project.ownerId === me.id);
+  const pendingProposer = project.pendingBy ? profileById(project.pendingBy) : null;
   const members = project.memberIds.map(profileById);
   const teamForAssign = project.memberIds.includes(project.ownerId)
     ? members
@@ -160,11 +168,23 @@ export default function ProjetDetailPage() {
         <div className="flex items-center gap-3 mt-4 flex-wrap text-[12px]">
           <div className="flex items-center gap-1.5">
             <span className="text-slate-400">Statut</span>
-            {canManage ? (
+            {isDirector ? (
               <select
                 value={project.status}
                 onChange={(e) => run(updateProject(project.id, { status: e.target.value as ProjectStatus }))}
                 aria-label="Statut du projet"
+                className="border border-slate-200 rounded-lg px-2 py-1 bg-white"
+              >
+                {PROJECT_STATUTS.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            ) : canProposeStatus ? (
+              <select
+                value={project.status}
+                onChange={(e) => run(requestProjectStatus(project.id, e.target.value))}
+                aria-label="Proposer un statut"
+                title="Proposer un changement de statut (validé par le directeur)"
                 className="border border-slate-200 rounded-lg px-2 py-1 bg-white"
               >
                 {PROJECT_STATUTS.map((s) => (
@@ -197,6 +217,35 @@ export default function ProjetDetailPage() {
             <span className="text-slate-600">{owner.nom}</span>
           </div>
         </div>
+
+        {/* Proposition de changement de statut en attente de validation */}
+        {project.pendingStatus && (
+          <div className="mt-4 flex items-center gap-3 flex-wrap rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px]">
+            <Gavel size={15} className="text-amber-600 shrink-0" />
+            <span className="text-amber-800">
+              Changement proposé : <b>{project.status}</b> → <b>{project.pendingStatus}</b>
+              {pendingProposer && <> · par {pendingProposer.nom}</>}
+            </span>
+            {isDirector ? (
+              <div className="flex items-center gap-2 ml-auto">
+                <button
+                  onClick={() => run(decideProjectStatus(project.id, true))}
+                  className="text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-2.5 py-1 font-medium"
+                >
+                  Valider
+                </button>
+                <button
+                  onClick={() => run(decideProjectStatus(project.id, false))}
+                  className="text-rose-700 border border-rose-200 hover:bg-rose-50 rounded-lg px-2.5 py-1 font-medium"
+                >
+                  Refuser
+                </button>
+              </div>
+            ) : (
+              <span className="ml-auto text-amber-600 italic">En attente de validation du directeur</span>
+            )}
+          </div>
+        )}
 
         {/* Avancement */}
         <div className="mt-4">

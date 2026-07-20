@@ -142,6 +142,8 @@ interface AppCtx {
   projectMember: (action: "add" | "remove", projectId: string, profileId: string) => Promise<string | null>;
   projectNote: (projectId: string, body: string) => Promise<string | null>;
   attachItemToProject: (itemId: string, projectId: string | null) => Promise<string | null>;
+  requestProjectStatus: (id: string, status: string) => Promise<string | null>;
+  decideProjectStatus: (id: string, approve: boolean) => Promise<string | null>;
 }
 
 const EPOCH = new Date(0);
@@ -550,6 +552,11 @@ export function AppProvider({
     demo ? DEMO_MSG : postProjects("/api/projects/notes", { projectId, body });
   const attachItemToProject = async (itemId: string, projectId: string | null) =>
     demo ? DEMO_MSG : postProjects("/api/projects/attach", { itemId, projectId });
+  // Workflow de statut : proposer (manager/responsable) puis valider (directeur).
+  const requestProjectStatus = async (id: string, status: string) =>
+    demo ? DEMO_MSG : postProjects("/api/projects/status", { op: "request", id, status });
+  const decideProjectStatus = async (id: string, approve: boolean) =>
+    demo ? DEMO_MSG : postProjects("/api/projects/status", { op: "decide", id, approve });
 
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
@@ -692,6 +699,8 @@ export function AppProvider({
     projectMember,
     projectNote,
     attachItemToProject,
+    requestProjectStatus,
+    decideProjectStatus,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
