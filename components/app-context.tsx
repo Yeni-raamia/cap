@@ -669,7 +669,7 @@ export function AppProvider({
   const refreshTasks = async () => {
     if (demo) return;
     try {
-      const r = await fetch("/api/tasks");
+      const r = await fetch("/api/tasks", { cache: "no-store" });
       if (!r.ok) return;
       const d = await r.json();
       if (d.tasks) setTasks(reviveTasks(d.tasks));
@@ -708,7 +708,7 @@ export function AppProvider({
   const refreshConversations = async () => {
     if (demo) return;
     try {
-      const r = await fetch("/api/conversations");
+      const r = await fetch("/api/conversations", { cache: "no-store" });
       if (!r.ok) return;
       const d = await r.json();
       if (d.conversations) setConversations(reviveConvs(d.conversations));
@@ -721,7 +721,7 @@ export function AppProvider({
   const loadMessages = async (t: MsgTarget): Promise<{ conversationId: string | null; messages: Message[] }> => {
     if (demo) return { conversationId: null, messages: [] };
     const q = t.convId ? `convId=${t.convId}` : `refType=${t.refType}&refId=${t.refId}`;
-    const r = await fetch(`/api/messages?${q}`);
+    const r = await fetch(`/api/messages?${q}`, { cache: "no-store" });
     const d = await r.json();
     if (d.notifications) setNotifications(reviveNotifs(d.notifications));
     refreshConversations();
