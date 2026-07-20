@@ -25,14 +25,28 @@ export const NAV: NavItem[] = [
 
 /** Pages qu'un admin peut accorder individuellement (hors administration). */
 export const GRANTABLE_PAGES = NAV.filter((n) => n.id !== "admin");
+/** Toutes les vues configurables par l'admin (administration incluse). */
+export const ALL_PAGES = NAV;
 
-const allowed = (item: NavItem, role: Role, extraPages: string[]) =>
-  item.roles.includes(role) || extraPages.includes(item.id);
+/** Accès effectif : (rôle OU accordé) ET non explicitement retiré. */
+const allowed = (item: NavItem, role: Role, extraPages: string[], deniedPages: string[]) =>
+  (item.roles.includes(role) || extraPages.includes(item.id)) && !deniedPages.includes(item.id);
+
+/** L'accès d'un rôle à une page, avant surcharges par utilisateur. */
+export const roleHasPage = (role: Role, pageId: string): boolean =>
+  Boolean(NAV.find((n) => n.id === pageId)?.roles.includes(role));
+
+/** L'utilisateur a-t-il accès à cette page, en tenant compte des surcharges ? */
+export const hasPageAccess = (me: Profile, pageId: string): boolean => {
+  const item = NAV.find((n) => n.id === pageId);
+  if (!item) return false;
+  return allowed(item, me.role, me.extraPages ?? [], me.deniedPages ?? []);
+};
 
 export const navForUser = (me: Profile): NavItem[] =>
-  NAV.filter((n) => allowed(n, me.role, me.extraPages ?? []));
+  NAV.filter((n) => allowed(n, me.role, me.extraPages ?? [], me.deniedPages ?? []));
 
 export const canAccess = (href: string, me: Profile): boolean => {
   const item = NAV.find((n) => href === n.href || href.startsWith(n.href + "/"));
-  return item ? allowed(item, me.role, me.extraPages ?? []) : true;
+  return item ? allowed(item, me.role, me.extraPages ?? [], me.deniedPages ?? []) : true;
 };

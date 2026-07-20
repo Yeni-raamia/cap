@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { applyAction, canEditItem, getItem, listItems } from "@/lib/db/repo";
 import { logActivity } from "@/lib/db/admin";
 import { getCurrentUser } from "@/lib/auth/session";
+import { denyReadOnly } from "@/lib/auth/guards";
 
 const ACTIONS = ["relance", "reponse", "bloque", "cloture"] as const;
 type Action = (typeof ACTIONS)[number];
@@ -9,6 +10,7 @@ type Action = (typeof ACTIONS)[number];
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  const _ro = denyReadOnly(user); if (_ro) return _ro;
 
   const body = await request.json().catch(() => ({}));
   const itemId: string = body?.itemId;

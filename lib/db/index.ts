@@ -25,7 +25,8 @@ create table if not exists profiles (
   id text primary key, email text unique not null, password_hash text not null,
   full_name text not null, initials text not null, poste text,
   role text not null default 'agent', active integer not null default 1,
-  extra_pages text not null default '', created_at text not null default (datetime('now'))
+  extra_pages text not null default '', denied_pages text not null default '',
+  readonly integer not null default 0, created_at text not null default (datetime('now'))
 );
 create table if not exists items (
   id text primary key, ref text not null, metier_code text not null, type_code text not null,
@@ -210,6 +211,12 @@ function ensureColumns(db: Database.Database) {
   const pcols = (db.prepare("pragma table_info(profiles)").all() as { name: string }[]).map((c) => c.name);
   if (!pcols.includes("extra_pages")) {
     db.exec("alter table profiles add column extra_pages text not null default ''");
+  }
+  if (!pcols.includes("denied_pages")) {
+    db.exec("alter table profiles add column denied_pages text not null default ''");
+  }
+  if (!pcols.includes("readonly")) {
+    db.exec("alter table profiles add column readonly integer not null default 0");
   }
   const ipcols = (db.prepare("pragma table_info(item_people)").all() as { name: string }[]).map((c) => c.name);
   if (!ipcols.includes("service")) {

@@ -3,6 +3,7 @@ import { createItem, getCatalogue, listItems } from "@/lib/db/repo";
 import { listProjects } from "@/lib/db/projects";
 import { logActivity } from "@/lib/db/admin";
 import { getCurrentUser } from "@/lib/auth/session";
+import { denyReadOnly } from "@/lib/auth/guards";
 import { type Priorite } from "@/lib/domain";
 
 const PRIOS: Priorite[] = ["Critique", "Élevé", "Moyenne"];
@@ -10,6 +11,7 @@ const PRIOS: Priorite[] = ["Critique", "Élevé", "Moyenne"];
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  const _ro = denyReadOnly(user); if (_ro) return _ro;
 
   const body = await request.json().catch(() => ({}));
   const parsed = body?.parsed;

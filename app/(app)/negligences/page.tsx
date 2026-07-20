@@ -28,7 +28,7 @@ export const statusBadge: Record<string, string> = {
 };
 
 export default function NegligencesPage() {
-  const { negligences, items, me, refLists, profileById, createNegligence, setNegligenceDecisions } = useApp();
+  const { negligences, items, me, refLists, profileById, createNegligence, setNegligenceDecisions, readOnly } = useApp();
   const [search, setSearch] = useState("");
   const [fGravite, setFGravite] = useState("Tous");
   const [fStatut, setFStatut] = useState("Tous");
@@ -49,6 +49,7 @@ export default function NegligencesPage() {
   const [description, setDescription] = useState("");
 
   const isDG = me.role === "directeur" || me.role === "admin";
+  const canDecide = isDG && !readOnly;
   const itemOf = (n: Negligence) => (n.itemId ? items.find((i) => i.id === n.itemId) : null);
   const negItemIds = new Set(negligences.map((n) => n.itemId).filter(Boolean));
   const attachables = items.filter((i) => !negItemIds.has(i.id));
@@ -120,9 +121,15 @@ export default function NegligencesPage() {
           <button onClick={() => setReportOn(true)} disabled={filtered.length === 0} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700 border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50 disabled:opacity-40">
             <FileText size={15} /> Rapport (toutes) PDF
           </button>
-          <button onClick={() => setShowNew((v) => !v)} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-white bg-rose-600 rounded-lg px-3 py-2 hover:bg-rose-700">
-            <Plus size={16} /> Nouvelle négligence
-          </button>
+          {readOnly ? (
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Lecture seule
+            </span>
+          ) : (
+            <button onClick={() => setShowNew((v) => !v)} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-white bg-rose-600 rounded-lg px-3 py-2 hover:bg-rose-700">
+              <Plus size={16} /> Nouvelle négligence
+            </button>
+          )}
         </div>
       </div>
 
@@ -236,7 +243,7 @@ export default function NegligencesPage() {
                     <span className="w-16 shrink-0"><span className={`text-[10px] px-1.5 py-0.5 rounded ${graviteBadge[n.gravite] ?? ""}`}>{n.gravite}</span></span>
                     <span className="w-24 shrink-0"><span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusBadge[n.status] ?? "bg-slate-100 text-slate-600"}`}>{n.status}</span></span>
                     <div className="w-24 shrink-0 flex items-center justify-end gap-1">
-                      {isDG && (
+                      {canDecide && (
                         <button onClick={() => setExpanded(expanded === n.id ? null : n.id)} title="Décisions du DG" className={`inline-flex items-center gap-1 text-[11px] rounded px-1.5 py-1 border ${n.decisions.length ? "border-emerald-200 text-emerald-700 bg-emerald-50" : "border-slate-200 text-slate-500"}`}>
                           <Gavel size={13} />{n.decisions.length || ""}
                         </button>
@@ -245,7 +252,7 @@ export default function NegligencesPage() {
                     </div>
                   </div>
 
-                  {isDG && expanded === n.id && (
+                  {canDecide && expanded === n.id && (
                     <div className="px-4 pb-3 pl-10">
                       <div className="text-[11px] text-slate-500 mb-1.5 flex items-center gap-1"><Gavel size={12} /> Décisions du DG — coche les décisions retenues (transcription du document signé)</div>
                       <div className="grid md:grid-cols-2 gap-1.5">

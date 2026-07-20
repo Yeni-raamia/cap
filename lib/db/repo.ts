@@ -37,6 +37,8 @@ interface ProfileRow {
   role: Role;
   active: number;
   extra_pages: string;
+  denied_pages: string;
+  readonly: number;
 }
 
 export const parsePages = (csv: string | null | undefined): string[] =>
@@ -50,6 +52,8 @@ function mapProfile(r: ProfileRow): Profile {
     role: r.role,
     init: r.initials,
     extraPages: parsePages(r.extra_pages),
+    deniedPages: parsePages(r.denied_pages),
+    readonly: r.readonly === 1,
   };
 }
 

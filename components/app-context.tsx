@@ -25,6 +25,7 @@ import {
   computeScores,
   DEFAULT_CATALOGUE,
   DEFAULT_REF_LISTS,
+  isReadOnly,
   reminderState,
   type AppSettings,
   type ConversationSummary,
@@ -176,10 +177,12 @@ interface AppCtx {
   // Son des notifications
   soundEnabled: boolean;
   setSoundEnabled: (v: boolean) => void;
+  // Compte en lecture seule (DSI ou marqué par l'admin)
+  readOnly: boolean;
 }
 
 const EPOCH = new Date(0);
-const FALLBACK_PROFILE: Profile = { id: "", nom: "…", poste: "", role: "agent", init: "?", extraPages: [] };
+const FALLBACK_PROFILE: Profile = { id: "", nom: "…", poste: "", role: "agent", init: "?", extraPages: [], deniedPages: [], readonly: false };
 const Ctx = createContext<AppCtx | null>(null);
 
 /** Reconvertit les dates (ISO string) d'une réponse JSON en objets Date. */
@@ -870,6 +873,7 @@ export function AppProvider({
     setOpenTaskId,
     soundEnabled,
     setSoundEnabled,
+    readOnly: isReadOnly(me),
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

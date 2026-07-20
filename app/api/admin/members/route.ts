@@ -12,14 +12,15 @@ import {
   setMemberActive,
   setMemberPages,
   setMemberPoste,
+  setMemberReadonly,
   setMemberRole,
 } from "@/lib/db/admin";
 import { getProfileById } from "@/lib/db/repo";
-import { GRANTABLE_PAGES } from "@/lib/nav";
+import { ALL_PAGES, roleHasPage } from "@/lib/nav";
 import { type Role } from "@/lib/domain";
 
 const ROLES: Role[] = ["agent", "manager", "directeur", "admin", "dsi"];
-const GRANTABLE = GRANTABLE_PAGES.map((p) => p.id);
+const PAGE_IDS = ALL_PAGES.map((p) => p.id);
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -71,11 +72,26 @@ export async function POST(request: Request) {
     setMemberPoste(targetId, String(body?.poste || "").trim());
     logActivity(user.id, "member_poste", nameOf(targetId));
   } else if (action === "pages") {
-    const pages: string[] = Array.isArray(body?.pages)
-      ? body.pages.filter((p: string) => GRANTABLE.includes(p))
-      : [];
-    setMemberPages(targetId, pages);
-    logActivity(user.id, "member_pages", `${nameOf(targetId)} → ${pages.join(", ") || "aucune"}`);
+    // L'admin définit l'ensemble EXACT des pages visibles pour l'utilisateur.
+    // On en déduit : accordées au-delà du rôle (extra) et retirées malgré le rôle (denied).
+    const target = getProfileById(targetId);
+    if (!target) return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 });
+    const wanted: string[] = Array.isArray(body?.pages) ? body.pages.filter((p: string) => PAGE_IDS.includes(p)) : [];
+    const extra = wanted.filter((id) => !roleHasPage(target.role, id)); // accordées hors rôle
+    const denied = PAGE_IDS.filter((id) => roleHasPage(target.role, id) && !wanted.includes(id)); // rôle mais retirées
+    // Garde-fou : un admin ne peut pas se retirer à lui-même l'accès à l'administration.
+    if (targetId === user.id && !wanted.includes("admin")) {
+      return NextResponse.json({ error: "Tu ne peux pas retirer ton propre accès à l'administration." }, { status: 400 });
+    }
+    setMemberPages(targetId, extra, denied);
+    logActivity(user.id, "member_pages", `${nameOf(targetId)} → ${wanted.join(", ") || "aucune"}`);
+  } else if (action === "readonly") {
+    const ro = Boolean(body?.readonly);
+    if (targetId === user.id && ro) {
+      return NextResponse.json({ error: "Tu ne peux pas te mettre toi-même en lecture seule." }, { status: 400 });
+    }
+    setMemberReadonly(targetId, ro);
+    logActivity(user.id, "member_readonly", `${nameOf(targetId)} → ${ro ? "lecture seule" : "écriture"}`);
   } else if (action === "password") {
     const password = String(body?.password || "");
     if (password.length < 6) {

@@ -81,7 +81,15 @@ export interface Profile {
   init: string;
   /** Pages supplémentaires accordées par l'admin, au-delà du rôle. */
   extraPages: string[];
+  /** Pages retirées par l'admin, même si le rôle y donnerait accès. */
+  deniedPages: string[];
+  /** Compte en lecture seule (aucune écriture). */
+  readonly: boolean;
 }
+
+/** Un compte est en lecture seule s'il est marqué comme tel, ou s'il a le rôle DSI. */
+export const isReadOnly = (p: { role: Role; readonly?: boolean }): boolean =>
+  p.role === "dsi" || Boolean(p.readonly);
 
 export interface Sla {
   relance: number;
@@ -663,6 +671,8 @@ export interface AdminMember {
   init: string;
   active: boolean;
   extraPages: string[];
+  deniedPages: string[];
+  readonly: boolean;
 }
 
 export interface ActivityEntry {

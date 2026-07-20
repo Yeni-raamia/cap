@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { denyReadOnly } from "@/lib/auth/guards";
 import { listNotificationsFor } from "@/lib/db/repo";
 import {
   canAccessConversation,
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  const ro = denyReadOnly(user); if (ro) return ro;
 
   const body = await request.json().catch(() => ({}));
   const text = String(body?.body || "").trim();

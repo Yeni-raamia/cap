@@ -8,6 +8,7 @@
  * ================================================================== */
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { denyReadOnly } from "@/lib/auth/guards";
 import { createTask, deleteTask, getTask, listTasks, updateTask } from "@/lib/db/tasks";
 import { insertNotification } from "@/lib/db/repo";
 import { logActivity } from "@/lib/db/admin";
@@ -25,6 +26,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  const ro = denyReadOnly(user); if (ro) return ro;
 
   const body = await request.json().catch(() => ({}));
   const op: string = body?.op;

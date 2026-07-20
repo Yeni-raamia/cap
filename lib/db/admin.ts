@@ -47,7 +47,10 @@ interface MemberRow {
   role: Role;
   active: number;
   extra_pages: string;
+  denied_pages: string;
+  readonly: number;
 }
+const csv = (s: string | null | undefined) => (s ?? "").split(",").map((x) => x.trim()).filter(Boolean);
 function mapMember(r: MemberRow): AdminMember {
   return {
     id: r.id,
@@ -57,7 +60,9 @@ function mapMember(r: MemberRow): AdminMember {
     role: r.role,
     init: r.initials,
     active: r.active === 1,
-    extraPages: (r.extra_pages ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+    extraPages: csv(r.extra_pages),
+    deniedPages: csv(r.denied_pages),
+    readonly: r.readonly === 1,
   };
 }
 
@@ -89,8 +94,13 @@ export function setMemberRole(id: string, role: Role): void {
 export function setMemberPoste(id: string, poste: string): void {
   getDb().prepare("update profiles set poste = ? where id = ?").run(poste, id);
 }
-export function setMemberPages(id: string, pages: string[]): void {
-  getDb().prepare("update profiles set extra_pages = ? where id = ?").run(pages.join(","), id);
+export function setMemberPages(id: string, extraPages: string[], deniedPages: string[]): void {
+  getDb()
+    .prepare("update profiles set extra_pages = ?, denied_pages = ? where id = ?")
+    .run(extraPages.join(","), deniedPages.join(","), id);
+}
+export function setMemberReadonly(id: string, readonly: boolean): void {
+  getDb().prepare("update profiles set readonly = ? where id = ?").run(readonly ? 1 : 0, id);
 }
 export function resetMemberPassword(id: string, password: string): void {
   getDb().prepare("update profiles set password_hash = ? where id = ?").run(hashPassword(password), id);

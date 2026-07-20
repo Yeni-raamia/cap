@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { denyReadOnly } from "@/lib/auth/guards";
 import { canContributeProject } from "@/lib/auth/project-guard";
 import { addTask, deleteTask, listProjects, taskProjectId, updateTask } from "@/lib/db/projects";
 import { TASK_STATUTS, type TaskStatus } from "@/lib/domain";
@@ -9,6 +10,7 @@ const toIso = (d?: string | null) => (d ? new Date(`${d}T00:00:00`).toISOString(
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  const _ro = denyReadOnly(user); if (_ro) return _ro;
 
   const body = await request.json().catch(() => ({}));
   const action: string = body?.action;

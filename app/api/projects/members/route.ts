@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { denyReadOnly } from "@/lib/auth/guards";
 import { canManageProject } from "@/lib/auth/project-guard";
 import { addMember, isProjectMember, listProjects, removeMember } from "@/lib/db/projects";
 import { insertNotification } from "@/lib/db/repo";
@@ -7,6 +8,7 @@ import { insertNotification } from "@/lib/db/repo";
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  const _ro = denyReadOnly(user); if (_ro) return _ro;
 
   const body = await request.json().catch(() => ({}));
   const action: string = body?.action;

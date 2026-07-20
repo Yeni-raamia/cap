@@ -22,13 +22,11 @@ import {
   type Role,
   type Tone,
 } from "@/lib/domain";
-import { GRANTABLE_PAGES, NAV } from "@/lib/nav";
+import { ALL_PAGES, roleHasPage } from "@/lib/nav";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, TypeTag } from "@/components/atoms";
 
 const ROLES: Role[] = ["agent", "manager", "directeur", "admin", "dsi"];
-const roleHasPage = (role: Role, pageId: string) =>
-  Boolean(NAV.find((n) => n.id === pageId)?.roles.includes(role));
 const roleBadge = (r: string) =>
   r === "directeur" ? "bg-emerald-100 text-emerald-700" : r === "admin" ? "bg-violet-100 text-violet-700" : r === "dsi" ? "bg-sky-100 text-sky-700" : r === "manager" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600";
 
@@ -43,7 +41,8 @@ const ACTION_LABEL: Record<string, string> = {
   member_active: "Statut de compte",
   member_poste: "Poste modifié",
   member_password: "Mot de passe réinitialisé",
-  member_pages: "Pages accordées",
+  member_pages: "Vues accessibles",
+  member_readonly: "Privilège lecture/écriture",
   blocage_demarche: "Démarche de déblocage",
   blocage_appreciation: "Appréciation du motif",
   reflist_add: "Liste — ajout",
@@ -297,31 +296,60 @@ function MembresSection({
                     </div>
                   </div>
 
-                  {/* Pages accessibles au-delà du rôle */}
+                  {/* Privilège lecture / écriture */}
+                  <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                    <div>
+                      <div className="text-[12px] font-medium text-slate-700">Privilège</div>
+                      <div className="text-[11px] text-slate-400">
+                        {u.role === "dsi"
+                          ? "Le rôle DSI est en lecture seule (non modifiable)."
+                          : u.readonly
+                          ? "Lecture seule : ce compte ne peut rien modifier."
+                          : "Écriture : ce compte peut créer et modifier."}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => call({ action: "readonly", id: u.id, readonly: !u.readonly })}
+                      disabled={u.role === "dsi"}
+                      className={`text-[12px] rounded-lg px-3 py-1.5 border font-medium ${
+                        u.role === "dsi" || u.readonly
+                          ? "bg-amber-50 border-amber-200 text-amber-700"
+                          : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                      } disabled:opacity-70 disabled:cursor-not-allowed`}
+                    >
+                      {u.role === "dsi" || u.readonly ? "Lecture seule" : "Écriture"}
+                    </button>
+                  </div>
+
+                  {/* Vues accessibles — toutes cochables/décochables */}
                   <div>
                     <div className="text-[11px] text-slate-500 mb-1.5">
-                      Pages accessibles (le rôle « {u.role} » donne déjà accès à certaines)
+                      Vues accessibles (cochez/décochez librement ; « rôle » = accordé par défaut par le rôle)
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {GRANTABLE_PAGES.map((p) => {
+                      {ALL_PAGES.map((p) => {
                         const byRole = roleHasPage(u.role, p.id);
-                        const granted = byRole || u.extraPages.includes(p.id);
+                        // Accès effectif = (rôle ou accordé) et non retiré.
+                        const granted = (byRole || u.extraPages.includes(p.id)) && !u.deniedPages.includes(p.id);
                         return (
                           <label
                             key={p.id}
                             className={`inline-flex items-center gap-1 text-[11px] border rounded-full px-2 py-1 cursor-pointer ${
                               granted ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "border-slate-200 text-slate-500"
-                            } ${byRole ? "opacity-70 cursor-not-allowed" : ""}`}
+                            }`}
                           >
                             <input
                               type="checkbox"
                               checked={granted}
-                              disabled={byRole}
                               onChange={(e) => {
-                                const next = e.target.checked
-                                  ? [...u.extraPages, p.id]
-                                  : u.extraPages.filter((x) => x !== p.id);
-                                call({ action: "pages", id: u.id, pages: next });
+                                // Ensemble EXACT des vues voulues après cette bascule.
+                                const current = ALL_PAGES.filter(
+                                  (q) => (roleHasPage(u.role, q.id) || u.extraPages.includes(q.id)) && !u.deniedPages.includes(q.id)
+                                ).map((q) => q.id);
+                                const wanted = e.target.checked
+                                  ? [...new Set([...current, p.id])]
+                                  : current.filter((x) => x !== p.id);
+                                call({ action: "pages", id: u.id, pages: wanted });
                               }}
                               className="h-3 w-3 accent-emerald-600"
                             />
