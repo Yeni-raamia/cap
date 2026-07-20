@@ -39,6 +39,7 @@ interface ProfileRow {
   extra_pages: string;
   denied_pages: string;
   readonly: number;
+  approved: number;
 }
 
 export const parsePages = (csv: string | null | undefined): string[] =>
@@ -54,6 +55,7 @@ function mapProfile(r: ProfileRow): Profile {
     extraPages: parsePages(r.extra_pages),
     deniedPages: parsePages(r.denied_pages),
     readonly: r.readonly === 1,
+    approved: r.approved === 1,
   };
 }
 
@@ -83,6 +85,7 @@ export function createProfile(input: {
   passwordHash: string;
   fullName: string;
   role: Role;
+  approved?: boolean;
 }): Profile {
   const id = randomUUID();
   const initials =
@@ -96,14 +99,32 @@ export function createProfile(input: {
       .toUpperCase() || input.email.slice(0, 2).toUpperCase();
   getDb()
     .prepare(
-      "insert into profiles (id, email, password_hash, full_name, initials, role) values (?,?,?,?,?,?)"
+      "insert into profiles (id, email, password_hash, full_name, initials, role, approved) values (?,?,?,?,?,?,?)"
     )
-    .run(id, input.email.toLowerCase(), input.passwordHash, input.fullName, initials, input.role);
+    .run(id, input.email.toLowerCase(), input.passwordHash, input.fullName, initials, input.role, input.approved ? 1 : 0);
   return getProfileById(id)!;
 }
 
 export function updateRole(userId: string, role: Role): void {
   getDb().prepare("update profiles set role = ? where id = ?").run(role, userId);
+}
+
+/** Approuve un compte en attente (accès autorisé). */
+export function approveProfile(userId: string): void {
+  getDb().prepare("update profiles set approved = 1 where id = ?").run(userId);
+}
+
+/** Supprime définitivement un compte (refus d'inscription) et ses sessions. */
+export function deleteProfileAccount(userId: string): void {
+  const db = getDb();
+  db.prepare("delete from sessions where user_id = ?").run(userId);
+  db.prepare("delete from profiles where id = ?").run(userId);
+}
+
+/** Administrateurs actifs (pour notifier les demandes d'inscription). */
+export function listAdmins(): Profile[] {
+  const rows = getDb().prepare("select * from profiles where role='admin' and active=1 and approved=1").all() as ProfileRow[];
+  return rows.map(mapProfile);
 }
 
 /* ---------- Sessions ---------- */

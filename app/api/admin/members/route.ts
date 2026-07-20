@@ -15,7 +15,7 @@ import {
   setMemberReadonly,
   setMemberRole,
 } from "@/lib/db/admin";
-import { getProfileById } from "@/lib/db/repo";
+import { approveProfile, deleteProfileAccount, getProfileById, insertNotification } from "@/lib/db/repo";
 import { ALL_PAGES, roleHasPage } from "@/lib/nav";
 import { type Role } from "@/lib/domain";
 
@@ -85,6 +85,27 @@ export async function POST(request: Request) {
     }
     setMemberPages(targetId, extra, denied);
     logActivity(user.id, "member_pages", `${nameOf(targetId)} → ${wanted.join(", ") || "aucune"}`);
+  } else if (action === "approve") {
+    const target = getProfileById(targetId);
+    if (!target) return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 });
+    if (Boolean(body?.approve)) {
+      approveProfile(targetId);
+      insertNotification({
+        userId: targetId,
+        itemId: null,
+        kind: "projet",
+        message: "Votre compte a été approuvé : vous avez désormais accès à l'application.",
+        channel: ["in-app"],
+      });
+      logActivity(user.id, "member_approve", `${nameOf(targetId)} approuvé`);
+    } else {
+      // Refus : suppression définitive de la demande d'inscription.
+      if (target.approved) {
+        return NextResponse.json({ error: "Ce compte est déjà approuvé ; utilisez la désactivation." }, { status: 400 });
+      }
+      deleteProfileAccount(targetId);
+      logActivity(user.id, "member_approve", `${target.nom} refusé (supprimé)`);
+    }
   } else if (action === "readonly") {
     const ro = Boolean(body?.readonly);
     if (targetId === user.id && ro) {

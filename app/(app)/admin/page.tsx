@@ -43,6 +43,7 @@ const ACTION_LABEL: Record<string, string> = {
   member_password: "Mot de passe réinitialisé",
   member_pages: "Vues accessibles",
   member_readonly: "Privilège lecture/écriture",
+  member_approve: "Approbation de compte",
   blocage_demarche: "Démarche de déblocage",
   blocage_appreciation: "Appréciation du motif",
   reflist_add: "Liste — ajout",
@@ -236,9 +237,26 @@ function MembresSection({
                     {u.nom}
                     {u.id === meId && <span className="text-[11px] text-emerald-600 ml-1">· toi</span>}
                     {!u.active && <span className="text-[11px] text-rose-600 ml-1">· désactivé</span>}
+                    {!u.approved && <span className="text-[10px] font-medium text-amber-700 bg-amber-100 rounded-full px-1.5 py-0.5 ml-1.5">En attente</span>}
                   </div>
                   <div className="text-[11px] text-slate-400">{u.email}{u.poste ? ` · ${u.poste}` : ""}</div>
                 </div>
+                {!u.approved ? (
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      onClick={() => call({ action: "approve", id: u.id, approve: true })}
+                      className="text-[12px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-3 py-1.5"
+                    >
+                      Approuver
+                    </button>
+                    <button
+                      onClick={() => { if (confirm(`Refuser et supprimer la demande de ${u.nom} ?`)) call({ action: "approve", id: u.id, approve: false }); }}
+                      className="text-[12px] font-medium text-rose-700 border border-rose-200 hover:bg-rose-50 rounded-lg px-3 py-1.5"
+                    >
+                      Refuser
+                    </button>
+                  </div>
+                ) : (
                 <div className="ml-auto flex items-center gap-2">
                   <select
                     value={u.role}
@@ -268,9 +286,10 @@ function MembresSection({
                     Gérer
                   </button>
                 </div>
+                )}
               </div>
 
-              {expanded === u.id && (
+              {expanded === u.id && u.approved && (
                 <div className="mt-2 pl-10 space-y-3">
                   <div className="grid md:grid-cols-2 gap-3">
                     <div className="flex items-center gap-2">

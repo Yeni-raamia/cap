@@ -18,7 +18,8 @@ export async function POST(request: Request) {
   }
 
   const token = createSession(row.id);
-  const res = NextResponse.json({ user: getProfileById(row.id) });
+  const user = getProfileById(row.id);
+  const res = NextResponse.json({ user, pending: !user?.approved });
   setSessionCookie(res, token);
   return res;
 }

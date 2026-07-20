@@ -21,13 +21,13 @@ import {
 
 /* ---------- Équipe de démonstration (neutre) ---------- */
 export const PROFILES: Profile[] = [
-  { id: "u1", nom: "Direction sécurité", poste: "Responsable sécurité (RSSI)", role: "directeur", init: "DS", extraPages: [], deniedPages: [], readonly: false },
-  { id: "u2", nom: "Agent A", poste: "Analyste SOC / Forensic", role: "agent", init: "A1", extraPages: [], deniedPages: [], readonly: false },
-  { id: "u3", nom: "Agent B", poste: "Gouvernance & conformité", role: "agent", init: "A2", extraPages: [], deniedPages: [], readonly: false },
-  { id: "u4", nom: "Agent C", poste: "Analyste SOC", role: "agent", init: "A3", extraPages: [], deniedPages: [], readonly: false },
-  { id: "u5", nom: "Agent D", poste: "Renseignement menace", role: "agent", init: "A4", extraPages: [], deniedPages: [], readonly: false },
-  { id: "u6", nom: "Agent E", poste: "Audit / Projets", role: "agent", init: "A5", extraPages: [], deniedPages: [], readonly: false },
-  { id: "u7", nom: "Administration", poste: "Administrateur de l'application", role: "admin", init: "AX", extraPages: [], deniedPages: [], readonly: false },
+  { id: "u1", nom: "Direction sécurité", poste: "Responsable sécurité (RSSI)", role: "directeur", init: "DS", extraPages: [], deniedPages: [], readonly: false, approved: true },
+  { id: "u2", nom: "Agent A", poste: "Analyste SOC / Forensic", role: "agent", init: "A1", extraPages: [], deniedPages: [], readonly: false, approved: true },
+  { id: "u3", nom: "Agent B", poste: "Gouvernance & conformité", role: "agent", init: "A2", extraPages: [], deniedPages: [], readonly: false, approved: true },
+  { id: "u4", nom: "Agent C", poste: "Analyste SOC", role: "agent", init: "A3", extraPages: [], deniedPages: [], readonly: false, approved: true },
+  { id: "u5", nom: "Agent D", poste: "Renseignement menace", role: "agent", init: "A4", extraPages: [], deniedPages: [], readonly: false, approved: true },
+  { id: "u6", nom: "Agent E", poste: "Audit / Projets", role: "agent", init: "A5", extraPages: [], deniedPages: [], readonly: false, approved: true },
+  { id: "u7", nom: "Administration", poste: "Administrateur de l'application", role: "admin", init: "AX", extraPages: [], deniedPages: [], readonly: false, approved: true },
 ];
 
 export const DEFAULT_USER_ID = "u1";

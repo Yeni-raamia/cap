@@ -154,6 +154,9 @@ interface AppCtx {
   sendMessage: (t: MsgTarget, body: string, replyTo?: string | null) => Promise<Message[]>;
   reactToMessage: (messageId: string, emoji: string) => Promise<Message[] | null>;
   createGroup: (title: string, memberIds: string[]) => Promise<string | null>;
+  startDirect: (profileId: string) => Promise<string | null>;
+  deleteMessage: (messageId: string) => Promise<Message[] | null>;
+  deleteGroup: (convId: string) => Promise<string | null>;
   markConversationRead: (convId: string) => void;
   // Module Projet
   projects: Project[];
@@ -182,7 +185,7 @@ interface AppCtx {
 }
 
 const EPOCH = new Date(0);
-const FALLBACK_PROFILE: Profile = { id: "", nom: "…", poste: "", role: "agent", init: "?", extraPages: [], deniedPages: [], readonly: false };
+const FALLBACK_PROFILE: Profile = { id: "", nom: "…", poste: "", role: "agent", init: "?", extraPages: [], deniedPages: [], readonly: false, approved: true };
 const Ctx = createContext<AppCtx | null>(null);
 
 /** Reconvertit les dates (ISO string) d'une réponse JSON en objets Date. */
@@ -770,6 +773,48 @@ export function AppProvider({
     return null;
   };
 
+  // Ouvre (ou crée) une conversation privée et renvoie son id.
+  const startDirect = async (profileId: string): Promise<string | null> => {
+    if (demo) return null;
+    const r = await fetch("/api/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ directWith: profileId }),
+    });
+    const d = await r.json();
+    if (!r.ok) return null;
+    if (d.conversations) setConversations(reviveConvs(d.conversations));
+    return d.conversationId ?? null;
+  };
+
+  // Supprime un message envoyé ; renvoie les messages à jour du fil.
+  const deleteMessage = async (messageId: string): Promise<Message[] | null> => {
+    if (demo) return null;
+    const r = await fetch("/api/messages/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messageId }),
+    });
+    const d = await r.json();
+    if (!r.ok) return null;
+    return d.messages ? reviveMsgs(d.messages) : [];
+  };
+
+  // Supprime un groupe (créateur/admin).
+  const deleteGroup = async (convId: string): Promise<string | null> => {
+    if (demo) return "Indisponible en mode démo.";
+    const r = await fetch("/api/conversations/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ convId }),
+    });
+    const d = await r.json();
+    if (!r.ok) return d.error ?? "Erreur.";
+    if (d.conversations) setConversations(reviveConvs(d.conversations));
+    if (d.notifications) setNotifications(reviveNotifs(d.notifications));
+    return null;
+  };
+
   const markConversationRead = (convId: string) => {
     if (demo) return;
     fetch("/api/conversations/read", {
@@ -853,6 +898,9 @@ export function AppProvider({
     sendMessage,
     reactToMessage,
     createGroup,
+    startDirect,
+    deleteMessage,
+    deleteGroup,
     markConversationRead,
     projects,
     projectById,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CornerUpLeft, Send, SmilePlus, X } from "lucide-react";
+import { CornerUpLeft, Send, SmilePlus, Trash2, X } from "lucide-react";
 import { fmt, REACTION_EMOJIS, type Message } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
@@ -14,7 +14,7 @@ interface Target {
 
 /** Fil de discussion réutilisable (suivi, négligence, projet ou groupe). */
 export function Discussion({ target, height = "h-72" }: { target: Target; height?: string }) {
-  const { demo, me, profileById, loadMessages, sendMessage, reactToMessage } = useApp();
+  const { demo, me, profileById, loadMessages, sendMessage, reactToMessage, deleteMessage } = useApp();
   const [messages, setMessages] = useState<Message[]>([]);
   const [convId, setConvId] = useState<string | null>(target.convId ?? null);
   const [input, setInput] = useState("");
@@ -66,6 +66,12 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
     if (msgs) setMessages(msgs);
   };
 
+  const remove = async (messageId: string) => {
+    if (!confirm("Supprimer ce message ?")) return;
+    const msgs = await deleteMessage(messageId);
+    if (msgs) setMessages(msgs);
+  };
+
   if (demo) {
     return <div className="text-[12px] text-slate-400 p-3">Messagerie indisponible en mode démo.</div>;
   }
@@ -110,6 +116,11 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
                       <button onClick={() => setReplyingTo(m)} aria-label="Répondre" className="text-slate-400 hover:text-emerald-600 p-0.5">
                         <CornerUpLeft size={14} />
                       </button>
+                      {mine && (
+                        <button onClick={() => remove(m.id)} aria-label="Supprimer le message" className="text-slate-400 hover:text-rose-600 p-0.5">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                       {pickerFor === m.id && (
                         <div className={`absolute z-10 top-6 ${mine ? "right-0" : "left-0"} bg-white border border-slate-200 rounded-full shadow-lg px-1.5 py-1 flex items-center gap-0.5`}>
                           {REACTION_EMOJIS.map((e) => (

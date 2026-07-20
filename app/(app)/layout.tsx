@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { DEMO_MODE } from "@/lib/config";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getAuthUser } from "@/lib/auth/session";
 import { getCatalogue, listItems, listNotificationsFor, listProfiles } from "@/lib/db/repo";
 import { listProjects } from "@/lib/db/projects";
 import { listTasks } from "@/lib/db/tasks";
@@ -17,8 +17,9 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   }
 
   // Mode local (SQLite + comptes) : garde d'authentification côté serveur.
-  const user = await getCurrentUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
+  if (!user.approved) redirect("/pending"); // compte en attente d'approbation admin
 
   const items = listItems();
   const profiles = listProfiles();

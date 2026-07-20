@@ -49,8 +49,61 @@ export function getConvRow(id: string): ConvRow | null {
 export function canAccessConversation(convId: string, userId: string): boolean {
   const c = getConvRow(convId);
   if (!c) return false;
-  if (c.kind !== "group") return true; // fils d'entité : ouverts à l'équipe
-  return memberIds(convId).includes(userId);
+  // Groupes et messages privés : réservés aux membres.
+  if (c.kind === "group" || c.kind === "direct") return memberIds(convId).includes(userId);
+  return true; // fils d'entité (suivi/négligence/projet) : ouverts à l'équipe
+}
+
+/** Récupère (ou crée) la conversation privée entre deux personnes. */
+export function ensureDirectConversation(userA: string, userB: string): string {
+  const db = getDb();
+  // Cherche une conversation directe dont les membres sont exactement {A, B}.
+  const existing = db
+    .prepare(
+      `select c.id from conversations c
+       where c.kind='direct'
+         and (select count(*) from conversation_members m where m.conversation_id=c.id)=2
+         and exists (select 1 from conversation_members m where m.conversation_id=c.id and m.profile_id=?)
+         and exists (select 1 from conversation_members m where m.conversation_id=c.id and m.profile_id=?)
+       limit 1`
+    )
+    .get(userA, userB) as { id: string } | undefined;
+  if (existing) return existing.id;
+  const id = randomUUID();
+  db.prepare("insert into conversations (id, title, kind, created_by) values (?,?,?,?)").run(id, "", "direct", userA);
+  const ins = db.prepare("insert into conversation_members (id, conversation_id, profile_id) values (?,?,?)");
+  [...new Set([userA, userB])].forEach((pid) => ins.run(randomUUID(), id, pid));
+  return id;
+}
+
+/** Auteur d'un message (pour la vérification de suppression). */
+export function messageAuthor(messageId: string): string | null {
+  const r = getDb().prepare("select author_id from messages where id=?").get(messageId) as { author_id: string | null } | undefined;
+  return r ? r.author_id : null;
+}
+
+/** Supprime un message et ses réactions. */
+export function deleteMessage(messageId: string): void {
+  const db = getDb();
+  db.prepare("delete from message_reactions where message_id=?").run(messageId);
+  db.prepare("delete from messages where id=?").run(messageId);
+}
+
+/** Créateur et type d'une conversation (pour la suppression d'un groupe). */
+export function conversationMeta(convId: string): { createdBy: string | null; kind: ConvKind } | null {
+  const c = getConvRow(convId);
+  return c ? { createdBy: c.created_by, kind: c.kind } : null;
+}
+
+/** Supprime une conversation entière (messages, réactions, membres, lectures, notifs). */
+export function deleteConversation(convId: string): void {
+  const db = getDb();
+  db.prepare("delete from message_reactions where message_id in (select id from messages where conversation_id=?)").run(convId);
+  db.prepare("delete from messages where conversation_id=?").run(convId);
+  db.prepare("delete from conversation_members where conversation_id=?").run(convId);
+  db.prepare("delete from conversation_reads where conversation_id=?").run(convId);
+  db.prepare("delete from notifications where conversation_id=?").run(convId);
+  db.prepare("delete from conversations where id=?").run(convId);
 }
 
 /** Récupère (ou crée) le fil lié à une entité. */
@@ -144,7 +197,7 @@ export function messageRecipients(convId: string, authorId: string): string[] {
   const c = getConvRow(convId);
   if (!c) return [];
   let ids: string[];
-  if (c.kind === "group") {
+  if (c.kind === "group" || c.kind === "direct") {
     ids = memberIds(convId);
   } else {
     // Fil d'entité : les personnes ayant déjà écrit + le propriétaire de l'entité.
@@ -166,8 +219,10 @@ export function notifyMessage(convId: string, authorId: string, authorName: stri
   const db = getDb();
   const c = getConvRow(convId);
   if (!c) return;
-  const title = c.kind === "group" ? c.title : entityTitle(c.ref_type!, c.ref_id!);
-  const msg = `${authorName} a écrit dans « ${title} »`;
+  const msg =
+    c.kind === "direct"
+      ? `${authorName} vous a envoyé un message privé`
+      : `${authorName} a écrit dans « ${c.kind === "group" ? c.title : entityTitle(c.ref_type!, c.ref_id!)} »`;
   const ins = db.prepare(
     "insert into notifications (id, user_id, kind, message, channel, conversation_id) values (?,?,?,?,?,?)"
   );
@@ -192,27 +247,39 @@ export function listConversationsFor(userId: string): ConversationSummary[] {
     return null;
   };
 
+  // Nom d'une personne (pour le titre d'une conversation privée).
+  const nameOf = (pid: string) =>
+    (db.prepare("select full_name from profiles where id=?").get(pid) as { full_name: string } | undefined)?.full_name ?? "Utilisateur";
+
   const summaries: ConversationSummary[] = [];
   for (const c of convs) {
-    const isGroup = c.kind === "group";
-    if (isGroup && !groupIds.includes(c.id)) continue;
+    const memberBased = c.kind === "group" || c.kind === "direct";
+    if (memberBased && !groupIds.includes(c.id)) continue;
     const last = db.prepare("select author_id, body, created_at from messages where conversation_id=? order by created_at desc limit 1").get(c.id) as { author_id: string | null; body: string; created_at: string } | undefined;
-    if (!isGroup && !last) continue; // fil d'entité vide : on n'affiche pas
-    if (!isGroup) {
+    if (!memberBased && !last) continue; // fil d'entité vide : on n'affiche pas
+    if (!memberBased) {
       // Visibilité d'un fil d'entité : propriétaire de l'entité OU personne ayant déjà écrit.
       const isOwner = entityOwner(c.ref_type, c.ref_id) === userId;
       const hasPosted = Boolean(db.prepare("select 1 from messages where conversation_id=? and author_id=? limit 1").get(c.id, userId));
       if (!isOwner && !hasPosted) continue;
     }
+    // Titre selon le type.
+    let title: string;
+    const mIds = memberBased ? memberIds(c.id) : [];
+    if (c.kind === "group") title = c.title;
+    else if (c.kind === "direct") title = nameOf(mIds.find((id) => id !== userId) ?? userId);
+    else title = entityTitle(c.ref_type!, c.ref_id!);
+
     const read = db.prepare("select last_read_at from conversation_reads where conversation_id=? and profile_id=?").get(c.id, userId) as { last_read_at: string } | undefined;
     const unread = (db.prepare("select count(*) as n from messages where conversation_id=? and author_id != ? and created_at > ?").get(c.id, userId, read?.last_read_at ?? "0") as { n: number }).n;
     summaries.push({
       id: c.id,
-      title: isGroup ? c.title : entityTitle(c.ref_type!, c.ref_id!),
+      title,
       kind: c.kind,
       refType: c.ref_type,
       refId: c.ref_id,
-      memberIds: isGroup ? memberIds(c.id) : [],
+      createdBy: c.created_by,
+      memberIds: mIds,
       lastAt: last ? new Date(last.created_at) : null,
       lastPreview: last ? last.body.slice(0, 80) : "",
       lastAuthor: last?.author_id ?? null,

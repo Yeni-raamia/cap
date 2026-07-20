@@ -49,6 +49,7 @@ interface MemberRow {
   extra_pages: string;
   denied_pages: string;
   readonly: number;
+  approved: number;
 }
 const csv = (s: string | null | undefined) => (s ?? "").split(",").map((x) => x.trim()).filter(Boolean);
 function mapMember(r: MemberRow): AdminMember {
@@ -63,6 +64,7 @@ function mapMember(r: MemberRow): AdminMember {
     extraPages: csv(r.extra_pages),
     deniedPages: csv(r.denied_pages),
     readonly: r.readonly === 1,
+    approved: r.approved === 1,
   };
 }
 
@@ -81,6 +83,7 @@ export function createMember(input: { email: string; fullName: string; role: Rol
     fullName: input.fullName,
     role: input.role,
     passwordHash: hashPassword(input.password),
+    approved: true, // un compte créé par l'admin est directement autorisé
   });
 }
 

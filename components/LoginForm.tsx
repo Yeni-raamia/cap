@@ -29,7 +29,8 @@ export function LoginForm({ firstRun }: { firstRun: boolean }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Une erreur est survenue.");
-      router.push("/espace");
+      // Compte en attente d'approbation → page tampon dédiée.
+      router.push(data.pending ? "/pending" : "/espace");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
@@ -59,6 +60,12 @@ export function LoginForm({ firstRun }: { firstRun: boolean }) {
             <div className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1.5">
               Premier compte : il sera <span className="font-medium">administrateur</span> et pourra
               gérer les rôles de l&apos;équipe.
+            </div>
+          )}
+          {!firstRun && mode === "signup" && (
+            <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+              Votre demande sera <span className="font-medium">soumise à l&apos;administrateur</span> ;
+              vous serez notifié dès son approbation.
             </div>
           )}
 
@@ -100,7 +107,7 @@ export function LoginForm({ firstRun }: { firstRun: boolean }) {
               id="password"
               type="password"
               required
-              minLength={6}
+              minLength={mode === "signup" ? 8 : undefined}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full mt-1 text-[13px] border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-emerald-400"

@@ -85,6 +85,8 @@ export interface Profile {
   deniedPages: string[];
   /** Compte en lecture seule (aucune écriture). */
   readonly: boolean;
+  /** Compte validé par l'administrateur (accès autorisé à l'application). */
+  approved: boolean;
 }
 
 /** Un compte est en lecture seule s'il est marqué comme tel, ou s'il a le rôle DSI. */
@@ -673,6 +675,7 @@ export interface AdminMember {
   extraPages: string[];
   deniedPages: string[];
   readonly: boolean;
+  approved: boolean;
 }
 
 export interface ActivityEntry {
@@ -698,7 +701,7 @@ export interface AppSettings {
 }
 
 /* ---------- Messagerie interne ---------- */
-export type ConvKind = "group" | "item" | "negligence" | "project";
+export type ConvKind = "group" | "direct" | "item" | "negligence" | "project";
 
 export interface MessageReaction {
   emoji: string;
@@ -724,6 +727,7 @@ export interface ConversationSummary {
   kind: ConvKind;
   refType: string | null;
   refId: string | null;
+  createdBy: string | null;
   memberIds: string[];
   lastAt: Date | null;
   lastPreview: string;

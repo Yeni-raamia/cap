@@ -26,7 +26,8 @@ create table if not exists profiles (
   full_name text not null, initials text not null, poste text,
   role text not null default 'agent', active integer not null default 1,
   extra_pages text not null default '', denied_pages text not null default '',
-  readonly integer not null default 0, created_at text not null default (datetime('now'))
+  readonly integer not null default 0, approved integer not null default 0,
+  created_at text not null default (datetime('now'))
 );
 create table if not exists items (
   id text primary key, ref text not null, metier_code text not null, type_code text not null,
@@ -217,6 +218,11 @@ function ensureColumns(db: Database.Database) {
   }
   if (!pcols.includes("readonly")) {
     db.exec("alter table profiles add column readonly integer not null default 0");
+  }
+  if (!pcols.includes("approved")) {
+    db.exec("alter table profiles add column approved integer not null default 0");
+    // Les comptes déjà présents étaient légitimes : on les approuve pour ne verrouiller personne.
+    db.exec("update profiles set approved = 1");
   }
   const ipcols = (db.prepare("pragma table_info(item_people)").all() as { name: string }[]).map((c) => c.name);
   if (!ipcols.includes("service")) {
