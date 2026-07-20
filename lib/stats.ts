@@ -3,7 +3,16 @@
  *  Ventilations par émetteur (agent), par destinataire, par criticité
  *  et par cause de blocage. Pur, réutilisé par la page Stats et le PDF.
  * ================================================================== */
-import { reminderState, type Item, type Priorite, type Profile, type TypeDef } from "./domain";
+import {
+  projectMetrics,
+  reminderState,
+  type Item,
+  type Priorite,
+  type Profile,
+  type Project,
+  type ProjectStatus,
+  type TypeDef,
+} from "./domain";
 
 export interface AgentStat {
   id: string;
@@ -47,6 +56,45 @@ export interface Breakdowns {
 }
 
 const PRIORITES: Priorite[] = ["Critique", "Élevé", "Moyenne"];
+
+/* ---------- Statistiques projets ---------- */
+export interface ProjectStats {
+  total: number;
+  parStatut: { statut: ProjectStatus; n: number }[];
+  avancementMoyen: number;
+  taches: number;
+  tachesFaites: number;
+  tachesEnRetard: number;
+  enRetard: number; // projets dont l'échéance est dépassée et non terminés
+}
+
+const PROJECT_STATUTS_ORDER: ProjectStatus[] = ["En cours", "En pause", "Terminé", "Annulé"];
+
+export function computeProjectStats(projects: Project[], now: Date): ProjectStats {
+  let taches = 0;
+  let tachesFaites = 0;
+  let tachesEnRetard = 0;
+  let progressSum = 0;
+  let enRetard = 0;
+  projects.forEach((p) => {
+    const m = projectMetrics(p, now);
+    taches += m.total;
+    tachesFaites += m.done;
+    tachesEnRetard += m.late;
+    progressSum += m.progress;
+    if (p.status !== "Terminé" && p.status !== "Annulé" && p.deadline && p.deadline.getTime() < now.getTime())
+      enRetard++;
+  });
+  return {
+    total: projects.length,
+    parStatut: PROJECT_STATUTS_ORDER.map((s) => ({ statut: s, n: projects.filter((p) => p.status === s).length })).filter((x) => x.n),
+    avancementMoyen: projects.length ? Math.round(progressSum / projects.length) : 0,
+    taches,
+    tachesFaites,
+    tachesEnRetard,
+    enRetard,
+  };
+}
 
 export function computeBreakdowns(
   items: Item[],

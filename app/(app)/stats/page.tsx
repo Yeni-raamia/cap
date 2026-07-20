@@ -11,18 +11,20 @@ import {
   YAxis,
 } from "recharts";
 import { STATUTS, type Statut } from "@/lib/domain";
-import { computeBreakdowns } from "@/lib/stats";
+import { computeBreakdowns, computeProjectStats } from "@/lib/stats";
 import { useApp } from "@/components/app-context";
 import { RapportPdf } from "@/components/RapportPdf";
 
 const box = "bg-white border border-slate-200 rounded-xl p-4";
 
 export default function StatsPage() {
-  const { items, profiles, catalogue, now } = useApp();
+  const { items, profiles, catalogue, now, projects } = useApp();
   const agents = profiles.filter((u) => u.role === "agent");
   const bd = computeBreakdowns(items, profiles, now, catalogue.types);
   const maxCause = Math.max(1, ...bd.causes.map((c) => c.n));
   const maxAppr = Math.max(1, ...bd.parAppreciation.map((a) => a.n));
+  const ps = computeProjectStats(projects, now);
+  const maxProjStatut = Math.max(1, ...ps.parStatut.map((s) => s.n));
 
   const parMetier = Object.keys(catalogue.metiers)
     .map((m) => ({ name: m, v: items.filter((i) => i.metier === m).length }))
@@ -254,6 +256,47 @@ export default function StatsPage() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* Projets */}
+        <div className={box}>
+          <div className="text-[13px] font-semibold text-slate-700 mb-3">Projets</div>
+          <div className="grid grid-cols-2 gap-2 mb-3 text-center">
+            <div className="rounded-lg bg-slate-50 p-2">
+              <div className="text-xl font-semibold text-slate-800">{ps.total}</div>
+              <div className="text-[11px] text-slate-500">Projets</div>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-2">
+              <div className="text-xl font-semibold text-emerald-700">{ps.avancementMoyen}%</div>
+              <div className="text-[11px] text-slate-500">Avancement moyen</div>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-2">
+              <div className="text-xl font-semibold text-slate-800">{ps.tachesFaites}/{ps.taches}</div>
+              <div className="text-[11px] text-slate-500">Tâches faites</div>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-2">
+              <div className={`text-xl font-semibold ${ps.enRetard ? "text-rose-600" : "text-slate-800"}`}>{ps.enRetard}</div>
+              <div className="text-[11px] text-slate-500">Projets en retard</div>
+            </div>
+          </div>
+          {ps.parStatut.length === 0 ? (
+            <div className="text-[12px] text-slate-400">Aucun projet.</div>
+          ) : (
+            <div className="space-y-2">
+              {ps.parStatut.map((s) => (
+                <div key={s.statut} className="flex items-center gap-2 text-[12px]">
+                  <span className="w-24 text-slate-600">{s.statut}</span>
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-sky-400" style={{ width: `${(s.n / maxProjStatut) * 100}%` }} />
+                  </div>
+                  <span className="w-6 text-right text-slate-500">{s.n}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {ps.tachesEnRetard > 0 && (
+            <div className="text-[11px] text-rose-600 mt-2">{ps.tachesEnRetard} tâche(s) en retard sur l&apos;ensemble des projets.</div>
           )}
         </div>
 
