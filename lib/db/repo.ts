@@ -131,11 +131,14 @@ export function listAdmins(): Profile[] {
 const SESSION_DAYS = 30;
 
 export function createSession(userId: string): string {
+  // Jeton fort (≈ 288 bits) — rotation à chaque connexion.
   const token = randomUUID() + randomUUID().replace(/-/g, "");
   const expires = new Date(Date.now() + SESSION_DAYS * 864e5).toISOString();
   getDb()
     .prepare("insert into sessions (token, user_id, expires_at) values (?,?,?)")
     .run(token, userId, expires);
+  // Purge opportuniste des sessions expirées.
+  getDb().prepare("delete from sessions where expires_at < ?").run(new Date().toISOString());
   return token;
 }
 
@@ -144,7 +147,8 @@ export function getSessionUser(token: string): Profile | null {
     .prepare("select user_id, expires_at from sessions where token = ?")
     .get(token) as { user_id: string; expires_at: string } | undefined;
   if (!row) return null;
-  if (new Date(row.expires_at).getTime() < Date.now()) {
+  const now = Date.now();
+  if (new Date(row.expires_at).getTime() < now) {
     deleteSession(token);
     return null;
   }
@@ -153,6 +157,13 @@ export function getSessionUser(token: string): Profile | null {
     | { active: number }
     | undefined;
   if (!act || act.active !== 1) return null;
+  // Expiration glissante : on prolonge si la dernière prolongation date de > 1 jour
+  // (écriture limitée à ~1×/jour/session). Un compte inactif finit par expirer.
+  const remaining = new Date(row.expires_at).getTime() - now;
+  if (remaining < (SESSION_DAYS - 1) * 864e5) {
+    const expires = new Date(now + SESSION_DAYS * 864e5).toISOString();
+    getDb().prepare("update sessions set expires_at = ? where token = ?").run(expires, token);
+  }
   return getProfileById(row.user_id);
 }
 

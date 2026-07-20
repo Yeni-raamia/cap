@@ -9,9 +9,20 @@ import {
 } from "@/lib/db/repo";
 import { hashPassword } from "@/lib/auth/password";
 import { setSessionCookie } from "@/lib/auth/cookie";
+import { clientIp, isRateLimited, recordAttempt } from "@/lib/auth/rate-limit";
 import type { Role } from "@/lib/domain";
 
 export async function POST(request: Request) {
+  // Anti-spam : au plus 5 inscriptions par heure et par IP.
+  const ip = clientIp(request);
+  const rl = isRateLimited(`register:${ip}`, 5, 60 * 60 * 1000);
+  if (rl.limited) {
+    return NextResponse.json(
+      { error: "Trop de demandes d'inscription. Réessayez plus tard." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } }
+    );
+  }
+
   const { email, password, fullName } = await request.json().catch(() => ({}));
 
   const cleanEmail = String(email || "").trim().toLowerCase();
@@ -50,6 +61,8 @@ export async function POST(request: Request) {
       });
     }
   }
+
+  recordAttempt(`register:${ip}`, 60 * 60 * 1000);
 
   // Une session est ouverte pour permettre l'accès à la page tampon d'attente.
   const token = createSession(user.id);
