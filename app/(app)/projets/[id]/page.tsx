@@ -355,8 +355,8 @@ export default function ProjetDetailPage() {
           );
         }
 
-        // Aucune demande en cours : bouton pour demander la clôture (contributeurs).
-        if (!canContribute) return null;
+        // Aucune demande en cours : seul un agent (contributeur) initie la demande.
+        if (me.role !== "agent" || !canContribute) return null;
         return (
           <Card className="p-4">
             {closure && closure.status === "rejetee" && (

@@ -27,6 +27,10 @@ export async function POST(request: Request) {
   const projName = listProjects().find((p) => p.id === id)?.name ?? "Projet";
 
   if (op === "request") {
+    // La demande de clôture est initiée par un agent ; le manager/directeur décide.
+    if (user.role !== "agent") {
+      return NextResponse.json({ error: "La demande de clôture est faite par un agent ; le manager/directeur la valide." }, { status: 403 });
+    }
     if (!canContributeProject(id, user)) {
       return NextResponse.json({ error: "Droits insuffisants sur ce projet." }, { status: 403 });
     }
