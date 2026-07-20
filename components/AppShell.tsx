@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Catalogue, Item, Negligence, Notif, Profile, Project, RefLists } from "@/lib/domain";
+import type { AppSettings, Catalogue, ConversationSummary, Item, Negligence, Notif, Profile, Project, RefLists } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -58,6 +58,7 @@ export function AppShell({
   initialSettings,
   initialRefLists,
   initialNegligences,
+  initialConversations,
 }: {
   children: ReactNode;
   demo?: boolean;
@@ -70,6 +71,7 @@ export function AppShell({
   initialSettings?: AppSettings;
   initialRefLists?: RefLists;
   initialNegligences?: Negligence[];
+  initialConversations?: ConversationSummary[];
 }) {
   return (
     <AppProvider
@@ -83,6 +85,7 @@ export function AppShell({
       initialSettings={initialSettings}
       initialRefLists={initialRefLists}
       initialNegligences={initialNegligences}
+      initialConversations={initialConversations}
     >
       <Shell>{children}</Shell>
     </AppProvider>

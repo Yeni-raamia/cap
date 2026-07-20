@@ -26,6 +26,8 @@ import {
   DEFAULT_REF_LISTS,
   reminderState,
   type AppSettings,
+  type ConversationSummary,
+  type Message,
   type Negligence,
   type RefLists,
   type Catalogue,
@@ -62,6 +64,11 @@ type CatalogueAction =
   | { op: "add" | "update"; kind: "metier"; code: string; label: string; tone: string }
   | { op: "add" | "update"; kind: "type"; code: string; label: string; slaRelance: string; slaEscalade: string; urgent: boolean }
   | { op: "delete"; kind: "metier" | "type"; code: string };
+interface MsgTarget {
+  convId?: string;
+  refType?: string;
+  refId?: string;
+}
 interface NegligenceForm {
   itemId?: string | null;
   objet?: string;
@@ -119,6 +126,13 @@ interface AppCtx {
   markNotificationsRead: () => void;
   alerts: number;
   signOut: () => void;
+  // Messagerie
+  conversations: ConversationSummary[];
+  messagesUnread: number;
+  loadMessages: (t: MsgTarget) => Promise<{ conversationId: string | null; messages: Message[] }>;
+  sendMessage: (t: MsgTarget, body: string) => Promise<Message[]>;
+  createGroup: (title: string, memberIds: string[]) => Promise<string | null>;
+  markConversationRead: (convId: string) => void;
   // Module Projet
   projects: Project[];
   projectById: (id: string) => Project | null;
@@ -167,6 +181,9 @@ const reviveNeg = (n: Negligence): Negligence => ({
   decidedAt: n.decidedAt ? new Date(n.decidedAt) : null,
 });
 const reviveNegs = (arr: Negligence[]): Negligence[] => arr.map(reviveNeg);
+const reviveConvs = (arr: ConversationSummary[]): ConversationSummary[] =>
+  arr.map((c) => ({ ...c, lastAt: c.lastAt ? new Date(c.lastAt) : null }));
+const reviveMsgs = (arr: Message[]): Message[] => arr.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }));
 
 export function AppProvider({
   children,
@@ -180,6 +197,7 @@ export function AppProvider({
   initialSettings,
   initialRefLists,
   initialNegligences,
+  initialConversations,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -192,6 +210,7 @@ export function AppProvider({
   initialSettings?: AppSettings;
   initialRefLists?: RefLists;
   initialNegligences?: Negligence[];
+  initialConversations?: ConversationSummary[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -210,6 +229,9 @@ export function AppProvider({
   );
   const [negligences, setNegligences] = useState<Negligence[]>(
     demo ? [] : reviveNegs(initialNegligences ?? [])
+  );
+  const [conversations, setConversations] = useState<ConversationSummary[]>(
+    demo ? [] : reviveConvs(initialConversations ?? [])
   );
   const [projects, setProjects] = useState<Project[]>(
     demo ? seedProjects() : reviveProjects(initialProjects ?? [])
@@ -529,6 +551,82 @@ export function AppProvider({
   const attachItemToProject = async (itemId: string, projectId: string | null) =>
     demo ? DEMO_MSG : postProjects("/api/projects/attach", { itemId, projectId });
 
+  /* ---------- Messagerie ---------- */
+  const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
+
+  const refreshConversations = async () => {
+    if (demo) return;
+    try {
+      const r = await fetch("/api/conversations");
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d.conversations) setConversations(reviveConvs(d.conversations));
+      if (d.notifications) setNotifications(reviveNotifs(d.notifications));
+    } catch {
+      /* réseau : on réessaiera au prochain sondage */
+    }
+  };
+
+  const loadMessages = async (t: MsgTarget): Promise<{ conversationId: string | null; messages: Message[] }> => {
+    if (demo) return { conversationId: null, messages: [] };
+    const q = t.convId ? `convId=${t.convId}` : `refType=${t.refType}&refId=${t.refId}`;
+    const r = await fetch(`/api/messages?${q}`);
+    const d = await r.json();
+    if (d.notifications) setNotifications(reviveNotifs(d.notifications));
+    refreshConversations();
+    return { conversationId: d.conversationId ?? null, messages: d.messages ? reviveMsgs(d.messages) : [] };
+  };
+
+  const sendMessage = async (t: MsgTarget, body: string): Promise<Message[]> => {
+    if (demo) return [];
+    const r = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...t, body }),
+    });
+    const d = await r.json();
+    if (!r.ok) return [];
+    if (d.conversations) setConversations(reviveConvs(d.conversations));
+    if (d.notifications) setNotifications(reviveNotifs(d.notifications));
+    return d.messages ? reviveMsgs(d.messages) : [];
+  };
+
+  const createGroup = async (title: string, memberIds: string[]): Promise<string | null> => {
+    if (demo) return "Messagerie indisponible en mode démo.";
+    const r = await fetch("/api/conversations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, memberIds }),
+    });
+    const d = await r.json();
+    if (!r.ok) return d.error ?? "Erreur.";
+    if (d.conversations) setConversations(reviveConvs(d.conversations));
+    return null;
+  };
+
+  const markConversationRead = (convId: string) => {
+    if (demo) return;
+    fetch("/api/conversations/read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ convId }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.conversations) setConversations(reviveConvs(d.conversations));
+        if (d.notifications) setNotifications(reviveNotifs(d.notifications));
+      })
+      .catch(() => {});
+  };
+
+  // Sondage périodique (pas de WebSocket sur le serveur local).
+  useEffect(() => {
+    if (demo) return;
+    const iv = setInterval(refreshConversations, 20000);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo]);
+
   const scores = useMemo(
     () => computeScores(items, profiles, now, catalogue.types),
     [items, profiles, now, catalogue]
@@ -580,6 +678,12 @@ export function AppProvider({
     markNotificationsRead,
     alerts,
     signOut,
+    conversations,
+    messagesUnread,
+    loadMessages,
+    sendMessage,
+    createGroup,
+    markConversationRead,
     projects,
     projectById,
     createProject,

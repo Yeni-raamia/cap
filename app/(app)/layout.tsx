@@ -6,6 +6,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getCatalogue, listItems, listNotificationsFor, listProfiles } from "@/lib/db/repo";
 import { listProjects } from "@/lib/db/projects";
 import { listNegligences } from "@/lib/db/negligences";
+import { listConversationsFor } from "@/lib/db/messaging";
 import { getRefLists, getSettings } from "@/lib/db/admin";
 
 export default async function AppGroupLayout({ children }: { children: ReactNode }) {
@@ -26,6 +27,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const settings = getSettings();
   const refLists = getRefLists();
   const negligences = listNegligences();
+  const conversations = listConversationsFor(user.id);
 
   return (
     <AppShell
@@ -38,6 +40,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialSettings={settings}
       initialRefLists={refLists}
       initialNegligences={negligences}
+      initialConversations={conversations}
     >
       {children}
     </AppShell>

@@ -473,7 +473,7 @@ export function computeScores(
 }
 
 /* ---------- Notifications (moteur de relance) ---------- */
-export type NotifKind = "relance" | "escalade" | "digest" | "echeance";
+export type NotifKind = "relance" | "escalade" | "digest" | "echeance" | "message";
 
 export interface Notif {
   id: string;
@@ -583,6 +583,30 @@ export interface AppSettings {
   orgName: string;
   emailEnabled: boolean;
   digestHour: string; // "08:00"
+}
+
+/* ---------- Messagerie interne ---------- */
+export type ConvKind = "group" | "item" | "negligence" | "project";
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  authorId: string;
+  body: string;
+  createdAt: Date;
+}
+
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  kind: ConvKind;
+  refType: string | null;
+  refId: string | null;
+  memberIds: string[];
+  lastAt: Date | null;
+  lastPreview: string;
+  lastAuthor: string | null;
+  unread: number;
 }
 
 /* ---------- Couleurs de teinte (réutilisées par les atomes UI) ---------- */

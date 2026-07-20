@@ -10,6 +10,7 @@ import {
   Compass,
   FolderKanban,
   LayoutDashboard,
+  MessageSquare,
   Settings,
   Trophy,
   Users,
@@ -28,11 +29,12 @@ const ICONS: Record<string, LucideIcon> = {
   BarChart3,
   Trophy,
   Bell,
+  MessageSquare,
   Settings,
 };
 
 export function Sidebar() {
-  const { me, alerts } = useApp();
+  const { me, alerts, messagesUnread } = useApp();
   const pathname = usePathname();
   const nav = navForUser(me);
 
@@ -66,6 +68,11 @@ export function Sidebar() {
               {n.id === "rappels" && alerts > 0 && (
                 <span className="ml-auto text-[10px] bg-amber-500 text-slate-900 font-bold px-1.5 rounded-full">
                   {alerts}
+                </span>
+              )}
+              {n.id === "messagerie" && messagesUnread > 0 && (
+                <span className="ml-auto text-[10px] bg-emerald-500 text-slate-900 font-bold px-1.5 rounded-full">
+                  {messagesUnread}
                 </span>
               )}
             </Link>

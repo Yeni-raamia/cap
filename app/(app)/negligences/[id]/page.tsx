@@ -13,6 +13,7 @@ import {
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
 import { NegligencePrint } from "@/components/NegligencePrint";
+import { Discussion } from "@/components/Discussion";
 import { graviteBadge, statusBadge } from "../page";
 
 export default function NegligenceDetailPage() {
@@ -191,6 +192,12 @@ export default function NegligenceDetailPage() {
         {neg.decidedBy && neg.decidedAt && (
           <div className="text-[11px] text-slate-400 mt-3">Décision rendue par {profileById(neg.decidedBy).nom} · {fmt(neg.decidedAt)}</div>
         )}
+      </Card>
+
+      {/* Discussion de la négligence */}
+      <Card className="p-3">
+        <div className="text-[13px] font-semibold text-slate-700 mb-2">Discussion</div>
+        <Discussion target={{ refType: "negligence", refId: neg.id }} height="h-56" />
       </Card>
 
       {/* Version imprimable (PDF) */}

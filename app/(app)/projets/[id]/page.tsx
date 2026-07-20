@@ -8,6 +8,7 @@ import {
   CalendarClock,
   Check,
   ListChecks,
+  MessageSquare,
   Plus,
   StickyNote,
   Trash2,
@@ -24,6 +25,7 @@ import {
 } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
+import { Discussion } from "@/components/Discussion";
 
 const taskBadge: Record<TaskStatus, string> = {
   "à faire": "bg-slate-100 text-slate-600",
@@ -480,6 +482,17 @@ export default function ProjetDetailPage() {
               ))}
             </div>
           )}
+        </Card>
+      </div>
+
+      {/* Discussion du projet */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <MessageSquare size={15} className="text-slate-500" />
+          <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Discussion</h2>
+        </div>
+        <Card className="p-3">
+          <Discussion target={{ refType: "project", refId: project.id }} height="h-64" />
         </Card>
       </div>
     </div>

@@ -25,6 +25,7 @@ import { useApp } from "./app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "./atoms";
 import { Fil } from "./Fil";
 import { Deblocage } from "./Deblocage";
+import { Discussion } from "./Discussion";
 
 const evMeta: Record<EventKind, { icon: ComponentType<{ size?: number; className?: string }>; c: string }> = {
   creation: { icon: Circle, c: "text-slate-400" },
@@ -259,6 +260,12 @@ export function Drawer() {
               </select>
             </Card>
           )}
+
+          {/* Discussion du suivi */}
+          <Card className="p-3">
+            <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">Discussion</div>
+            <Discussion target={{ refType: "item", refId: item.id }} height="h-52" />
+          </Card>
         </div>
       </div>
     </div>

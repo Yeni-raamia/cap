@@ -103,6 +103,24 @@ create table if not exists negligence_decisions (
   id text primary key, negligence_id text not null, decision text not null
 );
 create index if not exists idx_negdec_neg on negligence_decisions(negligence_id);
+create table if not exists conversations (
+  id text primary key, title text not null default '', kind text not null default 'group',
+  ref_type text, ref_id text, created_by text, created_at text not null default (datetime('now'))
+);
+create table if not exists conversation_members (
+  id text primary key, conversation_id text not null, profile_id text not null
+);
+create table if not exists messages (
+  id text primary key, conversation_id text not null, author_id text, body text not null,
+  created_at text not null default (datetime('now'))
+);
+create table if not exists conversation_reads (
+  conversation_id text not null, profile_id text not null, last_read_at text not null default (datetime('now')),
+  primary key (conversation_id, profile_id)
+);
+create index if not exists idx_msg_conv on messages(conversation_id);
+create index if not exists idx_convmem_conv on conversation_members(conversation_id);
+create index if not exists idx_conv_ref on conversations(ref_type, ref_id);
 create index if not exists idx_items_owner on items(owner_id);
 create index if not exists idx_items_statut on items(statut);
 create index if not exists idx_events_item on events(item_id);
@@ -170,6 +188,10 @@ function ensureColumns(db: Database.Database) {
   const ipcols = (db.prepare("pragma table_info(item_people)").all() as { name: string }[]).map((c) => c.name);
   if (!ipcols.includes("service")) {
     db.exec("alter table item_people add column service text");
+  }
+  const ntcols = (db.prepare("pragma table_info(notifications)").all() as { name: string }[]).map((c) => c.name);
+  if (!ntcols.includes("conversation_id")) {
+    db.exec("alter table notifications add column conversation_id text");
   }
   // Négligences : reconstruction si ancien schéma (item_id NOT NULL/UNIQUE, sans objet/service/concerne).
   const ncols = (db.prepare("pragma table_info(negligences)").all() as { name: string }[]).map((c) => c.name);
