@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowUp, Bell, CalendarClock, FileText, Flag, Mail, MessageCircle, Phone, Send, Users, X } from "lucide-react";
-import { blocageActionLabel, fmt, type Item } from "@/lib/domain";
+import Link from "next/link";
+import { AlertOctagon, ArrowUp, Bell, CalendarClock, FileText, Flag, Mail, MessageCircle, Phone, Send, Users, X } from "lucide-react";
+import { APPRECIATION_NEGLIGENCE, blocageActionLabel, fmt, type Item } from "@/lib/domain";
 import { useApp } from "./app-context";
 
 const ACT_ICON: Record<string, typeof Phone> = {
@@ -20,8 +21,9 @@ const ACT_ICON: Record<string, typeof Phone> = {
 
 /** Bloc de déblocage : appréciation du motif + démarches menées (édition). */
 export function Deblocage({ item }: { item: Item }) {
-  const { me, addBlocageAction, setAppreciation, profileById, refLists } = useApp();
+  const { me, addBlocageAction, setAppreciation, profileById, refLists, negligenceByItem } = useApp();
   const canEdit = me.role === "agent" ? item.ownerId === me.id : true;
+  const neg = negligenceByItem(item.id);
 
   const defaultConcerne = item.personnes.find((p) => p.kind === "destinataire")?.name ?? "";
   const [kind, setKind] = useState<string>(refLists.actions[0]?.kind ?? "appel");
@@ -50,6 +52,12 @@ export function Deblocage({ item }: { item: Item }) {
           <span className="font-medium text-slate-700">{item.appreciation ?? "—"}</span>
         )}
       </div>
+
+      {item.appreciation === APPRECIATION_NEGLIGENCE && neg && (
+        <Link href={`/negligences/${neg.id}`} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-1.5 hover:bg-rose-100">
+          <AlertOctagon size={14} /> Fiche négligence (transmise au DG) →
+        </Link>
+      )}
 
       {/* Démarches */}
       <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">

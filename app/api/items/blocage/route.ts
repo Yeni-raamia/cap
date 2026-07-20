@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { addBlocageAction, canEditItem, getItem, listItems, setAppreciation } from "@/lib/db/repo";
 import { getRefLists, logActivity } from "@/lib/db/admin";
+import { ensureNegligence, listNegligences } from "@/lib/db/negligences";
 import { getCurrentUser } from "@/lib/auth/session";
-import { blocageActionLabel } from "@/lib/domain";
+import { APPRECIATION_NEGLIGENCE, blocageActionLabel } from "@/lib/domain";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -37,9 +38,14 @@ export async function POST(request: Request) {
     }
     setAppreciation(itemId, appreciation);
     logActivity(user.id, "blocage_appreciation", `${getItem(itemId)?.ref ?? ""} · ${appreciation ?? "—"}`);
+    // Appréciation « Négligence » → ouvre la fiche négligence transmise au DG.
+    if (appreciation === APPRECIATION_NEGLIGENCE) {
+      ensureNegligence(itemId, user.id);
+      logActivity(user.id, "negligence_open", getItem(itemId)?.ref ?? "");
+    }
   } else {
     return NextResponse.json({ error: "Opération inconnue." }, { status: 400 });
   }
 
-  return NextResponse.json({ items: listItems() });
+  return NextResponse.json({ items: listItems(), negligences: listNegligences() });
 }

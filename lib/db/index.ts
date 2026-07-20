@@ -89,6 +89,18 @@ create table if not exists ref_lists (
   label text not null default '', icon text, ordre integer not null default 0
 );
 create index if not exists idx_reflists_key on ref_lists(list_key);
+create table if not exists negligences (
+  id text primary key, item_id text unique not null,
+  gravite text not null default 'Modérée', risque text not null default 'Moyen',
+  impact text not null default '', description text not null default '',
+  status text not null default 'Ouverte', created_by text, decided_by text,
+  created_at text not null default (datetime('now')), updated_at text not null default (datetime('now')),
+  decided_at text
+);
+create table if not exists negligence_decisions (
+  id text primary key, negligence_id text not null, decision text not null
+);
+create index if not exists idx_negdec_neg on negligence_decisions(negligence_id);
 create index if not exists idx_items_owner on items(owner_id);
 create index if not exists idx_items_statut on items(statut);
 create index if not exists idx_events_item on events(item_id);
@@ -129,6 +141,8 @@ function seedRefLists(db: Database.Database) {
     DEFAULT_REF_LISTS.causes.forEach((v, i) => ins.run(randomUUID(), "cause", v, v, null, i + 1));
   if (count("action") === 0)
     DEFAULT_REF_LISTS.actions.forEach((a, i) => ins.run(randomUUID(), "action", a.kind, a.label, a.icon, i + 1));
+  if (count("decision") === 0)
+    DEFAULT_REF_LISTS.decisions.forEach((v, i) => ins.run(randomUUID(), "decision", v, v, null, i + 1));
 }
 
 // Migrations légères pour les bases déjà créées (ajout de colonnes manquantes).

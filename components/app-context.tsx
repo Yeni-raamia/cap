@@ -26,6 +26,7 @@ import {
   DEFAULT_REF_LISTS,
   reminderState,
   type AppSettings,
+  type Negligence,
   type RefLists,
   type Catalogue,
   type Item,
@@ -61,9 +62,10 @@ type CatalogueAction =
   | { op: "add" | "update"; kind: "metier"; code: string; label: string; tone: string }
   | { op: "add" | "update"; kind: "type"; code: string; label: string; slaRelance: string; slaEscalade: string; urgent: boolean }
   | { op: "delete"; kind: "metier" | "type"; code: string };
+type RefListKey = "appreciation" | "cause" | "action" | "decision";
 type RefListActionPayload =
-  | { op: "add"; listKey: "appreciation" | "cause" | "action"; label: string; icon?: string }
-  | { op: "delete"; listKey: "appreciation" | "cause" | "action"; value: string };
+  | { op: "add"; listKey: RefListKey; label: string; icon?: string }
+  | { op: "delete"; listKey: RefListKey; value: string };
 
 interface AppCtx {
   demo: boolean;
@@ -96,6 +98,12 @@ interface AppCtx {
   catalogueAction: (action: CatalogueAction) => Promise<string | null>;
   refLists: RefLists;
   refListAction: (action: RefListActionPayload) => Promise<string | null>;
+  negligences: Negligence[];
+  negligenceById: (id: string) => Negligence | null;
+  negligenceByItem: (itemId: string) => Negligence | null;
+  updateNegligence: (id: string, fields: { gravite?: string; risque?: string; impact?: string; description?: string }) => Promise<string | null>;
+  setNegligenceStatus: (id: string, status: string) => Promise<string | null>;
+  setNegligenceDecisions: (id: string, decisions: string[]) => Promise<string | null>;
   notifications: Notif[];
   markNotificationsRead: () => void;
   alerts: number;
@@ -141,6 +149,13 @@ const reviveProject = (p: Project): Project => ({
   notes: p.notes.map((nt) => ({ ...nt, createdAt: new Date(nt.createdAt) })),
 });
 const reviveProjects = (arr: Project[]): Project[] => arr.map(reviveProject);
+const reviveNeg = (n: Negligence): Negligence => ({
+  ...n,
+  createdAt: new Date(n.createdAt),
+  updatedAt: new Date(n.updatedAt),
+  decidedAt: n.decidedAt ? new Date(n.decidedAt) : null,
+});
+const reviveNegs = (arr: Negligence[]): Negligence[] => arr.map(reviveNeg);
 
 export function AppProvider({
   children,
@@ -153,6 +168,7 @@ export function AppProvider({
   initialProjects,
   initialSettings,
   initialRefLists,
+  initialNegligences,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -164,6 +180,7 @@ export function AppProvider({
   initialProjects?: Project[];
   initialSettings?: AppSettings;
   initialRefLists?: RefLists;
+  initialNegligences?: Negligence[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -179,6 +196,9 @@ export function AppProvider({
   );
   const [refLists, setRefLists] = useState<RefLists>(
     demo || !initialRefLists ? DEFAULT_REF_LISTS : initialRefLists
+  );
+  const [negligences, setNegligences] = useState<Negligence[]>(
+    demo ? [] : reviveNegs(initialNegligences ?? [])
   );
   const [projects, setProjects] = useState<Project[]>(
     demo ? seedProjects() : reviveProjects(initialProjects ?? [])
@@ -307,6 +327,28 @@ export function AppProvider({
   const setAppreciation = (item: Item, appreciation: string | null) => {
     if (demo) {
       setItems((prev) => mockSetAppreciation(prev, item.id, appreciation));
+      // Démo : appréciation « Négligence » → crée une fiche en mémoire.
+      if (appreciation === "Négligence" && !negligences.some((n) => n.itemId === item.id)) {
+        const now = new Date();
+        setNegligences((prev) => [
+          {
+            id: `neg-${item.id}`,
+            itemId: item.id,
+            gravite: "Modérée",
+            risque: "Moyen",
+            impact: "",
+            description: "",
+            status: "Ouverte",
+            decisions: [],
+            createdBy: me.id,
+            decidedBy: null,
+            createdAt: now,
+            updatedAt: now,
+            decidedAt: null,
+          },
+          ...prev,
+        ]);
+      }
       return;
     }
     fetch("/api/items/blocage", {
@@ -317,8 +359,51 @@ export function AppProvider({
       .then((r) => r.json())
       .then((d) => {
         if (d.items) setItems(reviveItems(d.items));
+        if (d.negligences) setNegligences(reviveNegs(d.negligences));
       })
       .catch((e) => console.error("Appréciation échouée :", e));
+  };
+
+  /* ---------- Négligences ---------- */
+  const negligenceById = (id: string): Negligence | null => negligences.find((n) => n.id === id) ?? null;
+  const negligenceByItem = (itemId: string): Negligence | null =>
+    negligences.find((n) => n.itemId === itemId) ?? null;
+
+  const patchNeg = (id: string, patch: Partial<Negligence>) =>
+    setNegligences((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: new Date() } : n)));
+
+  const postNeg = async (op: string, id: string, extra: Record<string, unknown>): Promise<string | null> => {
+    const res = await fetch("/api/negligences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, id, ...extra }),
+    });
+    const d = await res.json();
+    if (!res.ok) return d.error ?? "Erreur.";
+    if (d.negligences) setNegligences(reviveNegs(d.negligences));
+    return null;
+  };
+
+  const updateNegligence = async (id: string, fields: { gravite?: string; risque?: string; impact?: string; description?: string }) => {
+    if (demo) {
+      patchNeg(id, fields);
+      return null;
+    }
+    return postNeg("update", id, fields);
+  };
+  const setNegligenceStatus = async (id: string, status: string) => {
+    if (demo) {
+      patchNeg(id, { status });
+      return null;
+    }
+    return postNeg("status", id, { status });
+  };
+  const setNegligenceDecisions = async (id: string, decisions: string[]) => {
+    if (demo) {
+      patchNeg(id, { decisions, decidedBy: me.id, decidedAt: new Date(), status: decisions.length ? "Décision rendue" : "Transmise au DG" });
+      return null;
+    }
+    return postNeg("decisions", id, { decisions });
   };
 
   const refListAction = async (action: RefListActionPayload): Promise<string | null> => {
@@ -434,6 +519,12 @@ export function AppProvider({
     catalogueAction,
     refLists,
     refListAction,
+    negligences,
+    negligenceById,
+    negligenceByItem,
+    updateNegligence,
+    setNegligenceStatus,
+    setNegligenceDecisions,
     notifications,
     markNotificationsRead,
     alerts,

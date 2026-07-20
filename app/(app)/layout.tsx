@@ -5,6 +5,7 @@ import { DEMO_MODE } from "@/lib/config";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCatalogue, listItems, listNotificationsFor, listProfiles } from "@/lib/db/repo";
 import { listProjects } from "@/lib/db/projects";
+import { listNegligences } from "@/lib/db/negligences";
 import { getRefLists, getSettings } from "@/lib/db/admin";
 
 export default async function AppGroupLayout({ children }: { children: ReactNode }) {
@@ -24,6 +25,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const projects = listProjects();
   const settings = getSettings();
   const refLists = getRefLists();
+  const negligences = listNegligences();
 
   return (
     <AppShell
@@ -35,6 +37,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialProjects={projects}
       initialSettings={settings}
       initialRefLists={refLists}
+      initialNegligences={negligences}
     >
       {children}
     </AppShell>

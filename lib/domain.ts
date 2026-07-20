@@ -225,6 +225,7 @@ export interface RefLists {
   appreciations: string[];
   causes: string[];
   actions: RefAction[];
+  decisions: string[];
 }
 
 /* ---------- 4.4 · Causes de blocage (liste fermée) ---------- */
@@ -236,11 +237,48 @@ export const CAUSES = [
   "Dépendance technique",
 ];
 
+/* ---------- Module Négligence ---------- */
+export const APPRECIATION_NEGLIGENCE = "Négligence"; // déclencheur du module
+
+export const NEGLIGENCE_GRAVITES = ["Faible", "Modérée", "Grave", "Critique"];
+export const NEGLIGENCE_RISQUES = ["Faible", "Moyen", "Élevé", "Majeur"];
+export const NEGLIGENCE_STATUTS = ["Ouverte", "Transmise au DG", "Décision rendue", "Classée"];
+
+/** Décisions possibles du DG (valeurs par défaut, éditables en admin). */
+export const DEFAULT_DECISIONS = [
+  "Avertissement",
+  "Rappel à l'ordre",
+  "Demande d'explication écrite",
+  "Instruction de résolution immédiate",
+  "Mise en demeure",
+  "Accompagnement / formation",
+  "Escalade hiérarchique",
+  "Sanction disciplinaire",
+  "Classement sans suite",
+];
+
+export interface Negligence {
+  id: string;
+  itemId: string;
+  gravite: string;
+  risque: string;
+  impact: string;
+  description: string;
+  status: string;
+  decisions: string[]; // décisions cochées par le DG
+  createdBy: string;
+  decidedBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  decidedAt: Date | null;
+}
+
 /** Listes de référence par défaut (seed + repli si la base est vide). */
 export const DEFAULT_REF_LISTS: RefLists = {
   appreciations: APPRECIATIONS,
   causes: CAUSES,
   actions: BLOCAGE_ACTIONS,
+  decisions: DEFAULT_DECISIONS,
 };
 
 /* ---------- Helpers temps ---------- */

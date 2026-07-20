@@ -48,6 +48,10 @@ const ACTION_LABEL: Record<string, string> = {
   blocage_appreciation: "Appréciation du motif",
   reflist_add: "Liste — ajout",
   reflist_delete: "Liste — suppression",
+  negligence_open: "Négligence ouverte",
+  negligence_update: "Négligence — évaluation",
+  negligence_status: "Négligence — statut",
+  negligence_decision: "Négligence — décision DG",
   catalogue_add: "Catalogue — ajout",
   catalogue_update: "Catalogue — édition",
   catalogue_delete: "Catalogue — suppression",
@@ -504,6 +508,12 @@ function ListesSection({ onChanged, setErr }: { onChanged: () => void; setErr: (
         actions={refLists.actions}
         onAdd={(label, icon) => run({ op: "add", listKey: "action", label, icon })}
         onDelete={(kind) => run({ op: "delete", listKey: "action", value: kind })}
+      />
+      <SimpleListCard
+        title="Décisions du DG (négligences)"
+        values={refLists.decisions}
+        onAdd={(v) => run({ op: "add", listKey: "decision", label: v })}
+        onDelete={(v) => run({ op: "delete", listKey: "decision", value: v })}
       />
     </div>
   );

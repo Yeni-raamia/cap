@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  AlertOctagon,
   AlertTriangle,
   BarChart3,
   Bell,
@@ -23,6 +24,7 @@ const ICONS: Record<string, LucideIcon> = {
   Users,
   FolderKanban,
   AlertTriangle,
+  AlertOctagon,
   BarChart3,
   Trophy,
   Bell,
