@@ -205,6 +205,13 @@ const reviveProject = (p: Project): Project => ({
     createdAt: new Date(t.createdAt),
   })),
   notes: p.notes.map((nt) => ({ ...nt, createdAt: new Date(nt.createdAt) })),
+  closure: p.closure
+    ? {
+        ...p.closure,
+        createdAt: new Date(p.closure.createdAt),
+        decidedAt: p.closure.decidedAt ? new Date(p.closure.decidedAt) : null,
+      }
+    : null,
 });
 const reviveProjects = (arr: Project[]): Project[] => arr.map(reviveProject);
 const reviveNeg = (n: Negligence): Negligence => ({
