@@ -80,18 +80,57 @@ export function createGroup(title: string, memberList: string[], createdBy: stri
 }
 
 export function listMessages(convId: string): Message[] {
-  const rows = getDb().prepare("select * from messages where conversation_id=? order by created_at").all(convId) as {
-    id: string; conversation_id: string; author_id: string | null; body: string; created_at: string;
+  const db = getDb();
+  const rows = db.prepare("select * from messages where conversation_id=? order by created_at").all(convId) as {
+    id: string; conversation_id: string; author_id: string | null; body: string; reply_to: string | null; created_at: string;
   }[];
-  return rows.map((r) => ({ id: r.id, conversationId: r.conversation_id, authorId: r.author_id ?? "", body: r.body, createdAt: new Date(r.created_at) }));
+  const reacts = db
+    .prepare("select r.emoji, r.profile_id, r.message_id from message_reactions r join messages m on m.id=r.message_id where m.conversation_id=?")
+    .all(convId) as { emoji: string; profile_id: string; message_id: string }[];
+  return rows.map((r) => ({
+    id: r.id,
+    conversationId: r.conversation_id,
+    authorId: r.author_id ?? "",
+    body: r.body,
+    createdAt: new Date(r.created_at),
+    replyTo: r.reply_to,
+    reactions: reacts.filter((x) => x.message_id === r.id).map((x) => ({ emoji: x.emoji, profileId: x.profile_id })),
+  }));
 }
 
-export function postMessage(convId: string, authorId: string, body: string): string {
+export function postMessage(convId: string, authorId: string, body: string, replyTo?: string | null): string {
   const id = randomUUID();
+  // Ne garder le lien de réponse que s'il vise un message de cette conversation.
+  let parent: string | null = null;
+  if (replyTo) {
+    const ok = getDb().prepare("select 1 from messages where id=? and conversation_id=?").get(replyTo, convId);
+    if (ok) parent = replyTo;
+  }
   // created_at en ISO (cohérent avec last_read_at) pour un calcul des non-lus correct.
-  getDb().prepare("insert into messages (id, conversation_id, author_id, body, created_at) values (?,?,?,?,?)").run(id, convId, authorId, body, now());
+  getDb()
+    .prepare("insert into messages (id, conversation_id, author_id, body, reply_to, created_at) values (?,?,?,?,?,?)")
+    .run(id, convId, authorId, body, parent, now());
   markRead(convId, authorId);
   return id;
+}
+
+/** Conversation d'un message (pour vérifier l'accès avant réaction). */
+export function messageConversation(messageId: string): string | null {
+  const r = getDb().prepare("select conversation_id from messages where id=?").get(messageId) as { conversation_id: string } | undefined;
+  return r?.conversation_id ?? null;
+}
+
+/** Ajoute ou retire (bascule) la réaction d'un utilisateur sur un message. */
+export function toggleReaction(messageId: string, profileId: string, emoji: string): void {
+  const db = getDb();
+  const existing = db
+    .prepare("select id from message_reactions where message_id=? and profile_id=? and emoji=?")
+    .get(messageId, profileId, emoji) as { id: string } | undefined;
+  if (existing) {
+    db.prepare("delete from message_reactions where id=?").run(existing.id);
+  } else {
+    db.prepare("insert into message_reactions (id, message_id, profile_id, emoji) values (?,?,?,?)").run(randomUUID(), messageId, profileId, emoji);
+  }
 }
 
 export function markRead(convId: string, userId: string): void {

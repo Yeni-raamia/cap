@@ -134,8 +134,12 @@ create table if not exists conversation_members (
 );
 create table if not exists messages (
   id text primary key, conversation_id text not null, author_id text, body text not null,
-  created_at text not null default (datetime('now'))
+  reply_to text, created_at text not null default (datetime('now'))
 );
+create table if not exists message_reactions (
+  id text primary key, message_id text not null, profile_id text not null, emoji text not null
+);
+create index if not exists idx_reactions_msg on message_reactions(message_id);
 create table if not exists conversation_reads (
   conversation_id text not null, profile_id text not null, last_read_at text not null default (datetime('now')),
   primary key (conversation_id, profile_id)
@@ -223,6 +227,10 @@ function ensureColumns(db: Database.Database) {
   const tkcols = (db.prepare("pragma table_info(tasks)").all() as { name: string }[]).map((c) => c.name);
   if (tkcols.length > 0 && !tkcols.includes("start_date")) {
     db.exec("alter table tasks add column start_date text");
+  }
+  const mcols = (db.prepare("pragma table_info(messages)").all() as { name: string }[]).map((c) => c.name);
+  if (mcols.length > 0 && !mcols.includes("reply_to")) {
+    db.exec("alter table messages add column reply_to text");
   }
   // Négligences : reconstruction si ancien schéma (item_id NOT NULL/UNIQUE, sans objet/service/concerne).
   const ncols = (db.prepare("pragma table_info(negligences)").all() as { name: string }[]).map((c) => c.name);

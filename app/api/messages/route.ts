@@ -52,7 +52,8 @@ export async function POST(request: Request) {
   }
   if (!canAccessConversation(convId, user.id)) return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
 
-  postMessage(convId, user.id, text);
+  const replyTo: string | null = typeof body?.replyTo === "string" && body.replyTo ? body.replyTo : null;
+  postMessage(convId, user.id, text, replyTo);
   notifyMessage(convId, user.id, user.nom);
 
   return NextResponse.json({

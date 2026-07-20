@@ -690,13 +690,23 @@ export interface AppSettings {
 /* ---------- Messagerie interne ---------- */
 export type ConvKind = "group" | "item" | "negligence" | "project";
 
+export interface MessageReaction {
+  emoji: string;
+  profileId: string;
+}
+
 export interface Message {
   id: string;
   conversationId: string;
   authorId: string;
   body: string;
   createdAt: Date;
+  replyTo: string | null; // id du message auquel celui-ci répond
+  reactions: MessageReaction[];
 }
+
+/** Palette de réactions proposées dans la messagerie. */
+export const REACTION_EMOJIS = ["👍", "❤️", "😄", "🎉", "✅", "👀"];
 
 export interface ConversationSummary {
   id: string;

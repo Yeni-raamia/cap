@@ -150,7 +150,8 @@ interface AppCtx {
   conversations: ConversationSummary[];
   messagesUnread: number;
   loadMessages: (t: MsgTarget) => Promise<{ conversationId: string | null; messages: Message[] }>;
-  sendMessage: (t: MsgTarget, body: string) => Promise<Message[]>;
+  sendMessage: (t: MsgTarget, body: string, replyTo?: string | null) => Promise<Message[]>;
+  reactToMessage: (messageId: string, emoji: string) => Promise<Message[] | null>;
   createGroup: (title: string, memberIds: string[]) => Promise<string | null>;
   markConversationRead: (convId: string) => void;
   // Module Projet
@@ -727,17 +728,29 @@ export function AppProvider({
     return { conversationId: d.conversationId ?? null, messages: d.messages ? reviveMsgs(d.messages) : [] };
   };
 
-  const sendMessage = async (t: MsgTarget, body: string): Promise<Message[]> => {
+  const sendMessage = async (t: MsgTarget, body: string, replyTo?: string | null): Promise<Message[]> => {
     if (demo) return [];
     const r = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...t, body }),
+      body: JSON.stringify({ ...t, body, replyTo: replyTo ?? null }),
     });
     const d = await r.json();
     if (!r.ok) return [];
     if (d.conversations) setConversations(reviveConvs(d.conversations));
     if (d.notifications) setNotifications(reviveNotifs(d.notifications));
+    return d.messages ? reviveMsgs(d.messages) : [];
+  };
+
+  const reactToMessage = async (messageId: string, emoji: string): Promise<Message[] | null> => {
+    if (demo) return null;
+    const r = await fetch("/api/messages/react", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messageId, emoji }),
+    });
+    const d = await r.json();
+    if (!r.ok) return null;
     return d.messages ? reviveMsgs(d.messages) : [];
   };
 
@@ -835,6 +848,7 @@ export function AppProvider({
     messagesUnread,
     loadMessages,
     sendMessage,
+    reactToMessage,
     createGroup,
     markConversationRead,
     projects,
