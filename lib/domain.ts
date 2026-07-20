@@ -514,10 +514,27 @@ export interface Task {
   projectId: string | null; // contexte optionnel
   status: TaskStatus;
   priority: TaskPriority;
-  dueDate: Date | null;
+  startDate: Date | null; // planification : début prévu
+  dueDate: Date | null; // planification : échéance
   createdAt: Date;
   completedAt: Date | null;
+  subtasks: Subtask[];
 }
+
+/** Élément d'une checklist de sous-tâches. */
+export interface Subtask {
+  id: string;
+  taskId: string;
+  title: string;
+  done: boolean;
+  ordre: number;
+}
+
+export const subtaskProgress = (t: Task): { done: number; total: number; pct: number } => {
+  const total = t.subtasks.length;
+  const done = t.subtasks.filter((s) => s.done).length;
+  return { done, total, pct: total ? Math.round((done / total) * 100) : 0 };
+};
 
 export interface ProjectTask {
   id: string;

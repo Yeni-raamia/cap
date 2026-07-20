@@ -9,6 +9,7 @@ import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { Drawer } from "./Drawer";
 import { NewSuiviModal } from "./NewSuiviModal";
+import { TaskModal } from "./TaskModal";
 
 function Shell({ children }: { children: ReactNode }) {
   const { me, ready } = useApp();
@@ -42,6 +43,7 @@ function Shell({ children }: { children: ReactNode }) {
       </div>
       <Drawer />
       <NewSuiviModal />
+      <TaskModal />
     </div>
   );
 }

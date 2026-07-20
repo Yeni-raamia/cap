@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       createdBy: user.id,
       projectId: typeof body?.projectId === "string" && body.projectId ? body.projectId : null,
       priority,
+      startDate: toIso(body?.startDate),
       dueDate: toIso(body?.dueDate),
     });
     if (assigneeId !== user.id) {
@@ -83,6 +84,7 @@ export async function POST(request: Request) {
       projectId: body?.projectId !== undefined ? (body.projectId || null) : undefined,
       status,
       priority,
+      startDate: body?.startDate !== undefined ? toIso(body.startDate) : undefined,
       dueDate: body?.dueDate !== undefined ? toIso(body.dueDate) : undefined,
     });
     // Notifier la nouvelle personne assignée.

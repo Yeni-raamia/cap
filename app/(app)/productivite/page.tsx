@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Activity, CheckSquare, Flame, Gauge, Plus, TrendingUp, X } from "lucide-react";
 import {
   fmt,
   isTaskLate,
   isTaskOpen,
   memberProductivity,
+  subtaskProgress,
   TASK_PRIORITIES,
   TASK_STATUTS,
   type TaskPriority,
@@ -36,7 +36,7 @@ const WINDOWS = [
 ];
 
 export default function ProductivitePage() {
-  const { tasks, profiles, items, projects, me, now, taskAction, profileById } = useApp();
+  const { tasks, profiles, items, projects, me, now, taskAction, profileById, setOpenTaskId } = useApp();
   const [windowDays, setWindowDays] = useState(30);
   const [selected, setSelected] = useState<string | null>(null);
   const [filterMember, setFilterMember] = useState<string>("");
@@ -239,8 +239,13 @@ export default function ProductivitePage() {
                     const who = t.assigneeId ? profileById(t.assigneeId) : null;
                     const proj = t.projectId ? projects.find((p) => p.id === t.projectId) : null;
                     const late = isTaskLate(t, now);
+                    const prog = subtaskProgress(t);
                     return (
-                      <div key={t.id} className="bg-white rounded-lg border border-slate-100 p-2 shadow-sm">
+                      <button
+                        key={t.id}
+                        onClick={() => setOpenTaskId(t.id)}
+                        className="w-full text-left bg-white rounded-lg border border-slate-100 p-2 shadow-sm hover:border-violet-200 hover:shadow transition"
+                      >
                         <div className="flex items-start gap-1.5">
                           <span className="text-[13px] text-slate-800 flex-1">{t.title}</span>
                           <span className={`text-[9px] px-1.5 py-0.5 rounded ${PRIORITY_STYLE[t.priority]}`}>{t.priority}</span>
@@ -251,10 +256,11 @@ export default function ProductivitePage() {
                               <Avatar init={who.init} size="h-4 w-4" /> {who.nom}
                             </span>
                           )}
-                          {proj && <Link href={`/projets/${proj.id}`} className="text-[10px] text-emerald-700 hover:underline">{proj.name}</Link>}
+                          {proj && <span className="text-[10px] text-emerald-700">{proj.name}</span>}
+                          {prog.total > 0 && <span className="text-[10px] text-violet-600">☑ {prog.done}/{prog.total}</span>}
                           {t.dueDate && <span className={`text-[10px] ${late ? "text-rose-600 font-medium" : "text-slate-400"}`}>{fmt(t.dueDate)}</span>}
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                   {col.length === 0 && <div className="text-[11px] text-slate-300 text-center py-2">—</div>}
@@ -302,13 +308,18 @@ function TaskRow({
   canAssignOthers: boolean;
   me: string;
 }) {
-  const { taskAction, projects } = useApp();
+  const { taskAction, projects, setOpenTaskId } = useApp();
   const proj = t.projectId ? projects.find((p) => p.id === t.projectId) : null;
   const editable = canAssignOthers || t.assigneeId === me || t.createdBy === me;
+  const prog = subtaskProgress(t);
   return (
     <div className="flex items-center gap-2 py-1.5 border-b border-slate-50 last:border-0">
       <span className={`text-[9px] px-1.5 py-0.5 rounded ${PRIORITY_STYLE[t.priority]}`}>{t.priority}</span>
-      <span className="flex-1 text-[13px] text-slate-800 truncate">{t.title}{proj && <span className="text-[11px] text-slate-400"> · {proj.name}</span>}</span>
+      <button onClick={() => setOpenTaskId(t.id)} className="flex-1 text-left text-[13px] text-slate-800 truncate hover:text-violet-700">
+        {t.title}
+        {proj && <span className="text-[11px] text-slate-400"> · {proj.name}</span>}
+        {prog.total > 0 && <span className="text-[11px] text-violet-600"> · ☑ {prog.done}/{prog.total}</span>}
+      </button>
       {t.dueDate && <span className="text-[10px] text-slate-400">{fmt(t.dueDate)}</span>}
       <select
         value={t.status}

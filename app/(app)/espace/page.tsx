@@ -14,14 +14,14 @@ import {
   Plus,
   ShieldAlert,
 } from "lucide-react";
-import { fmt, fmtLong, isTaskOpen, projectMetrics, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
+import { fmt, fmtLong, isTaskOpen, projectMetrics, subtaskProgress, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
 import { ItemCard } from "@/components/ItemCard";
 import { SuiviExplorer } from "@/components/SuiviExplorer";
 
 export default function MonEspacePage() {
-  const { items, now, me, scores, rs, projects, negligences, conversations, tasks, taskAction, projectTask, setShowNew } = useApp();
+  const { items, now, me, scores, rs, projects, negligences, conversations, tasks, taskAction, projectTask, setShowNew, setOpenTaskId } = useApp();
   const [newTask, setNewTask] = useState("");
 
   const mine = items.filter((i) => i.ownerId === me.id);
@@ -118,13 +118,15 @@ export default function MonEspacePage() {
               {myAssignedTasks.map((t) => {
                 const late = t.status !== "fait" && t.dueDate && t.dueDate.getTime() < now.getTime();
                 const proj = t.projectId ? projects.find((p) => p.id === t.projectId) : null;
+                const prog = subtaskProgress(t);
                 return (
                   <div key={t.id} className="flex items-center gap-2 py-1.5">
                     <CheckSquare size={14} className={t.status === "fait" ? "text-emerald-500" : "text-slate-300"} />
-                    <span className={`flex-1 text-[13px] ${t.status === "fait" ? "text-slate-400 line-through" : "text-slate-800"} truncate`}>
+                    <button onClick={() => setOpenTaskId(t.id)} className={`flex-1 text-left text-[13px] ${t.status === "fait" ? "text-slate-400 line-through" : "text-slate-800"} truncate hover:text-violet-700`}>
                       {t.title}
-                      {proj && <Link href={`/projets/${proj.id}`} className="text-[11px] text-emerald-700 hover:underline"> · {proj.name}</Link>}
-                    </span>
+                      {proj && <span className="text-[11px] text-emerald-700"> · {proj.name}</span>}
+                      {prog.total > 0 && <span className="text-[11px] text-violet-600"> · ☑ {prog.done}/{prog.total}</span>}
+                    </button>
                     {t.dueDate && <span className={`text-[11px] ${late ? "text-rose-600 font-medium" : "text-slate-400"}`}>{fmt(t.dueDate)}</span>}
                     <select
                       value={t.status}

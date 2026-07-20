@@ -62,10 +62,16 @@ create table if not exists tasks (
   id text primary key, title text not null, description text not null default '',
   assignee_id text, created_by text, project_id text,
   status text not null default 'à faire', priority text not null default 'Normale',
-  due_date text, completed_at text, created_at text not null default (datetime('now'))
+  start_date text, due_date text, completed_at text, created_at text not null default (datetime('now'))
 );
 create index if not exists idx_tasks_assignee on tasks(assignee_id);
 create index if not exists idx_tasks_project2 on tasks(project_id);
+create table if not exists task_subtasks (
+  id text primary key, task_id text not null, title text not null,
+  done integer not null default 0, ordre integer not null default 0,
+  created_at text not null default (datetime('now'))
+);
+create index if not exists idx_subtasks_task on task_subtasks(task_id);
 create table if not exists project_closure_requests (
   id text primary key, project_id text not null, requested_by text,
   summary text not null default '', deliverables text not null default '[]',
@@ -213,6 +219,10 @@ function ensureColumns(db: Database.Database) {
   if (!pjcols.includes("pending_status")) {
     db.exec("alter table projects add column pending_status text");
     db.exec("alter table projects add column pending_by text");
+  }
+  const tkcols = (db.prepare("pragma table_info(tasks)").all() as { name: string }[]).map((c) => c.name);
+  if (tkcols.length > 0 && !tkcols.includes("start_date")) {
+    db.exec("alter table tasks add column start_date text");
   }
   // Négligences : reconstruction si ancien schéma (item_id NOT NULL/UNIQUE, sans objet/service/concerne).
   const ncols = (db.prepare("pragma table_info(negligences)").all() as { name: string }[]).map((c) => c.name);

@@ -71,7 +71,14 @@ export interface TaskInput {
   projectId?: string | null;
   status?: TaskStatus;
   priority?: TaskPriority;
+  startDate?: string | null;
   dueDate?: string | null;
+}
+export interface SubtaskInput {
+  taskId?: string;
+  subtaskId?: string;
+  title?: string;
+  done?: boolean;
 }
 type CatalogueAction =
   | { op: "add" | "update"; kind: "metier"; code: string; label: string; tone: string }
@@ -162,6 +169,9 @@ interface AppCtx {
   // Tâches (productivité)
   tasks: Task[];
   taskAction: (op: "create" | "update" | "delete", input: TaskInput) => Promise<string | null>;
+  subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
+  openTaskId: string | null;
+  setOpenTaskId: (id: string | null) => void;
   // Son des notifications
   soundEnabled: boolean;
   setSoundEnabled: (v: boolean) => void;
@@ -209,9 +219,11 @@ const reviveConvs = (arr: ConversationSummary[]): ConversationSummary[] =>
 const reviveMsgs = (arr: Message[]): Message[] => arr.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }));
 const reviveTask = (t: Task): Task => ({
   ...t,
+  startDate: t.startDate ? new Date(t.startDate) : null,
   dueDate: t.dueDate ? new Date(t.dueDate) : null,
   completedAt: t.completedAt ? new Date(t.completedAt) : null,
   createdAt: new Date(t.createdAt),
+  subtasks: t.subtasks ?? [],
 });
 const reviveTasks = (arr: Task[]): Task[] => arr.map(reviveTask);
 
@@ -292,6 +304,7 @@ export function AppProvider({
     demo ? seedProjects() : reviveProjects(initialProjects ?? [])
   );
   const [tasks, setTasks] = useState<Task[]>(demo ? [] : reviveTasks(initialTasks ?? []));
+  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [nowState, setNowState] = useState<Date | null>(null);
   const [meId, setMeId] = useState<string>(DEFAULT_USER_ID); // sélecteur démo
@@ -668,6 +681,18 @@ export function AppProvider({
     if (d.tasks) setTasks(reviveTasks(d.tasks));
     return null;
   };
+  const subtaskAction = async (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput): Promise<string | null> => {
+    if (demo) return "Tâches indisponibles en mode démo.";
+    const res = await fetch("/api/tasks/subtasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, ...input }),
+    });
+    const d = await res.json();
+    if (!res.ok) return d.error ?? "Erreur.";
+    if (d.tasks) setTasks(reviveTasks(d.tasks));
+    return null;
+  };
 
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
@@ -819,6 +844,9 @@ export function AppProvider({
     decideProjectClosure,
     tasks,
     taskAction,
+    subtaskAction,
+    openTaskId,
+    setOpenTaskId,
     soundEnabled,
     setSoundEnabled,
   };
