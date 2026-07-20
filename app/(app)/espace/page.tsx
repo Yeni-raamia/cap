@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   AlertOctagon,
@@ -8,18 +9,20 @@ import {
   FolderKanban,
   Gavel,
   ListChecks,
+  ListTodo,
   MessageSquare,
   Plus,
   ShieldAlert,
 } from "lucide-react";
-import { fmt, fmtLong, projectMetrics, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
+import { fmt, fmtLong, isTaskOpen, projectMetrics, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
 import { ItemCard } from "@/components/ItemCard";
 import { SuiviExplorer } from "@/components/SuiviExplorer";
 
 export default function MonEspacePage() {
-  const { items, now, me, scores, rs, projects, negligences, conversations, projectTask, setShowNew } = useApp();
+  const { items, now, me, scores, rs, projects, negligences, conversations, tasks, taskAction, projectTask, setShowNew } = useApp();
+  const [newTask, setNewTask] = useState("");
 
   const mine = items.filter((i) => i.ownerId === me.id);
   const attends = mine.filter((i) => ["relance", "escalade"].includes(rs(i).level));
@@ -46,6 +49,18 @@ export default function MonEspacePage() {
   const aValiderProjets = isDG ? projects.filter((p) => p.pendingStatus) : [];
 
   const unreadConvs = conversations.filter((c) => c.unread > 0);
+
+  // Mes tâches assignées (module productivité), ouvertes d'abord.
+  const myAssignedTasks = tasks
+    .filter((t) => t.assigneeId === me.id)
+    .sort((a, b) => Number(isTaskOpen(b)) - Number(isTaskOpen(a)) || (a.dueDate?.getTime() ?? Infinity) - (b.dueDate?.getTime() ?? Infinity));
+  const openTaskCount = myAssignedTasks.filter(isTaskOpen).length;
+
+  const addTask = async () => {
+    if (!newTask.trim()) return;
+    await taskAction("create", { title: newTask.trim(), assigneeId: me.id });
+    setNewTask("");
+  };
 
   const Section = ({ icon: Icon, title, count, tone = "text-slate-500", children }: { icon: typeof Bell; title: string; count: number; tone?: string; children: React.ReactNode }) => (
     <div>
@@ -79,6 +94,52 @@ export default function MonEspacePage() {
         ) : (
           <div className="space-y-3">{attends.map((i) => <ItemCard key={i.id} item={i} />)}</div>
         )}
+      </Section>
+
+      {/* Mes tâches (productivité) */}
+      <Section icon={ListTodo} title="Mes tâches" count={openTaskCount} tone="text-violet-500">
+        <Card className="p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <input
+              value={newTask}
+              onChange={(e) => setNewTask(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addTask()}
+              placeholder="Ajouter une tâche personnelle…"
+              className="flex-1 text-[13px] border border-slate-200 rounded-lg px-2.5 py-1.5"
+            />
+            <button onClick={addTask} className="flex items-center gap-1 text-[13px] font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-lg px-3 py-1.5">
+              <Plus size={15} /> Ajouter
+            </button>
+          </div>
+          {myAssignedTasks.length === 0 ? (
+            <div className="text-[12px] text-slate-400 text-center py-2">Aucune tâche. Ajoute-en une ou attends une assignation.</div>
+          ) : (
+            <div className="divide-y divide-slate-50">
+              {myAssignedTasks.map((t) => {
+                const late = t.status !== "fait" && t.dueDate && t.dueDate.getTime() < now.getTime();
+                const proj = t.projectId ? projects.find((p) => p.id === t.projectId) : null;
+                return (
+                  <div key={t.id} className="flex items-center gap-2 py-1.5">
+                    <CheckSquare size={14} className={t.status === "fait" ? "text-emerald-500" : "text-slate-300"} />
+                    <span className={`flex-1 text-[13px] ${t.status === "fait" ? "text-slate-400 line-through" : "text-slate-800"} truncate`}>
+                      {t.title}
+                      {proj && <Link href={`/projets/${proj.id}`} className="text-[11px] text-emerald-700 hover:underline"> · {proj.name}</Link>}
+                    </span>
+                    {t.dueDate && <span className={`text-[11px] ${late ? "text-rose-600 font-medium" : "text-slate-400"}`}>{fmt(t.dueDate)}</span>}
+                    <select
+                      value={t.status}
+                      onChange={(e) => taskAction("update", { id: t.id, status: e.target.value as TaskStatus })}
+                      aria-label="Statut de la tâche"
+                      className="text-[11px] border border-slate-200 rounded px-1 py-0.5"
+                    >
+                      {TASK_STATUTS.map((s) => <option key={s}>{s}</option>)}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
       </Section>
 
       {/* À justifier */}

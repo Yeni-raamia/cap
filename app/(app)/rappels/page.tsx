@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, Bell, CalendarCheck, CalendarClock, CheckCheck, FolderKanban, Mail, MessageSquare, RotateCcw } from "lucide-react";
+import { ArrowUp, Bell, CalendarCheck, CalendarClock, CheckCheck, CheckSquare, FolderKanban, Mail, MessageSquare, RotateCcw } from "lucide-react";
 import { fmt, type Item, type NotifKind } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
@@ -12,6 +12,7 @@ const notifIcon: Record<NotifKind, typeof RotateCcw> = {
   echeance: CalendarCheck,
   message: MessageSquare,
   projet: FolderKanban,
+  tache: CheckSquare,
 };
 const notifTone: Record<NotifKind, string> = {
   relance: "bg-amber-100 text-amber-600",
@@ -20,6 +21,7 @@ const notifTone: Record<NotifKind, string> = {
   echeance: "bg-sky-100 text-sky-600",
   message: "bg-emerald-100 text-emerald-600",
   projet: "bg-indigo-100 text-indigo-600",
+  tache: "bg-violet-100 text-violet-600",
 };
 
 export default function RappelsPage() {

@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -41,6 +42,8 @@ import {
   type ReminderState,
   type Role,
   type Score,
+  type Task,
+  type TaskPriority,
   type TaskStatus,
 } from "@/lib/domain";
 import { ORG_NAME } from "@/lib/config";
@@ -59,6 +62,16 @@ interface ProjectFields {
   description?: string;
   status?: ProjectStatus;
   deadline?: string | null;
+}
+export interface TaskInput {
+  id?: string;
+  title?: string;
+  description?: string;
+  assigneeId?: string | null;
+  projectId?: string | null;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  dueDate?: string | null;
 }
 type CatalogueAction =
   | { op: "add" | "update"; kind: "metier"; code: string; label: string; tone: string }
@@ -136,7 +149,7 @@ interface AppCtx {
   // Module Projet
   projects: Project[];
   projectById: (id: string) => Project | null;
-  createProject: (name: string, description: string, deadline: string | null) => Promise<string | null>;
+  createProject: (name: string, description: string, deadline: string | null, memberIds?: string[]) => Promise<string | null>;
   updateProject: (id: string, fields: ProjectFields) => Promise<string | null>;
   projectTask: (action: "add" | "update" | "delete", payload: TaskPayload) => Promise<string | null>;
   projectMember: (action: "add" | "remove", projectId: string, profileId: string) => Promise<string | null>;
@@ -144,6 +157,14 @@ interface AppCtx {
   attachItemToProject: (itemId: string, projectId: string | null) => Promise<string | null>;
   requestProjectStatus: (id: string, status: string) => Promise<string | null>;
   decideProjectStatus: (id: string, approve: boolean) => Promise<string | null>;
+  requestProjectClosure: (id: string, summary: string, deliverables: string[]) => Promise<string | null>;
+  decideProjectClosure: (id: string, approve: boolean, note?: string) => Promise<string | null>;
+  // Tâches (productivité)
+  tasks: Task[];
+  taskAction: (op: "create" | "update" | "delete", input: TaskInput) => Promise<string | null>;
+  // Son des notifications
+  soundEnabled: boolean;
+  setSoundEnabled: (v: boolean) => void;
 }
 
 const EPOCH = new Date(0);
@@ -186,6 +207,36 @@ const reviveNegs = (arr: Negligence[]): Negligence[] => arr.map(reviveNeg);
 const reviveConvs = (arr: ConversationSummary[]): ConversationSummary[] =>
   arr.map((c) => ({ ...c, lastAt: c.lastAt ? new Date(c.lastAt) : null }));
 const reviveMsgs = (arr: Message[]): Message[] => arr.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }));
+const reviveTask = (t: Task): Task => ({
+  ...t,
+  dueDate: t.dueDate ? new Date(t.dueDate) : null,
+  completedAt: t.completedAt ? new Date(t.completedAt) : null,
+  createdAt: new Date(t.createdAt),
+});
+const reviveTasks = (arr: Task[]): Task[] => arr.map(reviveTask);
+
+/* Bip sonore court via Web Audio (aucun fichier requis, marche hors-ligne). */
+function playBeep() {
+  try {
+    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.36);
+    osc.onended = () => ctx.close().catch(() => {});
+  } catch {
+    /* audio indisponible : silencieux */
+  }
+}
 
 export function AppProvider({
   children,
@@ -200,6 +251,7 @@ export function AppProvider({
   initialRefLists,
   initialNegligences,
   initialConversations,
+  initialTasks,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -213,6 +265,7 @@ export function AppProvider({
   initialRefLists?: RefLists;
   initialNegligences?: Negligence[];
   initialConversations?: ConversationSummary[];
+  initialTasks?: Task[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -238,6 +291,8 @@ export function AppProvider({
   const [projects, setProjects] = useState<Project[]>(
     demo ? seedProjects() : reviveProjects(initialProjects ?? [])
   );
+  const [tasks, setTasks] = useState<Task[]>(demo ? [] : reviveTasks(initialTasks ?? []));
+  const [soundEnabled, setSoundEnabledState] = useState(true);
   const [nowState, setNowState] = useState<Date | null>(null);
   const [meId, setMeId] = useState<string>(DEFAULT_USER_ID); // sélecteur démo
   const [orgName, setOrgName] = useState(initialSettings?.orgName ?? ORG_NAME);
@@ -259,8 +314,34 @@ export function AppProvider({
       setItems(seedItems());
       setProfiles(PROFILES);
     }
+    // Préférence de son (bip des notifications), persistée localement.
+    try {
+      setSoundEnabledState(localStorage.getItem("cap_sound") !== "0");
+    } catch {
+      /* localStorage indisponible */
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const setSoundEnabled = (v: boolean) => {
+    setSoundEnabledState(v);
+    try {
+      localStorage.setItem("cap_sound", v ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+    if (v) playBeep(); // retour immédiat à l'activation
+  };
+
+  // Bip sonore au nouvel arrivage de notification (en local uniquement).
+  const prevUnreadRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (demo) return;
+    const unread = notifications.filter((n) => !n.read).length;
+    const prev = prevUnreadRef.current;
+    if (prev !== null && unread > prev && soundEnabled) playBeep();
+    prevUnreadRef.current = unread;
+  }, [notifications, soundEnabled, demo]);
 
   const now = nowState ?? EPOCH;
   const me: Profile = demo
@@ -540,8 +621,8 @@ export function AppProvider({
     return null;
   };
 
-  const createProject = async (name: string, description: string, deadline: string | null) =>
-    demo ? DEMO_MSG : postProjects("/api/projects", { name, description, deadline });
+  const createProject = async (name: string, description: string, deadline: string | null, memberIds: string[] = []) =>
+    demo ? DEMO_MSG : postProjects("/api/projects", { name, description, deadline, memberIds });
   const updateProject = async (id: string, fields: ProjectFields) =>
     demo ? DEMO_MSG : postProjects("/api/projects/update", { id, ...fields });
   const projectTask = async (action: "add" | "update" | "delete", payload: TaskPayload) =>
@@ -557,6 +638,36 @@ export function AppProvider({
     demo ? DEMO_MSG : postProjects("/api/projects/status", { op: "request", id, status });
   const decideProjectStatus = async (id: string, approve: boolean) =>
     demo ? DEMO_MSG : postProjects("/api/projects/status", { op: "decide", id, approve });
+  // Demande de clôture d'un projet (agent) + décision (manager/directeur).
+  const requestProjectClosure = async (id: string, summary: string, deliverables: string[]) =>
+    demo ? DEMO_MSG : postProjects("/api/projects/closure", { op: "request", id, summary, deliverables });
+  const decideProjectClosure = async (id: string, approve: boolean, note = "") =>
+    demo ? DEMO_MSG : postProjects("/api/projects/closure", { op: "decide", id, approve, note });
+
+  /* ---------- Tâches (productivité) ---------- */
+  const refreshTasks = async () => {
+    if (demo) return;
+    try {
+      const r = await fetch("/api/tasks");
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d.tasks) setTasks(reviveTasks(d.tasks));
+    } catch {
+      /* réseau : réessai au prochain sondage */
+    }
+  };
+  const taskAction = async (op: "create" | "update" | "delete", input: TaskInput): Promise<string | null> => {
+    if (demo) return "Tâches indisponibles en mode démo.";
+    const res = await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, ...input }),
+    });
+    const d = await res.json();
+    if (!res.ok) return d.error ?? "Erreur.";
+    if (d.tasks) setTasks(reviveTasks(d.tasks));
+    return null;
+  };
 
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
@@ -629,7 +740,10 @@ export function AppProvider({
   // Sondage périodique (pas de WebSocket sur le serveur local).
   useEffect(() => {
     if (demo) return;
-    const iv = setInterval(refreshConversations, 20000);
+    const iv = setInterval(() => {
+      refreshConversations();
+      refreshTasks();
+    }, 20000);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo]);
@@ -701,6 +815,12 @@ export function AppProvider({
     attachItemToProject,
     requestProjectStatus,
     decideProjectStatus,
+    requestProjectClosure,
+    decideProjectClosure,
+    tasks,
+    taskAction,
+    soundEnabled,
+    setSoundEnabled,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

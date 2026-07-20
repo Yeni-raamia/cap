@@ -5,6 +5,7 @@ import { DEMO_MODE } from "@/lib/config";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getCatalogue, listItems, listNotificationsFor, listProfiles } from "@/lib/db/repo";
 import { listProjects } from "@/lib/db/projects";
+import { listTasks } from "@/lib/db/tasks";
 import { listNegligences } from "@/lib/db/negligences";
 import { listConversationsFor } from "@/lib/db/messaging";
 import { getRefLists, getSettings } from "@/lib/db/admin";
@@ -28,6 +29,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const refLists = getRefLists();
   const negligences = listNegligences();
   const conversations = listConversationsFor(user.id);
+  const tasks = listTasks();
 
   return (
     <AppShell
@@ -41,6 +43,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialRefLists={refLists}
       initialNegligences={negligences}
       initialConversations={conversations}
+      initialTasks={tasks}
     >
       {children}
     </AppShell>

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { canManageProject } from "@/lib/auth/project-guard";
-import { addMember, listProjects, removeMember } from "@/lib/db/projects";
+import { addMember, isProjectMember, listProjects, removeMember } from "@/lib/db/projects";
+import { insertNotification } from "@/lib/db/repo";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -16,8 +17,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Droits insuffisants sur ce projet." }, { status: 403 });
   }
 
-  if (action === "add") addMember(projectId, profileId);
-  else if (action === "remove") removeMember(projectId, profileId);
+  if (action === "add") {
+    const already = isProjectMember(projectId, profileId);
+    addMember(projectId, profileId);
+    if (!already && profileId !== user.id) {
+      const projName = listProjects().find((p) => p.id === projectId)?.name ?? "un projet";
+      insertNotification({
+        userId: profileId,
+        itemId: null,
+        kind: "projet",
+        message: `${user.nom} vous a assigné au projet « ${projName} ».`,
+        channel: ["in-app"],
+      });
+    }
+  } else if (action === "remove") removeMember(projectId, profileId);
   else return NextResponse.json({ error: "Action inconnue." }, { status: 400 });
 
   return NextResponse.json({ projects: listProjects() });

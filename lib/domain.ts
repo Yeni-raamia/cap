@@ -473,7 +473,7 @@ export function computeScores(
 }
 
 /* ---------- Notifications (moteur de relance) ---------- */
-export type NotifKind = "relance" | "escalade" | "digest" | "echeance" | "message" | "projet";
+export type NotifKind = "relance" | "escalade" | "digest" | "echeance" | "message" | "projet" | "tache";
 
 export interface Notif {
   id: string;
@@ -490,8 +490,34 @@ export interface Notif {
 export type ProjectStatus = "En cours" | "En pause" | "Terminé" | "Annulé";
 export const PROJECT_STATUTS: ProjectStatus[] = ["En cours", "En pause", "Terminé", "Annulé"];
 
-export type TaskStatus = "à faire" | "en cours" | "fait";
-export const TASK_STATUTS: TaskStatus[] = ["à faire", "en cours", "fait"];
+export type TaskStatus = "à faire" | "en cours" | "fait" | "bloqué";
+export const TASK_STATUTS: TaskStatus[] = ["à faire", "en cours", "fait", "bloqué"];
+
+export type TaskPriority = "Basse" | "Normale" | "Haute" | "Urgente";
+export const TASK_PRIORITIES: TaskPriority[] = ["Basse", "Normale", "Haute", "Urgente"];
+export const TASK_PRIORITY_WEIGHT: Record<TaskPriority, number> = {
+  Basse: 1,
+  Normale: 2,
+  Haute: 3,
+  Urgente: 5,
+};
+
+/* ---------- Tâches assignables (productivité) ----------
+ * Unité de travail attribuable à une personne, autonome ou rattachée à un
+ * projet. Alimente l'espace personnel et la vue Productivité. */
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  assigneeId: string | null;
+  createdBy: string | null;
+  projectId: string | null; // contexte optionnel
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueDate: Date | null;
+  createdAt: Date;
+  completedAt: Date | null;
+}
 
 export interface ProjectTask {
   id: string;
@@ -512,6 +538,22 @@ export interface ProjectNote {
   createdAt: Date;
 }
 
+/* ---------- Demande de clôture d'un projet ---------- */
+export type ClosureStatus = "en_attente" | "validee" | "rejetee";
+
+export interface ClosureRequest {
+  id: string;
+  projectId: string;
+  requestedBy: string;
+  summary: string; // récapitulatif des phases/actions achevées
+  deliverables: string[]; // livrables
+  status: ClosureStatus;
+  decidedBy: string | null;
+  decisionNote: string;
+  createdAt: Date;
+  decidedAt: Date | null;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -527,6 +569,8 @@ export interface Project {
   /** Changement de statut proposé, en attente de validation du directeur. */
   pendingStatus: string | null;
   pendingBy: string | null;
+  /** Dernière demande de clôture (la plus récente), le cas échéant. */
+  closure: ClosureRequest | null;
 }
 
 export interface ProjectMetrics {
@@ -551,6 +595,44 @@ export function projectMetrics(p: Project, now: Date): ProjectMetrics {
 
 /** Un projet archivé (terminé ou annulé) est masqué de la liste active. */
 export const isProjectArchived = (p: Project): boolean => p.status === "Terminé" || p.status === "Annulé";
+
+/* ---------- Productivité ---------- */
+export const isTaskOpen = (t: Task): boolean => t.status !== "fait";
+export const isTaskLate = (t: Task, now: Date): boolean =>
+  t.status !== "fait" && !!t.dueDate && t.dueDate.getTime() < now.getTime();
+
+export interface MemberProductivity {
+  id: string;
+  tasksTotal: number;
+  tasksOpen: number;
+  tasksDone: number;
+  tasksLate: number;
+  tasksBlocked: number;
+  doneRecent: number; // achevées sur la fenêtre récente (déf. 30 j)
+  completionRate: number; // % achevées / total
+  charge: number; // somme pondérée des tâches ouvertes (par priorité)
+}
+
+/** Indicateurs de rendement d'une personne à partir de ses tâches. */
+export function memberProductivity(memberId: string, tasks: Task[], now: Date, windowDays = 30): MemberProductivity {
+  const mine = tasks.filter((t) => t.assigneeId === memberId);
+  const since = now.getTime() - windowDays * 86400000;
+  const done = mine.filter((t) => t.status === "fait");
+  const doneRecent = done.filter((t) => t.completedAt && t.completedAt.getTime() >= since).length;
+  const open = mine.filter(isTaskOpen);
+  const charge = open.reduce((s, t) => s + (TASK_PRIORITY_WEIGHT[t.priority] ?? 2), 0);
+  return {
+    id: memberId,
+    tasksTotal: mine.length,
+    tasksOpen: open.length,
+    tasksDone: done.length,
+    tasksLate: mine.filter((t) => isTaskLate(t, now)).length,
+    tasksBlocked: mine.filter((t) => t.status === "bloqué").length,
+    doneRecent,
+    completionRate: mine.length ? Math.round((done.length / mine.length) * 100) : 0,
+    charge,
+  };
+}
 
 export const PROJECT_METIER = "PRJ"; // métier déclencheur d'un projet
 

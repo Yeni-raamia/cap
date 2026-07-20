@@ -327,6 +327,7 @@ export function seedProjects(): Project[] {
       ],
       pendingStatus: null,
       pendingBy: null,
+      closure: null,
     },
     {
       id: "demo-p2",
@@ -345,6 +346,7 @@ export function seedProjects(): Project[] {
       notes: [],
       pendingStatus: null,
       pendingBy: null,
+      closure: null,
     },
   ];
 }

@@ -42,7 +42,11 @@ export default function ProjetsPage() {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [assignees, setAssignees] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
+
+  const toggleAssignee = (id: string) =>
+    setAssignees((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const [view, setView] = useState<ViewMode>("cartes");
   const [search, setSearch] = useState("");
@@ -72,11 +76,12 @@ export default function ProjetsPage() {
 
   const submit = async () => {
     setErr(null);
-    const error = await createProject(name.trim(), desc.trim(), deadline || null);
+    const error = await createProject(name.trim(), desc.trim(), deadline || null, assignees);
     if (error) return setErr(error);
     setName("");
     setDesc("");
     setDeadline("");
+    setAssignees([]);
     setShowNew(false);
   };
 
@@ -124,6 +129,24 @@ export default function ProjetsPage() {
             <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} aria-label="Échéance" className="text-[13px] border border-slate-200 rounded-lg px-3 py-2 text-slate-700" />
           </div>
           <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} placeholder="Description (optionnel)" className="w-full text-[13px] border border-slate-200 rounded-lg px-3 py-2" />
+          <div>
+            <div className="text-[11px] text-slate-400 mb-1.5">Assigner à (les personnes seront notifiées)</div>
+            <div className="flex flex-wrap gap-1.5">
+              {profiles.map((p) => {
+                const on = assignees.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => toggleAssignee(p.id)}
+                    className={`flex items-center gap-1.5 text-[12px] rounded-full pl-1 pr-2.5 py-0.5 border ${on ? "bg-emerald-600 text-white border-emerald-600" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                  >
+                    <Avatar init={p.init} size="h-5 w-5" /> {p.nom}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           {err && <div className="text-[12px] text-rose-600">{err}</div>}
           <div className="flex gap-2">
             <button onClick={() => setShowNew(false)} className="text-[13px] text-slate-600 border border-slate-200 rounded-lg px-3 py-1.5 hover:bg-slate-50">Annuler</button>

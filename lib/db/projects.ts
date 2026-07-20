@@ -4,6 +4,8 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
 import type {
+  ClosureRequest,
+  ClosureStatus,
   Project,
   ProjectNote,
   ProjectStatus,
@@ -67,6 +69,39 @@ function mapNote(r: NoteRow): ProjectNote {
   };
 }
 
+interface ClosureRow {
+  id: string;
+  project_id: string;
+  requested_by: string | null;
+  summary: string;
+  deliverables: string;
+  status: ClosureStatus;
+  decided_by: string | null;
+  decision_note: string;
+  created_at: string;
+  decided_at: string | null;
+}
+function mapClosure(r: ClosureRow): ClosureRequest {
+  let deliverables: string[] = [];
+  try {
+    deliverables = JSON.parse(r.deliverables || "[]");
+  } catch {
+    deliverables = [];
+  }
+  return {
+    id: r.id,
+    projectId: r.project_id,
+    requestedBy: r.requested_by ?? "",
+    summary: r.summary,
+    deliverables,
+    status: r.status,
+    decidedBy: r.decided_by,
+    decisionNote: r.decision_note,
+    createdAt: new Date(r.created_at),
+    decidedAt: r.decided_at ? new Date(r.decided_at) : null,
+  };
+}
+
 export function listProjects(): Project[] {
   const db = getDb();
   const projects = db.prepare("select * from projects order by created_at desc").all() as ProjectRow[];
@@ -80,6 +115,12 @@ export function listProjects(): Project[] {
   members.forEach((m) => mByP.set(m.project_id, [...(mByP.get(m.project_id) ?? []), m.profile_id]));
   const nByP = new Map<string, NoteRow[]>();
   notes.forEach((n) => nByP.set(n.project_id, [...(nByP.get(n.project_id) ?? []), n]));
+  // Dernière demande de clôture par projet.
+  const closures = db.prepare("select * from project_closure_requests order by created_at desc").all() as ClosureRow[];
+  const cByP = new Map<string, ClosureRow>();
+  closures.forEach((c) => {
+    if (!cByP.has(c.project_id)) cByP.set(c.project_id, c);
+  });
 
   return projects.map((p) => ({
     id: p.id,
@@ -95,6 +136,7 @@ export function listProjects(): Project[] {
     notes: (nByP.get(p.id) ?? []).map(mapNote),
     pendingStatus: p.pending_status,
     pendingBy: p.pending_by,
+    closure: cByP.has(p.id) ? mapClosure(cByP.get(p.id)!) : null,
   }));
 }
 
@@ -146,6 +188,7 @@ export function createProject(input: {
   ownerId: string;
   sourceItemId?: string | null;
   deadline?: string | null;
+  memberIds?: string[];
 }): string {
   const id = randomUUID();
   getDb()
@@ -161,10 +204,10 @@ export function createProject(input: {
       input.deadline ?? null,
       input.sourceItemId ?? null
     );
-  // Le propriétaire est membre par défaut.
-  getDb()
-    .prepare("insert into project_members (id, project_id, profile_id) values (?,?,?)")
-    .run(randomUUID(), id, input.ownerId);
+  // Le propriétaire + les personnes assignées sont membres.
+  const ins = getDb().prepare("insert into project_members (id, project_id, profile_id) values (?,?,?)");
+  const all = [...new Set([input.ownerId, ...(input.memberIds ?? [])])];
+  all.forEach((pid) => ins.run(randomUUID(), id, pid));
   return id;
 }
 
@@ -259,4 +302,43 @@ export function addNote(projectId: string, authorId: string, body: string): void
 /* ---------- Rattachement d'un suivi ---------- */
 export function attachItem(itemId: string, projectId: string | null): void {
   getDb().prepare("update items set project_id = ? where id = ?").run(projectId, itemId);
+}
+
+/* ---------- Demande de clôture ----------
+ * L'agent soumet un récapitulatif + livrables ; le manager/directeur
+ * valide (→ Terminé) ou rejette. */
+export function requestClosure(input: {
+  projectId: string;
+  requestedBy: string;
+  summary: string;
+  deliverables: string[];
+}): string {
+  const id = randomUUID();
+  getDb()
+    .prepare(
+      "insert into project_closure_requests (id, project_id, requested_by, summary, deliverables, status) values (?,?,?,?,?, 'en_attente')"
+    )
+    .run(id, input.projectId, input.requestedBy, input.summary, JSON.stringify(input.deliverables ?? []));
+  return id;
+}
+
+export function getPendingClosure(projectId: string): { id: string; requestedBy: string | null } | null {
+  const r = getDb()
+    .prepare("select id, requested_by from project_closure_requests where project_id=? and status='en_attente' order by created_at desc limit 1")
+    .get(projectId) as { id: string; requested_by: string | null } | undefined;
+  return r ? { id: r.id, requestedBy: r.requested_by } : null;
+}
+
+/** Valide (approve) ou rejette la demande de clôture en attente. */
+export function decideClosure(projectId: string, approve: boolean, decidedBy: string, note: string): boolean {
+  const pending = getPendingClosure(projectId);
+  if (!pending) return false;
+  getDb()
+    .prepare("update project_closure_requests set status=?, decided_by=?, decision_note=?, decided_at=? where id=?")
+    .run(approve ? "validee" : "rejetee", decidedBy, note, new Date().toISOString(), pending.id);
+  if (approve) {
+    // La clôture validée passe le projet en « Terminé » (100 % + archivage).
+    getDb().prepare("update projects set status='Terminé', pending_status=null, pending_by=null where id=?").run(projectId);
+  }
+  return true;
 }

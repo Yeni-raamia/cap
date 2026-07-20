@@ -58,6 +58,21 @@ create table if not exists project_notes (
   id text primary key, project_id text not null, author_id text, body text not null,
   created_at text not null default (datetime('now'))
 );
+create table if not exists tasks (
+  id text primary key, title text not null, description text not null default '',
+  assignee_id text, created_by text, project_id text,
+  status text not null default 'à faire', priority text not null default 'Normale',
+  due_date text, completed_at text, created_at text not null default (datetime('now'))
+);
+create index if not exists idx_tasks_assignee on tasks(assignee_id);
+create index if not exists idx_tasks_project2 on tasks(project_id);
+create table if not exists project_closure_requests (
+  id text primary key, project_id text not null, requested_by text,
+  summary text not null default '', deliverables text not null default '[]',
+  status text not null default 'en_attente', decided_by text, decision_note text not null default '',
+  created_at text not null default (datetime('now')), decided_at text
+);
+create index if not exists idx_closure_project on project_closure_requests(project_id);
 create index if not exists idx_tasks_project on project_tasks(project_id);
 create index if not exists idx_pmembers_project on project_members(project_id);
 create index if not exists idx_pnotes_project on project_notes(project_id);

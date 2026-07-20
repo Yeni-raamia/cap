@@ -32,6 +32,7 @@ const taskBadge: Record<TaskStatus, string> = {
   "à faire": "bg-slate-100 text-slate-600",
   "en cours": "bg-sky-100 text-sky-700",
   fait: "bg-emerald-100 text-emerald-700",
+  bloqué: "bg-rose-100 text-rose-700",
 };
 
 export default function ProjetDetailPage() {
@@ -53,6 +54,8 @@ export default function ProjetDetailPage() {
     attachItemToProject,
     requestProjectStatus,
     decideProjectStatus,
+    requestProjectClosure,
+    decideProjectClosure,
   } = useApp();
 
   const project = projectById(id);
@@ -66,6 +69,10 @@ export default function ProjetDetailPage() {
   const [nameVal, setNameVal] = useState(project?.name ?? "");
   const [descVal, setDescVal] = useState(project?.description ?? "");
   const [err, setErr] = useState<string | null>(null);
+  const [showClosure, setShowClosure] = useState(false);
+  const [closureSummary, setClosureSummary] = useState("");
+  const [closureDeliverables, setClosureDeliverables] = useState("");
+  const [rejectNote, setRejectNote] = useState("");
 
   if (!project) {
     return (
@@ -258,6 +265,153 @@ export default function ProjetDetailPage() {
           </div>
         </div>
       </Card>
+
+      {/* Clôture du projet */}
+      {(() => {
+        const isDecider = !demo && (me.role === "manager" || me.role === "directeur" || me.role === "admin");
+        const closure = project.closure;
+        const pending = closure && closure.status === "en_attente";
+        const doneTasks = project.tasks.filter((t) => t.status === "fait");
+
+        if (project.status === "Terminé") {
+          if (!closure || closure.status !== "validee") return null;
+          return (
+            <Card className="p-4 border-emerald-200 bg-emerald-50/40">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-emerald-800">
+                <Check size={16} /> Projet clôturé
+              </div>
+              {closure.summary && <p className="text-[12px] text-slate-600 mt-1 whitespace-pre-wrap">{closure.summary}</p>}
+              {closure.deliverables.length > 0 && (
+                <ul className="mt-2 text-[12px] text-slate-600 list-disc list-inside">
+                  {closure.deliverables.map((d, i) => <li key={i}>{d}</li>)}
+                </ul>
+              )}
+            </Card>
+          );
+        }
+
+        if (pending) {
+          const requester = profileById(closure!.requestedBy);
+          return (
+            <Card className="p-4 border-amber-200 bg-amber-50/40">
+              <div className="flex items-center gap-2 text-[13px] font-semibold text-amber-800">
+                <Gavel size={16} /> Demande de clôture en attente
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">Demandée par {requester.nom} · {fmt(closure!.createdAt)}</p>
+
+              <div className="mt-3 grid md:grid-cols-2 gap-4">
+                <div>
+                  <div className="text-[11px] font-medium text-slate-500 uppercase mb-1">Récapitulatif</div>
+                  <p className="text-[13px] text-slate-700 whitespace-pre-wrap">{closure!.summary}</p>
+                  {closure!.deliverables.length > 0 && (
+                    <>
+                      <div className="text-[11px] font-medium text-slate-500 uppercase mt-3 mb-1">Livrables</div>
+                      <ul className="text-[13px] text-slate-700 list-disc list-inside">
+                        {closure!.deliverables.map((d, i) => <li key={i}>{d}</li>)}
+                      </ul>
+                    </>
+                  )}
+                </div>
+                <div>
+                  <div className="text-[11px] font-medium text-slate-500 uppercase mb-1">Phases / tâches achevées ({doneTasks.length})</div>
+                  {doneTasks.length === 0 ? (
+                    <p className="text-[12px] text-slate-400">Aucune tâche marquée comme faite.</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {doneTasks.map((t) => (
+                        <li key={t.id} className="flex items-center gap-1.5 text-[12px] text-slate-600">
+                          <Check size={13} className="text-emerald-500 shrink-0" /> {t.title}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
+              {isDecider && (
+                <div className="mt-4 border-t border-amber-200 pt-3 flex items-center gap-2 flex-wrap">
+                  <input
+                    value={rejectNote}
+                    onChange={(e) => setRejectNote(e.target.value)}
+                    placeholder="Motif (si refus)…"
+                    className="flex-1 min-w-[160px] text-[12px] border border-slate-200 rounded-lg px-2.5 py-1.5"
+                  />
+                  <button
+                    onClick={() => run(decideProjectClosure(project.id, true))}
+                    className="flex items-center gap-1 text-[13px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-3 py-1.5"
+                  >
+                    <Check size={15} /> Valider la clôture
+                  </button>
+                  <button
+                    onClick={() => run(decideProjectClosure(project.id, false, rejectNote))}
+                    className="flex items-center gap-1 text-[13px] font-medium text-rose-700 border border-rose-200 hover:bg-rose-50 rounded-lg px-3 py-1.5"
+                  >
+                    <X size={15} /> Refuser
+                  </button>
+                </div>
+              )}
+              {!isDecider && <p className="mt-3 text-[12px] text-amber-600 italic">En attente de la décision d&apos;un manager ou du directeur.</p>}
+            </Card>
+          );
+        }
+
+        // Aucune demande en cours : bouton pour demander la clôture (contributeurs).
+        if (!canContribute) return null;
+        return (
+          <Card className="p-4">
+            {closure && closure.status === "rejetee" && (
+              <p className="text-[12px] text-rose-600 mb-2">
+                Dernière demande refusée{closure.decisionNote ? ` : ${closure.decisionNote}` : ""}. Vous pouvez soumettre une nouvelle demande.
+              </p>
+            )}
+            {!showClosure ? (
+              <button
+                onClick={() => setShowClosure(true)}
+                className="flex items-center gap-1.5 text-[13px] font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-lg px-3 py-2"
+              >
+                <Gavel size={15} /> Demander la clôture du projet
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <div className="text-[13px] font-semibold text-slate-700">Demande de clôture</div>
+                <textarea
+                  value={closureSummary}
+                  onChange={(e) => setClosureSummary(e.target.value)}
+                  placeholder="Récapitulatif des phases et actions achevées…"
+                  rows={3}
+                  className="w-full text-[13px] border border-slate-200 rounded-lg px-2.5 py-2"
+                />
+                <textarea
+                  value={closureDeliverables}
+                  onChange={(e) => setClosureDeliverables(e.target.value)}
+                  placeholder="Livrables (un par ligne)…"
+                  rows={3}
+                  className="w-full text-[13px] border border-slate-200 rounded-lg px-2.5 py-2"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      const deliverables = closureDeliverables.split("\n").map((s) => s.trim()).filter(Boolean);
+                      const e = await requestProjectClosure(project.id, closureSummary.trim(), deliverables);
+                      if (e) setErr(e);
+                      else {
+                        setShowClosure(false);
+                        setClosureSummary("");
+                        setClosureDeliverables("");
+                      }
+                    }}
+                    disabled={!closureSummary.trim()}
+                    className="text-[13px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg px-3 py-1.5"
+                  >
+                    Envoyer la demande
+                  </button>
+                  <button onClick={() => setShowClosure(false)} className="text-[13px] text-slate-500 px-3 py-1.5">Annuler</button>
+                </div>
+              </div>
+            )}
+          </Card>
+        );
+      })()}
 
       {/* Tâches */}
       <div>
