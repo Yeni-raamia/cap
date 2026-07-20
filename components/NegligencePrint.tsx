@@ -22,16 +22,16 @@ export function NegligencePrint({ neg }: { neg: Negligence }) {
         </div>
         <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>Édité le {fmt(neg.updatedAt)}</div>
       </div>
-      {item && (
-        <div style={{ marginBottom: 14, fontSize: 13 }}>
-          <div><b>Suivi concerné :</b> [{item.ref}] {item.objet}</div>
-          <div><b>Responsable :</b> {owner?.nom ?? "—"}</div>
-          <div><b>Cause du blocage :</b> {item.blocageCause ?? "—"}</div>
-        </div>
-      )}
+      <div style={{ marginBottom: 14, fontSize: 13 }}>
+        <div><b>Objet :</b> {neg.objet || (item ? item.objet : "—")}</div>
+        {item && <div><b>Suivi concerné :</b> [{item.ref}] {item.objet}</div>}
+        <div><b>Suivi par :</b> {owner?.nom ?? "—"}</div>
+      </div>
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: 13 }}>
         <tbody>
-          <tr><td style={{ padding: "4px 8px", fontWeight: 600, width: 160 }}>Statut</td><td style={{ padding: "4px 8px" }}>{neg.status}</td></tr>
+          <tr><td style={{ padding: "4px 8px", fontWeight: 600, width: 180 }}>Service en cause</td><td style={{ padding: "4px 8px" }}>{neg.service || "—"}</td></tr>
+          <tr><td style={{ padding: "4px 8px", fontWeight: 600 }}>Personne concernée</td><td style={{ padding: "4px 8px" }}>{neg.concerne || "—"}</td></tr>
+          <tr><td style={{ padding: "4px 8px", fontWeight: 600 }}>Statut</td><td style={{ padding: "4px 8px" }}>{neg.status}</td></tr>
           <tr><td style={{ padding: "4px 8px", fontWeight: 600 }}>Gravité</td><td style={{ padding: "4px 8px" }}>{neg.gravite}</td></tr>
           <tr><td style={{ padding: "4px 8px", fontWeight: 600 }}>Risque institution</td><td style={{ padding: "4px 8px" }}>{neg.risque}</td></tr>
           <tr><td style={{ padding: "4px 8px", fontWeight: 600, verticalAlign: "top" }}>Impact</td><td style={{ padding: "4px 8px", whiteSpace: "pre-wrap" }}>{neg.impact || "—"}</td></tr>

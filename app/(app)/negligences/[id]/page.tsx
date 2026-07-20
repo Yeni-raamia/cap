@@ -45,8 +45,10 @@ export default function NegligenceDetailPage() {
 
   const item = items.find((i) => i.id === neg.itemId);
   const owner = item ? profileById(item.ownerId) : null;
-  const canEdit = !demo && (me.role === "directeur" || me.role === "admin" || item?.ownerId === me.id);
   const isDG = !demo && (me.role === "directeur" || me.role === "admin");
+  const canEdit =
+    !demo &&
+    (isDG || (item ? item.ownerId === me.id : me.role === "dsi" || me.role === "manager"));
 
   const run = async (p: Promise<string | null>) => {
     setErr(null);
@@ -77,27 +79,50 @@ export default function NegligenceDetailPage() {
           <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${statusBadge[neg.status] ?? ""}`}>{neg.status}</span>
           <span className={`text-[11px] px-2 py-0.5 rounded ${graviteBadge[neg.gravite] ?? ""}`}>Gravité : {neg.gravite}</span>
         </div>
+        <div className="text-[15px] font-semibold text-slate-800">{neg.objet || item?.objet || "—"}</div>
+        <div className="flex items-center gap-3 mt-2 text-[12px] text-slate-500 flex-wrap">
+          {neg.service && <span className="text-slate-700"><b>Service en cause :</b> {neg.service}</span>}
+          {neg.concerne && <span className="text-slate-700"><b>Personne :</b> {neg.concerne}</span>}
+        </div>
         {item ? (
-          <>
-            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
-              <MetierChip code={item.metier} />
-              <TypeTag t={item.type} />
-              <Token>{item.ref}</Token>
-            </div>
-            <div className="text-[15px] font-semibold text-slate-800">{item.objet}</div>
-            <div className="flex items-center gap-3 mt-2 text-[12px] text-slate-500 flex-wrap">
-              {owner && <span className="flex items-center gap-1"><Avatar init={owner.init} size="h-5 w-5" />{owner.nom}</span>}
-              <button onClick={() => openItem(item)} className="inline-flex items-center gap-1 text-emerald-700 hover:underline"><ExternalLink size={13} />Ouvrir le suivi</button>
-            </div>
-          </>
+          <div className="flex items-center gap-2 mt-2 flex-wrap text-[12px]">
+            <MetierChip code={item.metier} />
+            <TypeTag t={item.type} />
+            <Token>{item.ref}</Token>
+            {owner && <span className="flex items-center gap-1 text-slate-500"><Avatar init={owner.init} size="h-5 w-5" />{owner.nom}</span>}
+            <button onClick={() => openItem(item)} className="inline-flex items-center gap-1 text-emerald-700 hover:underline"><ExternalLink size={13} />Ouvrir le suivi</button>
+          </div>
         ) : (
-          <div className="text-[13px] text-slate-400">Suivi associé supprimé.</div>
+          <div className="text-[11px] text-slate-400 mt-2">Fiche autonome (non liée à un suivi).</div>
         )}
       </Card>
 
       {/* Évaluation */}
       <Card className="p-4 space-y-3">
         <div className="text-[13px] font-semibold text-slate-700">Évaluation de la négligence</div>
+        <div>
+          <label className="text-[12px] text-slate-500">Objet</label>
+          {canEdit ? (
+            <input defaultValue={neg.objet} onBlur={(e) => { if (e.target.value !== neg.objet) run(updateNegligence(neg.id, { objet: e.target.value })); }} className="w-full mt-1 text-[13px] border border-slate-200 rounded-lg px-2 py-2" />
+          ) : <div className="text-[13px] text-slate-700 mt-1">{neg.objet || "—"}</div>}
+        </div>
+        <div className="grid md:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[12px] text-slate-500">Service en cause</label>
+            {canEdit ? (
+              <select value={neg.service} onChange={(e) => run(updateNegligence(neg.id, { service: e.target.value }))} className="w-full mt-1 text-[13px] border border-slate-200 rounded-lg px-2 py-2 bg-white">
+                <option value="">— service —</option>
+                {refLists.services.map((s) => (<option key={s}>{s}</option>))}
+              </select>
+            ) : <div className="text-[13px] text-slate-700 mt-1">{neg.service || "—"}</div>}
+          </div>
+          <div>
+            <label className="text-[12px] text-slate-500">Personne concernée (responsable)</label>
+            {canEdit ? (
+              <input defaultValue={neg.concerne} onBlur={(e) => { if (e.target.value !== neg.concerne) run(updateNegligence(neg.id, { concerne: e.target.value })); }} className="w-full mt-1 text-[13px] border border-slate-200 rounded-lg px-2 py-2" />
+            ) : <div className="text-[13px] text-slate-700 mt-1">{neg.concerne || "—"}</div>}
+          </div>
+        </div>
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <label className="text-[12px] text-slate-500">Gravité</label>

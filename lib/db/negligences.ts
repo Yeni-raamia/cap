@@ -7,7 +7,10 @@ import type { Negligence } from "@/lib/domain";
 
 interface NegRow {
   id: string;
-  item_id: string;
+  item_id: string | null;
+  objet: string;
+  service: string;
+  concerne: string;
   gravite: string;
   risque: string;
   impact: string;
@@ -23,7 +26,10 @@ interface NegRow {
 function mapNeg(r: NegRow, decisions: string[]): Negligence {
   return {
     id: r.id,
-    itemId: r.item_id,
+    itemId: r.item_id ?? null,
+    objet: r.objet,
+    service: r.service,
+    concerne: r.concerne,
     gravite: r.gravite,
     risque: r.risque,
     impact: r.impact,
@@ -64,25 +70,75 @@ export function getNegligenceItemId(id: string): string | null {
 }
 
 /** Crée la fiche négligence pour un objet si elle n'existe pas encore. */
-export function ensureNegligence(itemId: string, createdBy: string): string {
+export function ensureNegligence(
+  itemId: string,
+  createdBy: string,
+  defaults?: { objet?: string; service?: string; concerne?: string }
+): string {
   const existing = getDb().prepare("select id from negligences where item_id = ?").get(itemId) as { id: string } | undefined;
   if (existing) return existing.id;
   const id = randomUUID();
   getDb()
-    .prepare("insert into negligences (id, item_id, created_by) values (?,?,?)")
-    .run(id, itemId, createdBy);
+    .prepare("insert into negligences (id, item_id, objet, service, concerne, created_by) values (?,?,?,?,?,?)")
+    .run(id, itemId, defaults?.objet ?? "", defaults?.service ?? "", defaults?.concerne ?? "", createdBy);
+  return id;
+}
+
+/** Crée une fiche de négligence par formulaire (avec ou sans suivi lié). */
+export function createNegligenceRecord(input: {
+  itemId?: string | null;
+  objet: string;
+  service: string;
+  concerne: string;
+  gravite: string;
+  risque: string;
+  impact: string;
+  description: string;
+  createdBy: string;
+}): string {
+  const id = randomUUID();
+  getDb()
+    .prepare(
+      "insert into negligences (id, item_id, objet, service, concerne, gravite, risque, impact, description, created_by) values (?,?,?,?,?,?,?,?,?,?)"
+    )
+    .run(
+      id,
+      input.itemId ?? null,
+      input.objet,
+      input.service,
+      input.concerne,
+      input.gravite,
+      input.risque,
+      input.impact,
+      input.description,
+      input.createdBy
+    );
   return id;
 }
 
 export function updateNegligence(
   id: string,
-  fields: { gravite?: string; risque?: string; impact?: string; description?: string; status?: string }
+  fields: {
+    objet?: string;
+    service?: string;
+    concerne?: string;
+    gravite?: string;
+    risque?: string;
+    impact?: string;
+    description?: string;
+    status?: string;
+  }
 ): void {
   const cur = getDb().prepare("select * from negligences where id = ?").get(id) as NegRow | undefined;
   if (!cur) return;
   getDb()
-    .prepare("update negligences set gravite=?, risque=?, impact=?, description=?, status=?, updated_at=? where id=?")
+    .prepare(
+      "update negligences set objet=?, service=?, concerne=?, gravite=?, risque=?, impact=?, description=?, status=?, updated_at=? where id=?"
+    )
     .run(
+      fields.objet ?? cur.objet,
+      fields.service ?? cur.service,
+      fields.concerne ?? cur.concerne,
       fields.gravite ?? cur.gravite,
       fields.risque ?? cur.risque,
       fields.impact ?? cur.impact,

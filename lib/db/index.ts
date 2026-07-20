@@ -91,7 +91,8 @@ create table if not exists ref_lists (
 );
 create index if not exists idx_reflists_key on ref_lists(list_key);
 create table if not exists negligences (
-  id text primary key, item_id text unique not null,
+  id text primary key, item_id text,
+  objet text not null default '', service text not null default '', concerne text not null default '',
   gravite text not null default 'Modérée', risque text not null default 'Moyen',
   impact text not null default '', description text not null default '',
   status text not null default 'Ouverte', created_by text, decided_by text,
@@ -169,6 +170,25 @@ function ensureColumns(db: Database.Database) {
   const ipcols = (db.prepare("pragma table_info(item_people)").all() as { name: string }[]).map((c) => c.name);
   if (!ipcols.includes("service")) {
     db.exec("alter table item_people add column service text");
+  }
+  // Négligences : reconstruction si ancien schéma (item_id NOT NULL/UNIQUE, sans objet/service/concerne).
+  const ncols = (db.prepare("pragma table_info(negligences)").all() as { name: string }[]).map((c) => c.name);
+  if (ncols.length > 0 && !ncols.includes("objet")) {
+    db.exec(`
+      create table negligences_new (
+        id text primary key, item_id text,
+        objet text not null default '', service text not null default '', concerne text not null default '',
+        gravite text not null default 'Modérée', risque text not null default 'Moyen',
+        impact text not null default '', description text not null default '',
+        status text not null default 'Ouverte', created_by text, decided_by text,
+        created_at text not null default (datetime('now')), updated_at text not null default (datetime('now')),
+        decided_at text
+      );
+      insert into negligences_new (id, item_id, gravite, risque, impact, description, status, created_by, decided_by, created_at, updated_at, decided_at)
+        select id, item_id, gravite, risque, impact, description, status, created_by, decided_by, created_at, updated_at, decided_at from negligences;
+      drop table negligences;
+      alter table negligences_new rename to negligences;
+    `);
   }
 }
 

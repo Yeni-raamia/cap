@@ -5,8 +5,8 @@
  * ================================================================== */
 
 /* ---------- Types ---------- */
-export type Role = "agent" | "directeur" | "admin" | "dsi";
-export const ROLES: Role[] = ["agent", "directeur", "admin", "dsi"];
+export type Role = "agent" | "manager" | "directeur" | "admin" | "dsi";
+export const ROLES: Role[] = ["agent", "manager", "directeur", "admin", "dsi"];
 
 export type Statut =
   | "Brouillon"
@@ -278,7 +278,10 @@ export const DEFAULT_DECISIONS = [
 
 export interface Negligence {
   id: string;
-  itemId: string;
+  itemId: string | null; // lien facultatif vers un suivi
+  objet: string; // description courte
+  service: string; // service qui occasionne la négligence
+  concerne: string; // personne concernée (responsable de la négligence)
   gravite: string;
   risque: string;
   impact: string;
@@ -534,17 +537,17 @@ export interface ProjectMetrics {
 export function projectMetrics(p: Project, now: Date): ProjectMetrics {
   const total = p.tasks.length;
   const done = p.tasks.filter((t) => t.status === "fait").length;
-  const late = p.tasks.filter(
-    (t) => t.status !== "fait" && t.dueDate && t.dueDate.getTime() < now.getTime()
-  ).length;
-  return {
-    total,
-    done,
-    open: total - done,
-    late,
-    progress: total ? Math.round((done / total) * 100) : 0,
-  };
+  const late =
+    p.status === "Terminé"
+      ? 0
+      : p.tasks.filter((t) => t.status !== "fait" && t.dueDate && t.dueDate.getTime() < now.getTime()).length;
+  // Un projet terminé est à 100 % d'avancement, quel que soit l'état des tâches.
+  const progress = p.status === "Terminé" ? 100 : total ? Math.round((done / total) * 100) : 0;
+  return { total, done, open: total - done, late, progress };
 }
+
+/** Un projet archivé (terminé ou annulé) est masqué de la liste active. */
+export const isProjectArchived = (p: Project): boolean => p.status === "Terminé" || p.status === "Annulé";
 
 export const PROJECT_METIER = "PRJ"; // métier déclencheur d'un projet
 

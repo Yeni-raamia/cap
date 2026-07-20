@@ -40,8 +40,14 @@ export async function POST(request: Request) {
     logActivity(user.id, "blocage_appreciation", `${getItem(itemId)?.ref ?? ""} · ${appreciation ?? "—"}`);
     // Appréciation « Négligence » → ouvre la fiche négligence transmise au DG.
     if (appreciation === APPRECIATION_NEGLIGENCE) {
-      ensureNegligence(itemId, user.id);
-      logActivity(user.id, "negligence_open", getItem(itemId)?.ref ?? "");
+      const it = getItem(itemId);
+      const dest = it?.personnes.find((p) => p.kind === "destinataire");
+      ensureNegligence(itemId, user.id, {
+        objet: it?.objet ?? "",
+        service: dest?.service ?? "",
+        concerne: dest?.name ?? "",
+      });
+      logActivity(user.id, "negligence_open", it?.ref ?? "");
     }
   } else {
     return NextResponse.json({ error: "Opération inconnue." }, { status: 400 });

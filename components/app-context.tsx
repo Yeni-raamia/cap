@@ -62,6 +62,16 @@ type CatalogueAction =
   | { op: "add" | "update"; kind: "metier"; code: string; label: string; tone: string }
   | { op: "add" | "update"; kind: "type"; code: string; label: string; slaRelance: string; slaEscalade: string; urgent: boolean }
   | { op: "delete"; kind: "metier" | "type"; code: string };
+interface NegligenceForm {
+  itemId?: string | null;
+  objet?: string;
+  service?: string;
+  concerne?: string;
+  gravite?: string;
+  risque?: string;
+  impact?: string;
+  description?: string;
+}
 type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service";
 type RefListActionPayload =
   | { op: "add"; listKey: RefListKey; label: string; icon?: string }
@@ -101,8 +111,8 @@ interface AppCtx {
   negligences: Negligence[];
   negligenceById: (id: string) => Negligence | null;
   negligenceByItem: (itemId: string) => Negligence | null;
-  createNegligence: (itemId: string) => Promise<string | null>;
-  updateNegligence: (id: string, fields: { gravite?: string; risque?: string; impact?: string; description?: string }) => Promise<string | null>;
+  createNegligence: (form: NegligenceForm) => Promise<string | null>;
+  updateNegligence: (id: string, fields: Partial<NegligenceForm>) => Promise<string | null>;
   setNegligenceStatus: (id: string, status: string) => Promise<string | null>;
   setNegligenceDecisions: (id: string, decisions: string[]) => Promise<string | null>;
   notifications: Notif[];
@@ -331,10 +341,14 @@ export function AppProvider({
       // Démo : appréciation « Négligence » → crée une fiche en mémoire.
       if (appreciation === "Négligence" && !negligences.some((n) => n.itemId === item.id)) {
         const now = new Date();
+        const dest = item.personnes.find((p) => p.kind === "destinataire");
         setNegligences((prev) => [
           {
             id: `neg-${item.id}`,
             itemId: item.id,
+            objet: item.objet,
+            service: dest?.service ?? "",
+            concerne: dest?.name ?? "",
             gravite: "Modérée",
             risque: "Moyen",
             impact: "",
@@ -386,16 +400,41 @@ export function AppProvider({
     return null;
   };
 
-  const createNegligence = async (itemId: string): Promise<string | null> => {
+  const createNegligence = async (form: NegligenceForm): Promise<string | null> => {
     if (demo) {
-      const it = items.find((i) => i.id === itemId);
-      if (it) setAppreciation(it, "Négligence");
+      if (form.itemId) {
+        const it = items.find((i) => i.id === form.itemId);
+        if (it) setAppreciation(it, "Négligence");
+      } else {
+        const now = new Date();
+        setNegligences((prev) => [
+          {
+            id: `neg-${now.getTime()}`,
+            itemId: null,
+            objet: form.objet ?? "",
+            service: form.service ?? "",
+            concerne: form.concerne ?? "",
+            gravite: form.gravite ?? "Modérée",
+            risque: form.risque ?? "Moyen",
+            impact: form.impact ?? "",
+            description: form.description ?? "",
+            status: "Ouverte",
+            decisions: [],
+            createdBy: me.id,
+            decidedBy: null,
+            createdAt: now,
+            updatedAt: now,
+            decidedAt: null,
+          },
+          ...prev,
+        ]);
+      }
       return null;
     }
-    return postNeg({ op: "create", itemId });
+    return postNeg({ op: "create", ...form });
   };
 
-  const updateNegligence = async (id: string, fields: { gravite?: string; risque?: string; impact?: string; description?: string }) => {
+  const updateNegligence = async (id: string, fields: Partial<NegligenceForm>) => {
     if (demo) {
       patchNeg(id, fields);
       return null;

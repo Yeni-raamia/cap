@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import {
   fmt,
+  isProjectArchived,
   projectMetrics,
   PROJECT_STATUTS,
   type Profile,
@@ -48,6 +49,8 @@ export default function ProjetsPage() {
   const [fStatut, setFStatut] = useState("Tous");
   const [fResp, setFResp] = useState("Tous");
   const [fRetard, setFRetard] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const archivedCount = projects.filter(isProjectArchived).length;
 
   const linkedCount = (p: Project) => items.filter((i) => i.projectId === p.id).length;
   const isLate = (p: Project) =>
@@ -56,6 +59,8 @@ export default function ProjetsPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return projects.filter((p) => {
+      // Par défaut : projets actifs. Le bouton « Archivés » montre les terminés/annulés.
+      if (showArchived ? !isProjectArchived(p) : isProjectArchived(p)) return false;
       if (fStatut !== "Tous" && p.status !== fStatut) return false;
       if (fResp !== "Tous" && p.ownerId !== fResp) return false;
       if (fRetard && !isLate(p)) return false;
@@ -63,7 +68,7 @@ export default function ProjetsPage() {
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, search, fStatut, fResp, fRetard, now]);
+  }, [projects, search, fStatut, fResp, fRetard, showArchived, now]);
 
   const submit = async () => {
     setErr(null);
@@ -144,6 +149,12 @@ export default function ProjetsPage() {
             <input type="checkbox" checked={fRetard} onChange={(e) => setFRetard(e.target.checked)} className="h-3.5 w-3.5 accent-rose-600" />
             En retard
           </label>
+          <button
+            onClick={() => setShowArchived((v) => !v)}
+            className={`text-[12px] rounded-lg px-2 py-1 border ${showArchived ? "bg-slate-800 text-white border-slate-800" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+          >
+            {showArchived ? "← Projets actifs" : `Archivés (${archivedCount})`}
+          </button>
           <span className="ml-auto text-[12px] text-slate-400">{filtered.length}</span>
         </div>
       </Card>
