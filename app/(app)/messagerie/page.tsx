@@ -5,6 +5,7 @@ import { AlertOctagon, FolderKanban, Inbox, MessageSquare, Plus, Trash2, UserRou
 import { type ConversationSummary } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
+import { PageHero } from "@/components/PageHero";
 import { Discussion } from "@/components/Discussion";
 
 const kindIcon: Record<string, typeof MessageSquare> = {
@@ -61,23 +62,25 @@ export default function MessageriePage() {
   const canDeleteGroup = (c: ConversationSummary) => c.kind === "group" && (c.createdBy === me.id || me.role === "admin");
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2"><MessageSquare size={20} className="text-emerald-600" /> Messagerie</h1>
-          <p className="text-[13px] text-slate-500">Messages privés, groupes et fils sur les suivis de mail, négligences et projets.</p>
-        </div>
-        {!demo && (
-          <div className="flex items-center gap-2">
-            <button onClick={() => setPanel(panel === "direct" ? null : "direct")} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-emerald-700 border border-emerald-200 rounded-lg px-3 py-2 hover:bg-emerald-50">
-              <UserRound size={16} /> Message privé
-            </button>
-            <button onClick={() => setPanel(panel === "group" ? null : "group")} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-white bg-emerald-600 rounded-lg px-3 py-2 hover:bg-emerald-700">
-              <Plus size={16} /> Nouveau groupe
-            </button>
-          </div>
-        )}
-      </div>
+    <div className="space-y-4 animate-float">
+      <PageHero
+        kicker="Communication"
+        icon={MessageSquare}
+        title="Messagerie"
+        subtitle="Messages privés, groupes et fils sur les suivis de mail, négligences et projets."
+        right={
+          !demo ? (
+            <>
+              <button onClick={() => setPanel(panel === "direct" ? null : "direct")} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 rounded-xl px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors">
+                <UserRound size={16} /> Message privé
+              </button>
+              <button onClick={() => setPanel(panel === "group" ? null : "group")} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={16} /> Nouveau groupe
+              </button>
+            </>
+          ) : undefined
+        }
+      />
 
       {/* Nouveau message privé */}
       {panel === "direct" && !demo && (

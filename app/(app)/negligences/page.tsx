@@ -10,6 +10,7 @@ import {
   type Negligence,
 } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
+import { PageHero } from "@/components/PageHero";
 import { Avatar, Card, MetierChip, Token } from "@/components/atoms";
 import { NegligencePrint } from "@/components/NegligencePrint";
 import { NegligencesReport } from "@/components/NegligencesReport";
@@ -107,31 +108,29 @@ export default function NegligencesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-            <AlertOctagon size={20} className="text-rose-600" /> Négligences
-          </h1>
-          <p className="text-[13px] text-slate-500">
-            Fiches transmises au DG (qui décide sur document imprimé). Le service / la personne en cause y figure.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setReportOn(true)} disabled={filtered.length === 0} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700 border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50 disabled:opacity-40">
-            <FileText size={15} /> Rapport (toutes) PDF
-          </button>
-          {readOnly ? (
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              Lecture seule
-            </span>
-          ) : (
-            <button onClick={() => setShowNew((v) => !v)} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-white bg-rose-600 rounded-lg px-3 py-2 hover:bg-rose-700">
-              <Plus size={16} /> Nouvelle négligence
+    <div className="space-y-6 animate-float">
+      <PageHero
+        kicker="Conformité"
+        icon={AlertOctagon}
+        title="Négligences"
+        subtitle="Fiches transmises au DG (qui décide sur document imprimé). Le service / la personne en cause y figure."
+        right={
+          <>
+            <button onClick={() => setReportOn(true)} disabled={filtered.length === 0} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors">
+              <FileText size={15} /> Rapport (toutes) PDF
             </button>
-          )}
-        </div>
-      </div>
+            {readOnly ? (
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Lecture seule
+              </span>
+            ) : (
+              <button onClick={() => setShowNew((v) => !v)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-rose-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={16} /> Nouvelle négligence
+              </button>
+            )}
+          </>
+        }
+      />
 
       {err && <div className="text-[12px] text-rose-600">{err}</div>}
 

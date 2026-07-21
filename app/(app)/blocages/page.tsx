@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Filter, Flag, ListChecks, Phone, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Filter, Flag, ListChecks, Phone, ShieldAlert } from "lucide-react";
 import { blocageActionLabel, fmt, type Item } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
+import { PageHero } from "@/components/PageHero";
 
 type ViewMode = "detaillee" | "compacte" | "cause" | "appreciation";
 
@@ -71,15 +72,14 @@ export default function BlocagesPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">Ce qui ne bouge pas</h1>
-          <p className="text-[13px] text-slate-500">
-            Les suivis à risque. Clique un suivi de mail pour qualifier le motif et enregistrer les démarches.
-          </p>
-        </div>
-        <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-[12px] bg-white flex-wrap">
+    <div className="space-y-6 animate-float">
+      <PageHero
+        kicker="Blocages"
+        icon={AlertTriangle}
+        title="Ce qui ne bouge pas"
+        subtitle="Les suivis à risque. Clique un suivi de mail pour qualifier le motif et enregistrer les démarches."
+        right={
+          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 text-[12px] bg-white dark:bg-slate-900 flex-wrap">
           {VIEWS.map((v) => (
             <button
               key={v.id}
@@ -91,8 +91,9 @@ export default function BlocagesPage() {
               {v.label}
             </button>
           ))}
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Stats d'avancement */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -4,6 +4,7 @@ import { ArrowUp, Bell, CalendarCheck, CalendarClock, CheckCheck, CheckSquare, F
 import { fmt, type Item, type NotifKind } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
+import { PageHero } from "@/components/PageHero";
 
 const notifIcon: Record<NotifKind, typeof RotateCcw> = {
   relance: RotateCcw,
@@ -67,13 +68,13 @@ export default function RappelsPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-800">Rappels</h1>
-        <p className="text-[13px] text-slate-500">
-          Le système relance à ta place — canaux : in-app{emailOn ? " + e-mail" : ""}.
-        </p>
-      </div>
+    <div className="space-y-5 animate-float">
+      <PageHero
+        kicker="Automatisation"
+        icon={Bell}
+        title="Rappels"
+        subtitle={`Le système relance à ta place — canaux : in-app${emailOn ? " + e-mail" : ""}.`}
+      />
 
       {!demo && (
         <div>

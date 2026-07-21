@@ -3,6 +3,7 @@
 import { Award } from "lucide-react";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
+import { PageHero } from "@/components/PageHero";
 
 const medal = ["🥇", "🥈", "🥉"];
 
@@ -10,15 +11,13 @@ export default function ClassementPage() {
   const { me, scores, profileById } = useApp();
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-800">
-          Ceux qui font avancer les choses
-        </h1>
-        <p className="text-[13px] text-slate-500">
-          Le score récompense relancer, obtenir des réponses et clôturer — pas le volume brut.
-        </p>
-      </div>
+    <div className="space-y-5 animate-float">
+      <PageHero
+        kicker="Classement"
+        icon={Award}
+        title="Ceux qui font avancer les choses"
+        subtitle="Le score récompense relancer, obtenir des réponses et clôturer — pas le volume brut."
+      />
       <div className="space-y-2">
         {scores.map((s, i) => {
           const u = profileById(s.id);

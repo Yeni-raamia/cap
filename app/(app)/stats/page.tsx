@@ -12,7 +12,9 @@ import {
 } from "recharts";
 import { STATUTS, type Statut } from "@/lib/domain";
 import { computeBreakdowns, computeProjectStats } from "@/lib/stats";
+import { BarChart3 } from "lucide-react";
 import { useApp } from "@/components/app-context";
+import { PageHero } from "@/components/PageHero";
 import { RapportPdf } from "@/components/RapportPdf";
 
 const box = "bg-white border border-slate-200 rounded-xl p-4";
@@ -42,16 +44,14 @@ export default function StatsPage() {
   }));
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">Statistiques</h1>
-          <p className="text-[13px] text-slate-500">
-            Le registre, en vivant. Ce qui avance, ce qui répond, qui fait bouger les lignes.
-          </p>
-        </div>
-        <RapportPdf />
-      </div>
+    <div className="space-y-6 animate-float">
+      <PageHero
+        kicker="Pilotage"
+        icon={BarChart3}
+        title="Statistiques"
+        subtitle="Le registre, en vivant. Ce qui avance, ce qui répond, qui fait bouger les lignes."
+        right={<RapportPdf />}
+      />
       <div className="grid md:grid-cols-2 gap-4">
         <div className={box}>
           <div className="text-[13px] font-semibold text-slate-700 mb-3">Volume par métier</div>
