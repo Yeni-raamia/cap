@@ -48,6 +48,7 @@ import {
   type TaskStatus,
 } from "@/lib/domain";
 import { ORG_NAME } from "@/lib/config";
+import { fireConfetti } from "@/lib/confetti";
 
 type Action = "relance" | "reponse" | "bloque" | "cloture";
 interface TaskPayload {
@@ -80,6 +81,12 @@ export interface SubtaskInput {
   subtaskId?: string;
   title?: string;
   done?: boolean;
+}
+export type ToastKind = "success" | "error" | "info";
+export interface Toast {
+  id: number;
+  message: string;
+  kind: ToastKind;
 }
 type CatalogueAction =
   | { op: "add" | "update"; kind: "metier"; code: string; label: string; tone: string }
@@ -185,6 +192,10 @@ interface AppCtx {
   // Thème clair / sombre
   theme: "light" | "dark";
   toggleTheme: () => void;
+  // Notifications éphémères (toasts)
+  toasts: Toast[];
+  toast: (message: string, kind?: ToastKind) => void;
+  dismissToast: (id: number) => void;
 }
 
 const EPOCH = new Date(0);
@@ -324,6 +335,8 @@ export function AppProvider({
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [theme, setThemeState] = useState<"light" | "dark">("light");
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastSeq = useRef(0);
   const [nowState, setNowState] = useState<Date | null>(null);
   const [meId, setMeId] = useState<string>(DEFAULT_USER_ID); // sélecteur démo
   const [orgName, setOrgName] = useState(initialSettings?.orgName ?? ORG_NAME);
@@ -383,6 +396,13 @@ export function AppProvider({
   };
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
+  const dismissToast = (id: number) => setToasts((prev) => prev.filter((t) => t.id !== id));
+  const toast = (message: string, kind: ToastKind = "info") => {
+    const id = ++toastSeq.current;
+    setToasts((prev) => [...prev.slice(-3), { id, message, kind }]);
+    setTimeout(() => dismissToast(id), kind === "error" ? 5000 : 3500);
+  };
+
   const setSoundEnabled = (v: boolean) => {
     setSoundEnabledState(v);
     try {
@@ -416,10 +436,19 @@ export function AppProvider({
   const rs = (item: Item): ReminderState => reminderState(item, now, catalogue.types);
 
   /* ---------- Mutations ---------- */
+  const actFeedback = (action: Action) => {
+    if (action === "cloture") {
+      fireConfetti();
+      toast("Suivi de mail clôturé 🎉", "success");
+    } else if (action === "relance") toast("Relance enregistrée.", "success");
+    else if (action === "reponse") toast("Réponse enregistrée.", "success");
+    else if (action === "bloque") toast("Suivi marqué comme bloqué.", "info");
+  };
   const act = (item: Item, action: Action, cause?: string) => {
     setOpen(null);
     if (demo) {
       setItems((prev) => mockApply(prev, item, action, cause, meId));
+      actFeedback(action);
       return;
     }
     fetch("/api/items/action", {
@@ -430,8 +459,12 @@ export function AppProvider({
       .then((r) => r.json())
       .then((d) => {
         if (d.items) setItems(reviveItems(d.items));
+        actFeedback(action);
       })
-      .catch((e) => console.error("Action échouée :", e));
+      .catch((e) => {
+        console.error("Action échouée :", e);
+        toast("Action échouée.", "error");
+      });
   };
 
   const create = (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string) => {
@@ -675,7 +708,11 @@ export function AppProvider({
       body: JSON.stringify(body),
     });
     const d = await res.json();
-    if (!res.ok) return d.error ?? "Erreur.";
+    if (!res.ok) {
+      const msg = d.error ?? "Erreur.";
+      toast(msg, "error");
+      return msg;
+    }
     if (d.projects) setProjects(reviveProjects(d.projects));
     if (d.items) setItems(reviveItems(d.items));
     return null;
@@ -957,6 +994,9 @@ export function AppProvider({
     readOnly: isReadOnly(me),
     theme,
     toggleTheme,
+    toasts,
+    toast,
+    dismissToast,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
