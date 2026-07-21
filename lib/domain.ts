@@ -112,6 +112,15 @@ export const DEFAULT_SECURITY: SecuritySettings = {
   hstsEnabled: false,
 };
 
+/** Salutation adaptée à l'heure. */
+export function greeting(d: Date): string {
+  const h = d.getHours();
+  if (h < 5) return "Bonne nuit";
+  if (h < 12) return "Bonjour";
+  if (h < 18) return "Bon après-midi";
+  return "Bonsoir";
+}
+
 /** Un compte est en lecture seule s'il est marqué comme tel, ou s'il a le rôle DSI. */
 export const isReadOnly = (p: { role: Role; readonly?: boolean }): boolean =>
   p.role === "dsi" || Boolean(p.readonly);

@@ -25,7 +25,7 @@ export function ChangePasswordScreen({ name }: { name: string }) {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Erreur.");
-      router.replace("/espace");
+      router.replace("/cockpit");
       router.refresh();
     } catch (e2) {
       setErr(e2 instanceof Error ? e2.message : "Erreur.");

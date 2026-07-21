@@ -7,6 +7,6 @@ export default async function ChangePasswordPage() {
   const user = await getAuthUser();
   if (!user) redirect("/login");
   if (!user.approved) redirect("/pending");
-  if (!user.mustChangePassword) redirect("/espace");
+  if (!user.mustChangePassword) redirect("/cockpit");
   return <ChangePasswordScreen name={user.nom} />;
 }

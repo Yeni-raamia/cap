@@ -16,7 +16,7 @@ import {
   Sun,
   TrendingUp,
 } from "lucide-react";
-import { fmtLong, isProjectArchived } from "@/lib/domain";
+import { fmtLong, greeting, isProjectArchived } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar } from "@/components/atoms";
 import { CountUp, Sparkline, Ring, Heatmap } from "@/components/dataviz";
@@ -102,7 +102,8 @@ export default function CockpitPage() {
   return (
     <div className="space-y-8 pb-10">
       {/* ===== Hero / Briefing ===== */}
-      <section className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft halo animate-float">
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft animate-float">
+        <div className="aurora" aria-hidden />
         <div className="relative z-[1] p-7 md:p-9">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
@@ -110,7 +111,7 @@ export default function CockpitPage() {
                 <Sparkles size={13} className="text-emerald-500" /> {fmtLong(now)}
               </div>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 leading-[1.05]">
-                Bonjour, {firstName}.
+                {greeting(now)}, {firstName}.
               </h1>
               <p className="mt-2 text-[17px] md:text-lg text-slate-500 max-w-xl">
                 Voici ce qui compte <span className="text-gradient font-semibold">aujourd&apos;hui</span>.
@@ -260,7 +261,7 @@ export default function CockpitPage() {
 /* ---------- Sous-composants ---------- */
 function Kpi({ label, value, icon: Icon, tone, danger, children }: { label: string; value: number; icon: typeof Bell; tone: string; danger?: boolean; children?: React.ReactNode }) {
   return (
-    <div className={`relative rounded-2xl border p-4 ${danger ? "border-rose-200/70 dark:border-rose-500/20 bg-rose-50/40 dark:bg-rose-500/5" : "border-slate-200/70 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30"}`}>
+    <div className={`relative rounded-2xl border p-4 transition-transform duration-200 hover:-translate-y-0.5 ${danger ? "border-rose-200/70 dark:border-rose-500/20 bg-rose-50/40 dark:bg-rose-500/5" : "border-slate-200/70 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30"}`}>
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">{label}</span>
         <Icon size={15} style={{ color: tone }} />

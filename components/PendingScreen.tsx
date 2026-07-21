@@ -26,7 +26,7 @@ export function PendingScreen({ name }: { name: string }) {
           setApproved(true);
           if (timer.current) clearInterval(timer.current);
           setTimeout(() => {
-            router.replace("/espace");
+            router.replace("/cockpit");
             router.refresh();
           }, 1400);
         }

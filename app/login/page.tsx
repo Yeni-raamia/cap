@@ -6,10 +6,10 @@ import { LoginForm } from "@/components/LoginForm";
 
 export default async function LoginPage() {
   // En mode démo, aucune authentification : on entre directement.
-  if (DEMO_MODE) redirect("/espace");
+  if (DEMO_MODE) redirect("/cockpit");
 
   const user = await getCurrentUser();
-  if (user) redirect("/espace");
+  if (user) redirect("/cockpit");
 
   // S'il n'existe encore aucun compte, on propose la création (1er = admin).
   const firstRun = countProfiles() === 0;

@@ -17,7 +17,7 @@ import {
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
-import { fmt, fmtLong, isTaskOpen, projectMetrics, subtaskProgress, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
+import { fmt, fmtLong, greeting, isTaskOpen, projectMetrics, subtaskProgress, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
 import { CountUp, Sparkline } from "@/components/dataviz";
@@ -91,7 +91,8 @@ export default function MonEspacePage() {
   return (
     <div className="space-y-6">
       {/* Hero premium */}
-      <section className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft halo animate-float">
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft animate-float">
+        <div className="aurora" aria-hidden />
         <div className="relative z-[1] p-6 md:p-8">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
@@ -99,7 +100,7 @@ export default function MonEspacePage() {
                 <Sparkles size={13} className="text-emerald-500" /> {fmtLong(now)}
               </div>
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
-                Bonjour, {firstName}.
+                {greeting(now)}, {firstName}.
               </h1>
               <p className="mt-1.5 text-[15px] text-slate-500">Ton espace, ton rythme.</p>
             </div>

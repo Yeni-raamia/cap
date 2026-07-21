@@ -29,8 +29,9 @@ export function LoginForm({ firstRun }: { firstRun: boolean }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Une erreur est survenue.");
-      // Redirection selon l'état : attente d'approbation, renouvellement imposé, ou espace.
-      router.push(data.pending ? "/pending" : data.mustChangePassword ? "/change-password" : "/espace");
+      // Redirection selon l'état : attente d'approbation, renouvellement imposé, ou accueil.
+      const home = data.user?.role === "dsi" ? "/global" : "/cockpit";
+      router.push(data.pending ? "/pending" : data.mustChangePassword ? "/change-password" : home);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");

@@ -6,6 +6,6 @@ import { PendingScreen } from "@/components/PendingScreen";
 export default async function PendingPage() {
   const user = await getAuthUser();
   if (!user) redirect("/login"); // non authentifié
-  if (user.approved) redirect("/espace"); // déjà approuvé : plus d'accès à la page tampon
+  if (user.approved) redirect("/cockpit"); // déjà approuvé : plus d'accès à la page tampon
   return <PendingScreen name={user.nom} />;
 }

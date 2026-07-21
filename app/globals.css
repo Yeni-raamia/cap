@@ -173,6 +173,48 @@ button:not(:disabled):active,
   z-index: 0;
 }
 
+/* Aurore décorative animée (derrière les héros) */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+.aurora::before,
+.aurora::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.45;
+  will-change: transform;
+}
+.aurora::before {
+  width: 540px;
+  height: 540px;
+  left: -140px;
+  top: -200px;
+  background: radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.55), transparent 62%);
+  animation: aur1 18s ease-in-out infinite alternate;
+}
+.aurora::after {
+  width: 480px;
+  height: 480px;
+  right: -160px;
+  top: -140px;
+  background: radial-gradient(circle at 60% 40%, rgba(14, 165, 233, 0.42), transparent 62%);
+  animation: aur2 22s ease-in-out infinite alternate;
+}
+.dark .aurora::before { opacity: 0.5; }
+.dark .aurora::after { opacity: 0.42; }
+@keyframes aur1 {
+  to { transform: translate(90px, 50px) scale(1.18); }
+}
+@keyframes aur2 {
+  to { transform: translate(-80px, 70px) scale(1.12); }
+}
+
 /* Animations supplémentaires */
 @keyframes floatUp {
   from { opacity: 0; transform: translateY(14px) scale(0.98); }
