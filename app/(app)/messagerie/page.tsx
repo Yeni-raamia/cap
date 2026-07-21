@@ -65,7 +65,7 @@ export default function MessageriePage() {
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2"><MessageSquare size={20} className="text-emerald-600" /> Messagerie</h1>
-          <p className="text-[13px] text-slate-500">Messages privés, groupes et fils sur les suivis, négligences et projets.</p>
+          <p className="text-[13px] text-slate-500">Messages privés, groupes et fils sur les suivis de mail, négligences et projets.</p>
         </div>
         {!demo && (
           <div className="flex items-center gap-2">
@@ -131,7 +131,7 @@ export default function MessageriePage() {
         <Card className="p-0 overflow-hidden md:col-span-1">
           {conversations.length === 0 ? (
             <div className="p-6 text-center text-[13px] text-slate-400">
-              {demo ? "Messagerie indisponible en mode démo." : "Aucune conversation. Écris à quelqu'un, crée un groupe ou commente un suivi/projet."}
+              {demo ? "Messagerie indisponible en mode démo." : "Aucune conversation. Écris à quelqu'un, crée un groupe ou commente un suivi de mail/projet."}
             </div>
           ) : (
             <div className="divide-y divide-slate-100 max-h-[70vh] overflow-y-auto">

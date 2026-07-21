@@ -1,176 +1,145 @@
-# Cap — « Rien ne dérive. »
+<div align="center">
 
-> Suivi et réconciliation des mails de service. **Aucun mail sans trace.**
+# Cap
 
-Cap transforme chaque mail de service (alerte, demande, validation…) en un
-**objet de suivi** qui ne peut plus tomber dans l'oubli : le système relance à la
-place de la responsable, escalade automatiquement, et met en lumière « ce qui ne
-bouge pas et pourquoi ». Chaque agent a son espace, une vue globale montre le
-travail de tous, et un classement valorise ceux qui font avancer les choses —
-dans une logique de **culture juste** (on valorise déclarer, relancer, clôturer —
-jamais le volume brut, jamais le *name-and-shame*).
+**Rien ne dérive. — Aucun mail sans trace.**
 
-L'application fonctionne **entièrement en local**, sans cloud : les données
-vivent dans un fichier **SQLite** sur le serveur, partagé par toute l'équipe sur
-le réseau (LAN). Accès par **comptes** (e-mail + mot de passe) avec des rôles
-réellement appliqués.
+Plateforme interne de **suivi de mail** et de pilotage d'équipe pour un service sécurité (DSSI) :
+aucun mail de service ne reste sans réponse, relances et escalades automatiques, blocages visibles,
+projets, productivité, messagerie et négligences — le tout **100 % local (LAN), sans cloud**.
 
----
+[![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-10b981.svg)](LICENSE)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+![React](https://img.shields.io/badge/React-19-61dafb?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript)
+![SQLite](https://img.shields.io/badge/SQLite-local-044a64?logo=sqlite)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38bdf8?logo=tailwindcss)
 
-## Fonctionnalités
+</div>
 
-- **Le Fil** : chaque objet progresse le long d'une frise *Créé → Envoyé →
-  Relance → Réponse → Traitement → Clôturé* (point rouge si bloqué).
-- **Saisie quasi nulle** : on choisit métier + type dans des listes et on écrit
-  l'objet ; la référence (`SOC-2026-0043`) est générée automatiquement. Un mode
-  « coller un objet existant » reconnaît aussi les objets déjà normalisés.
-- **7 vues** : Mon espace, Vue globale, Ce qui ne bouge pas, Statistiques,
-  Classement, Rappels, Administration.
-- **Moteur de relance** : rappels aux agents, escalade aux directeurs, digest
-  quotidien — in-app, et par e-mail si configuré.
-- **Relance planifiée** : on peut programmer une date de relance sur un suivi ;
-  à l'échéance, le responsable est notifié.
-- **Catalogue éditable** : l'administrateur ajoute des métiers et des types
-  directement depuis *Administration* — ils apparaissent aussitôt dans les
-  formulaires.
-- **Rôles (RBAC)** : *agent*, *directeur*, *admin*, appliqués **côté serveur**.
-- **Classement « culture juste »** avec badges (Relanceur, Closeur, Réactif,
-  Zéro oubli).
-- **Administration complète** (admin) : gestion des membres (créer, désactiver,
-  réinitialiser le mot de passe, rôle, poste), catalogue éditable/supprimable,
-  paramètres persistés (nom d'organisation, activation e-mail, digest), journal
-  d'activité et statistiques.
-- **Statistiques détaillées** (par émetteur, destinataire, criticité, cause de
-  blocage) et **rapport PDF** sur une période libre.
+> **🇫🇷 Français** ci-dessous · **🇬🇧 [English summary](#-english-summary)** at the bottom.
 
 ---
 
-## Prérequis
+## ✨ Fonctionnalités
 
-- **Node.js 18, 20, 22 ou 24** (Node 20 LTS recommandé sur un serveur).
-- Rien d'autre : la base SQLite (`better-sqlite3`) s'installe avec un binaire
-  précompilé — pas de cloud, pas de Docker.
+- **📥 Suivi de mail** — chaque mail de service est tracé (référence normalisée, objet, priorité, personnes, points clés), avec statut et timeline complète.
+- **🔔 Relances & escalades automatiques** — SLA par type ; l'application rappelle, escalade vers la direction et envoie un digest quotidien (in-app, e-mail optionnel via Resend).
+- **🧱 Blocages** — vue dédiée « ce qui ne bouge pas » ; l'agent qualifie le motif et consigne les démarches de déblocage.
+- **📊 Statistiques & rapports PDF** — par émetteur / destinataire / service / criticité / appréciation / cause ; export d'un rapport imprimable sur période libre.
+- **📁 Projets** — tâches, avancement, membres, notes ; workflow de statut (manager propose → directeur valide) et **demande de clôture** par un agent (récapitulatif + livrables) validée par un manager/directeur.
+- **✅ Productivité** — vue d'équipe : charge, rendement, tâches assignables avec sous-tâches, planification et statuts.
+- **💬 Messagerie interne** — messages privés (1:1), groupes, fils sur un suivi de mail / une négligence / un projet, réactions emoji, réponses ciblées, notifications avec **bip sonore**.
+- **⚠️ Négligences** — fiches transmises au DG (décision sur document imprimé) avec service/personne en cause et cadran de décisions.
+- **🛡️ Sécurité & administration** — inscription soumise à approbation, rôles (agent / manager / directeur / admin / DSI), accès par vue configurables, comptes en lecture seule, et paramètres de sécurité pilotables depuis l'interface.
 
-## Installation
+## 🧱 Stack technique
+
+| Domaine | Choix |
+|---|---|
+| Framework | **Next.js 16** (App Router, TypeScript, Turbopack) |
+| UI | **React 19**, **Tailwind CSS 4**, icônes **lucide-react** |
+| Données | **SQLite** local via **better-sqlite3** (fichier unique, WAL) — aucun serveur externe |
+| Auth | Sessions par cookie httpOnly, hachage **scrypt** (`node:crypto`) |
+| Graphes | **recharts** |
+
+Aucun cloud, aucun Docker : l'application se déploie sur un serveur de l'entreprise et s'utilise dans le **LAN**.
+
+## 🚀 Démarrage rapide
+
+**Prérequis :** Node.js ≥ 20 (testé sur 24) et npm.
 
 ```bash
+# 1. Installer les dépendances
 npm install
-```
 
-(Optionnel) Copier le modèle d'environnement pour personnaliser :
-
-```bash
+# 2. (Optionnel) copier le modèle d'environnement
 cp .env.local.example .env.local
-```
 
-Toutes les variables sont **optionnelles** — voir `.env.local.example`.
-
-## Lancer en local
-
-```bash
+# 3. Lancer en développement
 npm run dev
+# → http://localhost:3000
 ```
 
-→ http://localhost:3000. Au **premier lancement**, la page de connexion propose
-de **créer un compte** ; ce **premier compte devient administrateur**. Les
-comptes suivants sont *agent* ; l'admin change les rôles dans *Administration*.
+Au **premier lancement**, la base `data/cap.sqlite` est créée automatiquement.
 
-### Mode démo (sans compte ni base)
+> **🔑 Premier compte = administrateur.** Le tout premier compte créé via l'écran d'inscription
+> devient **administrateur** et est **approuvé d'office**. Toutes les inscriptions suivantes sont
+> **en attente d'approbation** par un administrateur (paramétrable dans **Administration → Sécurité**).
 
-Pour découvrir l'app avec des données d'exemple (en mémoire, non partagées,
-remises à zéro à chaque redémarrage) :
-
-```bash
-# dans .env.local
-NEXT_PUBLIC_DEMO=1
-```
-
-Un **sélecteur d'utilisateur** permet alors d'essayer les différents rôles.
-
-## Comptes & rôles
-
-- **agent** : *Mon espace*, *Vue globale* (lecture), *Classement*, *Rappels* ;
-  crée/édite **ses** objets uniquement.
-- **directeur** : tout, dont *Ce qui ne bouge pas*, *Statistiques* ; reçoit les
-  escalades et le digest.
-- **admin** : comme directeur + gère les membres, les rôles et le catalogue.
-
-Un agent ne peut pas éditer l'objet d'un autre : le contrôle est appliqué **côté
-serveur** (routes API), pas seulement dans l'interface.
-
-## Moteur de relance
+### Déploiement LAN (production)
 
 ```bash
-npm run reminders      # le serveur doit tourner
-```
-
-- crée les rappels (agents), escalades (directeurs) et le digest quotidien ;
-- **idempotent** (pas de doublon non lu le même jour) ;
-- **e-mail** en plus de l'in-app si `RESEND_API_KEY` est défini, sinon in-app
-  seulement ;
-- route protégée par `CRON_SECRET` (à définir en LAN/prod).
-
-À planifier chaque matin (Planificateur de tâches Windows / cron) — détails dans
-[`docs/HEBERGEMENT_LAN.md`](docs/HEBERGEMENT_LAN.md).
-
-## Héberger sur un serveur d'entreprise (LAN)
-
-```bash
-npm install
 npm run build
-npm run start:lan      # écoute sur 0.0.0.0:3000
+npm run start:lan   # écoute sur 0.0.0.0:3000 — accessible depuis le réseau local
 ```
 
-Les postes accèdent via `http://IP-DU-SERVEUR:3000`. Voir
-[`docs/HEBERGEMENT_LAN.md`](docs/HEBERGEMENT_LAN.md) pour le pare-feu, le maintien
-en service (PM2 / service Windows), l'emplacement de la base et sa **sauvegarde**.
+En HTTPS, lancer avec `COOKIE_SECURE=1` (et activer HSTS depuis l'administration).
 
-## Sauvegarde des données
+## ⚙️ Configuration
 
-Tout est dans un seul fichier : `data/cap.sqlite` (par défaut ;
-personnalisable via `DATABASE_PATH`). Pour sauvegarder : copier ce fichier. Il
-est **git-ignoré** et ne doit jamais être publié.
+Toutes les variables sont **optionnelles** et documentées dans [`.env.local.example`](.env.local.example) :
+`DATABASE_PATH`, `NEXT_PUBLIC_ORG_NAME`, `COOKIE_SECURE`, `CRON_SECRET`, `RESEND_API_KEY`, `RESEND_FROM`, `NEXT_PUBLIC_DEMO`.
 
-## Sécurité & confidentialité
+## 🔐 Sécurité
 
-- **Aucun secret commité** : tout dans `.env.local` (git-ignoré). Modèle fourni
-  dans `.env.local.example`.
-- **Anonymat** : le nom de l'organisation/équipe est configurable
-  (`NEXT_PUBLIC_ORG_NAME`, défaut neutre « Équipe sécurité ») dans
-  `lib/config.ts`. Aucun nom d'institution ou de personne réelle dans le code
-  versionné. Les données réelles restent **en local** (fichier SQLite git-ignoré).
-- **Mots de passe** hachés (scrypt) ; sessions par cookie httpOnly.
-- **En HTTP sur le LAN**, laisser `COOKIE_SECURE` non défini ; en HTTPS, mettre
-  `COOKIE_SECURE=1`.
+- **Approbation des inscriptions** par un administrateur ; les comptes non approuvés n'accèdent à aucune donnée (blocage côté layout **et** côté API).
+- **RBAC** par rôle et **accès par vue** configurables ; comptes en **lecture seule** (le rôle DSI l'est toujours) appliqués côté serveur sur toutes les routes mutantes.
+- **Rate-limiting** de la connexion et de l'inscription (seuils configurables).
+- **En-têtes de sécurité** posés sur chaque réponse (CSP stricte, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy) + **HSTS** activable à chaud.
+- **Sessions** : jeton fort, expiration glissante, rotation à la connexion.
+- **Rotation des mots de passe** : politique d'âge et « forcer le renouvellement » par utilisateur.
 
-## Publier sur GitHub (via GitHub Desktop)
+Tout est paramétrable depuis **Administration → Sécurité**. Pour signaler une vulnérabilité, voir [`SECURITY.md`](SECURITY.md).
 
-Le dossier est déjà un dépôt local (`Documents\GitHub\cap`). Quand tu es
-satisfaite : onglet **Changes** pour vérifier, **Commit to main**, puis
-**Publish repository** (première fois) ou **Push origin**. Décoche « Keep this
-code private » seulement pour un dépôt public. **Vérifie une dernière fois
-qu'aucun `.env.local`, fichier `.sqlite` ni le dossier `reference/` n'est suivi.**
-
-## Structure
+## 🗂️ Structure du projet
 
 ```
-app/            # routes (App Router) : pages (app)/* + routes API /api/*
-components/     # UI : Fil, ItemCard, Drawer, NewSuiviModal, Sidebar, Topbar…
+app/          Routes (App Router) : (app)/ pages protégées, api/ routes serveur, login, pending, change-password
+components/    Composants React (Shell, Drawer, modales, Discussion, atomes…)
 lib/
-  domain.ts     # cœur métier : catalogue, SLA, statuts, scoring, parse, relances
-  config.ts     # nom d'app/org, mode démo
-  data/         # adaptateur « mode démo » (mémoire)
-  db/           # base SQLite (schéma + dépôt d'accès) — serveur
-  auth/         # mots de passe (scrypt), sessions, cookies
-  reminders/    # moteur de relance + e-mail (Resend, optionnel)
-docs/           # hébergement LAN
+  domain.ts   Types & logique métier (source de vérité)
+  db/         Accès SQLite (schéma, migrations additives, dépôts)
+  auth/       Sessions, hachage, gardes, rate-limit
+  nav.ts      Navigation & contrôle d'accès par vue
+proxy.ts      En-têtes de sécurité (runtime Node)
+data/         Base SQLite locale (git-ignorée)
 ```
 
-## Stack
+## 📜 Scripts
 
-Next.js 16 (App Router, TypeScript) · Tailwind CSS v4 · better-sqlite3 ·
-Recharts · lucide-react.
+| Script | Rôle |
+|---|---|
+| `npm run dev` | Serveur de développement |
+| `npm run build` | Build de production |
+| `npm run start` / `start:lan` | Serveur de production (LAN) |
+| `npm run reminders` | Déclenche le moteur de relance (à planifier via le planificateur du serveur) |
+| `npm run lint` | Analyse ESLint |
+
+## 🤝 Contribuer
+
+Les contributions sont bienvenues — voir [`CONTRIBUTING.md`](CONTRIBUTING.md) et le [code de conduite](CODE_OF_CONDUCT.md).
+Le suivi des changements est dans [`CHANGELOG.md`](CHANGELOG.md).
+
+## 📄 Licence
+
+Distribué sous licence **MIT** — voir [`LICENSE`](LICENSE).
 
 ---
 
-*Devise : « Aucun mail sans trace. »*
+## 🇬🇧 English summary
+
+**Cap** is a self-hosted, LAN-only platform for **email follow-up** and team operations for a security team.
+It ensures no service email goes untracked: automated reminders and escalations, blockers surfacing, projects,
+team productivity, internal messaging and a negligence register — all backed by a single local **SQLite** file,
+**no cloud, no Docker**.
+
+Built with **Next.js 16 / React 19 / TypeScript / Tailwind CSS 4** and **better-sqlite3**.
+
+**Quickstart:** `npm install` → `npm run dev` → open `http://localhost:3000`.
+The **first registered account becomes the administrator** (auto-approved); every later sign-up requires admin
+approval (configurable). Security (approval, RBAC, per-view access, read-only accounts, rate-limiting, security
+headers, HSTS, password rotation) is fully configurable from **Administration → Security**.
+
+Licensed under **MIT**. See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`SECURITY.md`](SECURITY.md).

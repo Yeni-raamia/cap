@@ -135,7 +135,7 @@ export default function ProductivitePage() {
                 <th className="px-2 py-2 font-medium text-center">Retard</th>
                 <th className="px-2 py-2 font-medium text-center">Bloquées</th>
                 <th className="px-2 py-2 font-medium text-center">Taux</th>
-                <th className="px-2 py-2 font-medium text-center">Suivis</th>
+                <th className="px-2 py-2 font-medium text-center">Suivis de mail</th>
                 <th className="px-2 py-2 font-medium text-center">Projets</th>
               </tr>
             </thead>

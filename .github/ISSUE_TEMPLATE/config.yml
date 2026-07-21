@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "🔐 Vulnérabilité de sécurité · Security vulnerability"
+    url: https://github.com/Yeni-raamia/cap/security/advisories/new
+    about: "Ne créez pas d'issue publique. Signalez en privé (voir SECURITY.md)."

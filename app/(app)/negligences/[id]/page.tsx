@@ -91,10 +91,10 @@ export default function NegligenceDetailPage() {
             <TypeTag t={item.type} />
             <Token>{item.ref}</Token>
             {owner && <span className="flex items-center gap-1 text-slate-500"><Avatar init={owner.init} size="h-5 w-5" />{owner.nom}</span>}
-            <button onClick={() => openItem(item)} className="inline-flex items-center gap-1 text-emerald-700 hover:underline"><ExternalLink size={13} />Ouvrir le suivi</button>
+            <button onClick={() => openItem(item)} className="inline-flex items-center gap-1 text-emerald-700 hover:underline"><ExternalLink size={13} />Ouvrir le suivi de mail</button>
           </div>
         ) : (
-          <div className="text-[11px] text-slate-400 mt-2">Fiche autonome (non liée à un suivi).</div>
+          <div className="text-[11px] text-slate-400 mt-2">Fiche autonome (non liée à un suivi de mail).</div>
         )}
       </Card>
 

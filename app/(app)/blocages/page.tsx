@@ -76,7 +76,7 @@ export default function BlocagesPage() {
         <div>
           <h1 className="text-xl font-semibold text-slate-800">Ce qui ne bouge pas</h1>
           <p className="text-[13px] text-slate-500">
-            Les suivis à risque. Clique un suivi pour qualifier le motif et enregistrer les démarches.
+            Les suivis à risque. Clique un suivi de mail pour qualifier le motif et enregistrer les démarches.
           </p>
         </div>
         <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-[12px] bg-white flex-wrap">
@@ -138,7 +138,7 @@ export default function BlocagesPage() {
 
       {filtered.length === 0 ? (
         <Card className="p-8 text-center text-[13px] text-slate-400">
-          {total === 0 ? "Rien de bloqué. Tout avance." : "Aucun suivi ne correspond à ces filtres."}
+          {total === 0 ? "Rien de bloqué. Tout avance." : "Aucun suivi de mail ne correspond à ces filtres."}
         </Card>
       ) : view === "compacte" ? (
         <CompacteView rows={filtered} rs={rs} openItem={openItem} profileById={profileById} />

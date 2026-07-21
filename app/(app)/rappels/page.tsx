@@ -135,10 +135,10 @@ export default function RappelsPage() {
             DIGEST DU MATIN · 08:00
           </div>
           <div className="text-white text-[15px] font-medium mb-1">
-            {escal.length} suivis escaladés · {bloques} bloqués
+            {escal.length} suivis de mail escaladés · {bloques} bloqués
           </div>
           <div className="text-slate-300 text-[12px]">
-            Envoyé automatiquement chaque matin. Tu n&apos;as plus à courir après les suivis — ils
+            Envoyé automatiquement chaque matin. Tu n&apos;as plus à courir après les suivis de mail — ils
             remontent à toi.
           </div>
         </Card>

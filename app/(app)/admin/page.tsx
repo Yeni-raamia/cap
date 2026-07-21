@@ -35,7 +35,7 @@ const roleBadge = (r: string) =>
   r === "directeur" ? "bg-emerald-100 text-emerald-700" : r === "admin" ? "bg-violet-100 text-violet-700" : r === "dsi" ? "bg-sky-100 text-sky-700" : r === "manager" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600";
 
 const ACTION_LABEL: Record<string, string> = {
-  item_create: "Suivi créé",
+  item_create: "Suivi de mail créé",
   item_relance: "Relance",
   item_reponse: "Réponse reçue",
   item_bloque: "Blocage",
@@ -815,7 +815,7 @@ function JournalSection({ over }: { over: Overview }) {
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {stat("Comptes actifs", `${c.activeMembers}/${c.members}`, Users2)}
-        {stat("Suivis", c.items, Activity)}
+        {stat("Suivis de mail", c.items, Activity)}
         {stat("Projets", c.projects, FolderKanban)}
         {stat("Notifications", c.notifications, Activity)}
       </div>

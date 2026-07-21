@@ -38,6 +38,13 @@ yarn-error.log*
 # Base locale SQLite (données réelles — jamais commitées)
 /data/
 *.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Artefacts de test locaux
+/.tmptest/
+.tmptest*.log
+/dev.log
 *.sqlite-*
 *.db
 

@@ -113,14 +113,14 @@ export function NewSuiviModal() {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Nouveau suivi"
+        aria-label="Nouveau suivi de mail"
         className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 max-h-[92vh] overflow-y-auto animate-pop"
       >
         <div className="flex items-center gap-2 mb-4">
           <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 grid place-items-center">
             <Plus size={17} />
           </div>
-          <div className="font-semibold text-slate-800">Nouveau suivi</div>
+          <div className="font-semibold text-slate-800">Nouveau suivi de mail</div>
           <button
             onClick={close}
             aria-label="Fermer"
@@ -357,10 +357,10 @@ export function NewSuiviModal() {
             onClick={submit}
             className="flex-1 text-[13px] font-medium text-white bg-emerald-600 rounded-lg py-2 hover:bg-emerald-700 disabled:opacity-40"
           >
-            Créer le suivi
+            Créer le suivi de mail
           </button>
         </div>
-        <p className="text-[11px] text-slate-400 mt-3 text-center">{APP_MOTTO} — le suivi démarre ici.</p>
+        <p className="text-[11px] text-slate-400 mt-3 text-center">{APP_MOTTO} — le suivi de mail démarre ici.</p>
       </div>
     </div>
   );

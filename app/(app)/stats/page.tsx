@@ -144,7 +144,7 @@ export default function StatsPage() {
             <thead>
               <tr className="text-left text-slate-500 border-b border-slate-200">
                 <th className="py-1.5 pr-3">Agent</th>
-                <th className="py-1.5 pr-3">Suivis</th>
+                <th className="py-1.5 pr-3">Suivis de mail</th>
                 <th className="py-1.5 pr-3">Relances</th>
                 <th className="py-1.5 pr-3">Réponses</th>
                 <th className="py-1.5 pr-3">Retards</th>
@@ -252,7 +252,7 @@ export default function StatsPage() {
             <thead>
               <tr className="text-left text-slate-500 border-b border-slate-200">
                 <th className="py-1.5 pr-3">Priorité</th>
-                <th className="py-1.5 pr-3">Suivis</th>
+                <th className="py-1.5 pr-3">Suivis de mail</th>
                 <th className="py-1.5 pr-3">Retards</th>
                 <th className="py-1.5 pr-3">Bloqués</th>
                 <th className="py-1.5 pr-3">Taux rép.</th>
@@ -275,10 +275,10 @@ export default function StatsPage() {
         {/* Par appréciation du motif */}
         <div className={box}>
           <div className="text-[13px] font-semibold text-slate-700 mb-3">
-            Par appréciation du motif (suivis à risque)
+            Par appréciation du motif (suivis de mail à risque)
           </div>
           {bd.parAppreciation.length === 0 ? (
-            <div className="text-[13px] text-slate-400 text-center py-6">Aucun suivi à risque.</div>
+            <div className="text-[13px] text-slate-400 text-center py-6">Aucun suivi de mail à risque.</div>
           ) : (
             <div className="space-y-2 mt-2">
               {bd.parAppreciation.map((a) => (

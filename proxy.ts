@@ -8,7 +8,6 @@ import Database from "better-sqlite3";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 
 const CSP = [
   "default-src 'self'",
@@ -46,7 +45,7 @@ function hstsEnabled(): boolean {
   return hstsCache.value;
 }
 
-export function proxy(_request: NextRequest) {
+export function proxy() {
   const res = NextResponse.next();
   res.headers.set("Content-Security-Policy", CSP);
   res.headers.set("X-Frame-Options", "DENY");

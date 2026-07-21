@@ -68,7 +68,7 @@ export function Drawer() {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`Détail du suivi ${item.ref}`}
+        aria-label={`Détail du suivi de mail ${item.ref}`}
         className="relative w-full max-w-md bg-slate-50 h-full overflow-y-auto shadow-2xl animate-slide-right"
       >
         <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex items-start gap-2 z-10">

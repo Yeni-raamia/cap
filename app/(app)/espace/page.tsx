@@ -79,11 +79,11 @@ export default function MonEspacePage() {
         <div>
           <h1 className="text-xl font-semibold text-slate-800">Bonjour, {me.nom}</h1>
           <p className="text-[13px] text-slate-500">
-            {fmtLong(now)} · {actifs.length} suivis actifs{rank >= 0 && ` · ${rank + 1}ᵉ au classement`}
+            {fmtLong(now)} · {actifs.length} suivis de mail actifs{rank >= 0 && ` · ${rank + 1}ᵉ au classement`}
           </p>
         </div>
         <button onClick={() => setShowNew(true)} className="flex items-center gap-1.5 text-[13px] font-medium text-white bg-emerald-600 rounded-lg px-3 py-2 hover:bg-emerald-700">
-          <Plus size={16} /> Nouveau suivi
+          <Plus size={16} /> Nouveau suivi de mail
         </button>
       </div>
 
@@ -265,9 +265,9 @@ export default function MonEspacePage() {
 
       {/* Tous mes suivis */}
       <div>
-        <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide mb-2">Mes suivis</h2>
+        <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide mb-2">Mes suivis de mail</h2>
         {mine.length === 0 ? (
-          <Card className="p-6 text-center text-[13px] text-slate-400">Aucun suivi. Crée-en un pour commencer.</Card>
+          <Card className="p-6 text-center text-[13px] text-slate-400">Aucun suivi de mail. Crée-en un pour commencer.</Card>
         ) : (
           <SuiviExplorer items={mine} showResponsable={false} defaultView="cartes" />
         )}

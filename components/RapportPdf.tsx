@@ -206,14 +206,14 @@ function ReportDocument({ report }: { report: Report }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>
-        {kpi("Suivis créés", report.created)}
+        {kpi("Suivis de mail créés", report.created)}
         {kpi("Réponses reçues", report.reponses)}
         {kpi("Relances effectuées", report.relances)}
         {kpi("Clôtures", report.clotures)}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 20 }}>
-        {kpi("Suivis actifs (à ce jour)", report.actifs)}
+        {kpi("Suivis de mail actifs (à ce jour)", report.actifs)}
         {kpi("En retard (à ce jour)", report.enRetard)}
         {kpi("Bloqués (à ce jour)", report.bloques)}
       </div>
@@ -369,7 +369,7 @@ function ReportDocument({ report }: { report: Report }) {
             <thead>
               <tr>
                 <th className={th}>Priorité</th>
-                <th className={th}>Suivis</th>
+                <th className={th}>Suivis de mail</th>
                 <th className={th}>Retards</th>
                 <th className={th}>Bloqués</th>
                 <th className={th}>Tx rép.</th>
@@ -408,7 +408,7 @@ function ReportDocument({ report }: { report: Report }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <tbody>
               {report.parAppreciation.length === 0 ? (
-                <tr><td className={td}>Aucun suivi à risque.</td></tr>
+                <tr><td className={td}>Aucun suivi de mail à risque.</td></tr>
               ) : (
                 report.parAppreciation.map((a) => (
                   <tr key={a.appreciation}>

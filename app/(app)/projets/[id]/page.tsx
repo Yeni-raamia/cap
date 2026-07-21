@@ -585,13 +585,13 @@ export default function ProjetDetailPage() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <ListChecks size={15} className="text-slate-500" />
-            <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Suivis liés</h2>
+            <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Suivis de mail liés</h2>
             <span className="text-[11px] text-slate-400 bg-slate-100 rounded-full px-2">{linked.length}</span>
           </div>
           <Card className="p-3">
             <div className="space-y-1.5">
               {linked.length === 0 ? (
-                <div className="text-[12px] text-slate-400 text-center py-2">Aucun suivi rattaché.</div>
+                <div className="text-[12px] text-slate-400 text-center py-2">Aucun suivi de mail rattaché.</div>
               ) : (
                 linked.map((i) => (
                   <button
@@ -612,10 +612,10 @@ export default function ProjetDetailPage() {
                 <select
                   value={attachId}
                   onChange={(e) => setAttachId(e.target.value)}
-                  aria-label="Rattacher un suivi"
+                  aria-label="Rattacher un suivi de mail"
                   className="flex-1 text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 bg-white"
                 >
-                  <option value="">Rattacher un suivi…</option>
+                  <option value="">Rattacher un suivi de mail…</option>
                   {attachables.map((i) => (
                     <option key={i.id} value={i.id}>
                       {i.ref} — {i.objet.slice(0, 40)}

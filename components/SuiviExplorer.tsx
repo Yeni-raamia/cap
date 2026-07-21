@@ -219,12 +219,12 @@ export function SuiviExplorer({
             </button>
           ))}
         </div>
-        <span className="text-[12px] text-slate-400">{filtered.length} suivis</span>
+        <span className="text-[12px] text-slate-400">{filtered.length} suivis de mail</span>
       </div>
 
       {showKpis && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KPI icon={Inbox} label="Suivis affichés" value={filtered.length} tone="sky" />
+          <KPI icon={Inbox} label="Suivis de mail affichés" value={filtered.length} tone="sky" />
           <KPI icon={ArrowUp} label="En retard" value={enRetard} tone="rose" />
           <KPI icon={ShieldAlert} label="Bloqués" value={bloques} tone="amber" />
           <KPI icon={TrendingUp} label="Taux de réponse" value={taux + "%"} tone="emerald" />
@@ -364,7 +364,7 @@ export function SuiviExplorer({
 
       {filtered.length === 0 ? (
         <Card className="p-10 text-center text-[13px] text-slate-400">
-          Aucun suivi ne correspond à ces filtres.
+          Aucun suivi de mail ne correspond à ces filtres.
         </Card>
       ) : view === "liste" ? (
         <ListeView

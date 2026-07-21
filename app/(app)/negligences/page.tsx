@@ -140,7 +140,7 @@ export default function NegligencesPage() {
           <div className="text-[13px] font-semibold text-slate-700">Nouvelle fiche de négligence</div>
           <div className="grid md:grid-cols-2 gap-3">
             <div>
-              <label className="text-[12px] text-slate-500">Suivi lié (facultatif)</label>
+              <label className="text-[12px] text-slate-500">Suivi de mail lié (facultatif)</label>
               <select value={fItem} onChange={(e) => onPickItem(e.target.value)} className="w-full mt-1 text-[13px] border border-slate-200 rounded-lg px-2 py-2 bg-white">
                 <option value="">Aucun (négligence autonome)</option>
                 {attachables.map((i) => (<option key={i.id} value={i.id}>{i.ref} — {i.objet.slice(0, 50)}</option>))}

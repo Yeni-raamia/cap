@@ -24,7 +24,7 @@ export function NegligencePrint({ neg }: { neg: Negligence }) {
       </div>
       <div style={{ marginBottom: 14, fontSize: 13 }}>
         <div><b>Objet :</b> {neg.objet || (item ? item.objet : "—")}</div>
-        {item && <div><b>Suivi concerné :</b> [{item.ref}] {item.objet}</div>}
+        {item && <div><b>Suivi de mail concerné :</b> [{item.ref}] {item.objet}</div>}
         <div><b>Suivi par :</b> {owner?.nom ?? "—"}</div>
       </div>
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: 13 }}>
@@ -47,7 +47,7 @@ export function NegligencePrint({ neg }: { neg: Negligence }) {
         </ul>
       )}
       <div style={{ marginTop: 40, display: "flex", justifyContent: "space-between", fontSize: 12, color: "#475569" }}>
-        <div>Le responsable du suivi<br />{owner?.nom ?? "—"}</div>
+        <div>Le responsable du suivi de mail<br />{owner?.nom ?? "—"}</div>
         <div style={{ textAlign: "right" }}>Le Directeur général<br />{neg.decidedBy ? profileById(neg.decidedBy).nom : "…"}</div>
       </div>
     </div>,

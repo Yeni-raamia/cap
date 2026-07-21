@@ -100,7 +100,7 @@ export default function ProjetsPage() {
         <div>
           <h1 className="text-xl font-semibold text-slate-800">Projets</h1>
           <p className="text-[13px] text-slate-500">
-            Tâches, avancement, équipe. Un suivi de métier <span className="font-mono">PRJ</span> crée son projet.
+            Tâches, avancement, équipe. Un suivi de mail de métier <span className="font-mono">PRJ</span> crée son projet.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ export default function ProjetsPage() {
       {filtered.length === 0 ? (
         <Card className="p-10 text-center text-[13px] text-slate-400">
           {projects.length === 0 ? (
-            <>Aucun projet. Crée un suivi de métier <span className="font-mono">PRJ</span> — son projet apparaîtra ici.</>
+            <>Aucun projet. Crée un suivi de mail de métier <span className="font-mono">PRJ</span> — son projet apparaîtra ici.</>
           ) : (
             "Aucun projet ne correspond à ces filtres."
           )}

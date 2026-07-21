@@ -1,0 +1,23 @@
+name: "✨ Proposition · Feature request"
+description: "Suggérer une amélioration · Suggest an idea"
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème / besoin · Problem / need
+      description: "Quel problème cette proposition résout-elle ? · What problem does this solve?"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution proposée · Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées · Alternatives considered
+    validations:
+      required: false
