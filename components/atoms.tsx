@@ -41,7 +41,7 @@ export function MetierChip({ code }: { code: string }) {
 export function Avatar({ init, size = "h-8 w-8" }: { init: string; size?: string }) {
   return (
     <div
-      className={`${size} rounded-full bg-slate-800 text-white grid place-items-center text-[11px] font-semibold shrink-0`}
+      className={`${size} rounded-full bg-gradient-to-br from-slate-700 to-slate-900 text-white grid place-items-center text-[11px] font-semibold shrink-0 ring-1 ring-black/5 shadow-sm`}
     >
       {init}
     </div>
@@ -61,7 +61,11 @@ export function Priority({ p }: { p: Priorite }) {
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`bg-white border border-slate-200 rounded-xl ${className}`}>{children}</div>
+    <div
+      className={`bg-white border border-slate-200/80 rounded-xl shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-shadow duration-200 hover:shadow-[0_4px_16px_rgba(15,23,42,0.06)] ${className}`}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -79,12 +83,12 @@ export function KPI({
   sub?: string;
 }) {
   return (
-    <Card className="p-4 flex items-center gap-3">
+    <Card className="p-4 flex items-center gap-3 hover:-translate-y-0.5 transition-transform duration-200">
       <div className={`h-10 w-10 rounded-lg grid place-items-center ${toneBg[tone]}`}>
         <Icon size={18} />
       </div>
       <div>
-        <div className="text-2xl font-semibold text-slate-800 leading-none">{value}</div>
+        <div className="text-2xl font-semibold text-slate-800 leading-none tabular-nums">{value}</div>
         <div className="text-[12px] text-slate-500 mt-1">
           {label}
           {sub && <span className="text-slate-400"> · {sub}</span>}

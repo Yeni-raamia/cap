@@ -40,10 +40,10 @@ export function LoginForm({ firstRun }: { firstRun: boolean }) {
   };
 
   return (
-    <main className="min-h-screen grid place-items-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm">
+    <main className="min-h-screen grid place-items-center bg-gradient-to-br from-slate-50 via-white to-emerald-50/40 px-4">
+      <div className="w-full max-w-sm animate-page">
         <div className="flex items-center gap-2 mb-6 justify-center">
-          <div className="h-9 w-9 rounded-lg bg-emerald-500 grid place-items-center text-slate-900">
+          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 grid place-items-center text-slate-900 shadow-lg shadow-emerald-500/25">
             <Compass size={20} />
           </div>
           <div>
@@ -52,7 +52,7 @@ export function LoginForm({ firstRun }: { firstRun: boolean }) {
           </div>
         </div>
 
-        <form onSubmit={submit} className="bg-white border border-slate-200 rounded-2xl p-6 space-y-3">
+        <form onSubmit={submit} className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-3 shadow-xl shadow-slate-200/50">
           <div className="text-[15px] font-semibold text-slate-800">
             {mode === "signin" ? "Connexion" : "Créer un compte"}
           </div>

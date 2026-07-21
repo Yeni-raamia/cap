@@ -109,12 +109,12 @@ export function NewSuiviModal() {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <div className="absolute inset-0 bg-slate-900/30" onClick={close} aria-hidden="true" />
+      <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm animate-fade" onClick={close} aria-hidden="true" />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Nouveau suivi"
-        className="relative w-full max-w-lg bg-white rounded-2xl shadow-xl p-5 max-h-[92vh] overflow-y-auto"
+        className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-5 max-h-[92vh] overflow-y-auto animate-pop"
       >
         <div className="flex items-center gap-2 mb-4">
           <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 grid place-items-center">

@@ -62,9 +62,9 @@ export function TaskModal() {
   const close = () => setOpenTaskId(null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 p-4 overflow-y-auto" onClick={close}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 backdrop-blur-sm p-4 overflow-y-auto animate-fade" onClick={close}>
       <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-2xl my-8 max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8 max-h-[90vh] overflow-y-auto animate-pop"
         onClick={(e) => e.stopPropagation()}
       >
         {/* En-tête */}

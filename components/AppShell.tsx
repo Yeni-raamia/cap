@@ -32,10 +32,15 @@ function Shell({ children }: { children: ReactNode }) {
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-5xl mx-auto">
             {ready ? (
-              children
+              <div key={pathname} className="animate-page">
+                {children}
+              </div>
             ) : (
               <div className="grid place-items-center py-24 text-[13px] text-slate-400">
-                Chargement…
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-4 w-4 rounded-full border-2 border-slate-300 border-t-emerald-500 animate-spin" />
+                  Chargement…
+                </span>
               </div>
             )}
           </div>
