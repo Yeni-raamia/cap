@@ -26,6 +26,7 @@ import {
 } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
+import { Ring } from "@/components/dataviz";
 import { PageHero } from "@/components/PageHero";
 
 const statusBadge: Record<ProjectStatus, string> = {
@@ -226,39 +227,45 @@ export default function ProjetsPage() {
 }
 
 function ProjectCard({ p, now, owner, linked, late, compact }: { p: Project; now: Date; owner: Profile; linked: number; late: boolean; compact?: boolean }) {
+  const { profileById } = useApp();
   const m = projectMetrics(p, now);
+  const members = p.memberIds.map(profileById);
+  const ringColor = m.progress >= 100 ? "#10b981" : late ? "#f43f5e" : "#0ea5e9";
   return (
-    <Link href={`/projets/${p.id}`}>
-      <Card className={`p-4 hover:shadow-sm transition h-full ${late ? "border-l-[3px] border-l-rose-400" : ""}`}>
-        <div className="flex items-start gap-2 mb-2">
-          <div className="h-9 w-9 rounded-lg bg-slate-900 text-emerald-400 grid place-items-center shrink-0"><FolderKanban size={18} /></div>
+    <Link href={`/projets/${p.id}`} className="group block h-full">
+      <Card className={`p-4 h-full transition-transform duration-200 group-hover:-translate-y-0.5 ${late ? "border-l-[3px] border-l-rose-400" : ""}`}>
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 text-emerald-400 grid place-items-center shrink-0 shadow-soft"><FolderKanban size={19} /></div>
           <div className="flex-1 min-w-0">
-            <div className="text-[14px] font-semibold text-slate-800 truncate">{p.name}</div>
-            {!compact && <div className="text-[11px] text-slate-400 truncate">{p.description || "—"}</div>}
+            <div className="text-[14.5px] font-bold text-slate-800 truncate">{p.name}</div>
+            {!compact && <div className="text-[11.5px] text-slate-400 truncate">{p.description || "—"}</div>}
           </div>
           <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusBadge[p.status]}`}>{p.status}</span>
         </div>
-        <div className="mt-2">
-          <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
-            <span>Avancement</span>
-            <span className="font-mono">{m.progress}%</span>
-          </div>
-          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-400" style={{ width: `${m.progress}%` }} />
+
+        <div className="flex items-center gap-4 mt-4">
+          <Ring value={m.progress} size={62} stroke={7} color={ringColor}>
+            <span className="text-[13px] font-bold text-slate-800 tabular-nums">{m.progress}%</span>
+          </Ring>
+          <div className="flex-1 space-y-1.5 text-[12px] text-slate-500">
+            <div className="inline-flex items-center gap-1.5"><ListChecks size={13} className="text-emerald-500" /> {m.done}/{m.total} tâches{m.late > 0 && <span className="text-rose-600 font-medium"> · {m.late} en retard</span>}</div>
+            {!compact && <div className="inline-flex items-center gap-1.5"><Link2 size={13} className="text-sky-500" /> {linked} suivi(s) de mail lié(s)</div>}
+            {p.deadline && <div className={`inline-flex items-center gap-1.5 ${late ? "text-rose-600 font-medium" : ""}`}><CalendarClock size={13} /> {fmt(p.deadline)}</div>}
           </div>
         </div>
-        <div className="flex items-center gap-3 mt-3 text-[11px] text-slate-500 flex-wrap">
-          <span className="inline-flex items-center gap-1"><ListChecks size={13} />{m.done}/{m.total}</span>
-          {m.late > 0 && <span className="text-rose-600 font-medium">{m.late} en retard</span>}
-          {!compact && <span className="inline-flex items-center gap-1"><Link2 size={13} />{linked}</span>}
-          {!compact && <span className="inline-flex items-center gap-1"><Users2 size={13} />{p.memberIds.length}</span>}
-          {p.deadline && <span className={`inline-flex items-center gap-1 ml-auto ${late ? "text-rose-600 font-medium" : ""}`}><CalendarClock size={13} />{fmt(p.deadline)}</span>}
-        </div>
+
         {!compact && (
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
-            <Avatar init={owner.init} size="h-6 w-6" />
-            <span className="text-[12px] text-slate-600">{owner.nom}</span>
-            <span className="ml-auto text-[11px] text-emerald-700 font-medium">Ouvrir →</span>
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex -space-x-2">
+              {members.slice(0, 4).map((mem, i) => (
+                <div key={i} className="ring-2 ring-white dark:ring-slate-900 rounded-full"><Avatar init={mem.init} size="h-6 w-6" /></div>
+              ))}
+              {members.length > 4 && (
+                <div className="h-6 w-6 rounded-full bg-slate-100 dark:bg-slate-800 ring-2 ring-white dark:ring-slate-900 grid place-items-center text-[9px] font-semibold text-slate-500">+{members.length - 4}</div>
+              )}
+            </div>
+            <span className="text-[11.5px] text-slate-500 truncate">{owner.nom}</span>
+            <span className="ml-auto text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">Ouvrir →</span>
           </div>
         )}
       </Card>

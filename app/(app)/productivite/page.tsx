@@ -15,6 +15,7 @@ import {
 } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
+import { Ring } from "@/components/dataviz";
 import { PageHero } from "@/components/PageHero";
 
 const STATUS_STYLE: Record<TaskStatus, string> = {
@@ -118,6 +119,27 @@ export default function ProductivitePage() {
         <KpiCard icon={Flame} tone="text-rose-600" label="En retard" value={team.late} />
         <KpiCard icon={X} tone="text-rose-600" label="Bloquées" value={team.blocked} />
       </div>
+
+      {/* Podium de rendement */}
+      {rows.some((r) => r.prod.doneRecent > 0 || r.prod.tasksOpen > 0) && (
+        <div className="grid sm:grid-cols-3 gap-3 stagger">
+          {rows.slice(0, 3).map(({ p, prod }, i) => (
+            <div key={p.id} className="rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft p-4 flex items-center gap-3">
+              <div className="relative">
+                <Ring value={prod.completionRate} size={58} color={i === 0 ? "#f59e0b" : i === 1 ? "#94a3b8" : "#b45309"}>
+                  <Avatar init={p.init} size="h-8 w-8" />
+                </Ring>
+                <span className="absolute -top-1 -right-1 text-[13px]">{["🥇", "🥈", "🥉"][i]}</span>
+              </div>
+              <div className="min-w-0">
+                <div className="text-[13.5px] font-semibold text-slate-800 truncate">{p.nom}</div>
+                <div className="text-[11.5px] text-slate-400">{prod.doneRecent} achevées · {prod.tasksOpen} en cours</div>
+                <div className="text-[11px] font-medium text-emerald-600">{prod.completionRate}% d&apos;achèvement</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Créer / assigner une tâche */}
       <NewTaskForm canAssignOthers={canAssignOthers} onCreate={run} />
@@ -277,11 +299,13 @@ export default function ProductivitePage() {
 
 function KpiCard({ icon: Icon, label, value, tone }: { icon: typeof Activity; label: string; value: string | number; tone: string }) {
   return (
-    <Card className="p-3">
-      <Icon size={16} className={tone} />
-      <div className="text-2xl font-semibold text-slate-800 mt-1">{value}</div>
-      <div className="text-[11px] text-slate-400">{label}</div>
-    </Card>
+    <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft p-4 transition-transform duration-200 hover:-translate-y-0.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[10.5px] font-medium text-slate-500 uppercase tracking-wide">{label}</span>
+        <Icon size={15} className={tone} />
+      </div>
+      <div className="text-[30px] font-extrabold tracking-tight text-slate-900 leading-none mt-1 tabular-nums">{value}</div>
+    </div>
   );
 }
 
