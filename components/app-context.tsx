@@ -182,6 +182,9 @@ interface AppCtx {
   setSoundEnabled: (v: boolean) => void;
   // Compte en lecture seule (DSI ou marqué par l'admin)
   readOnly: boolean;
+  // Thème clair / sombre
+  theme: "light" | "dark";
+  toggleTheme: () => void;
 }
 
 const EPOCH = new Date(0);
@@ -320,6 +323,7 @@ export function AppProvider({
   const [tasks, setTasks] = useState<Task[]>(demo ? [] : reviveTasks(initialTasks ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
+  const [theme, setThemeState] = useState<"light" | "dark">("light");
   const [nowState, setNowState] = useState<Date | null>(null);
   const [meId, setMeId] = useState<string>(DEFAULT_USER_ID); // sélecteur démo
   const [orgName, setOrgName] = useState(initialSettings?.orgName ?? ORG_NAME);
@@ -347,8 +351,37 @@ export function AppProvider({
     } catch {
       /* localStorage indisponible */
     }
+    // Thème (clair/sombre) : override ?theme=, puis préférence enregistrée, puis système.
+    try {
+      const override = new URLSearchParams(window.location.search).get("theme");
+      const saved = localStorage.getItem("cap_theme");
+      const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+      const t =
+        override === "dark" || override === "light"
+          ? override
+          : saved === "dark" || saved === "light"
+          ? saved
+          : prefersDark
+          ? "dark"
+          : "light";
+      setThemeState(t as "light" | "dark");
+      document.documentElement.classList.toggle("dark", t === "dark");
+    } catch {
+      /* ignore */
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const setTheme = (t: "light" | "dark") => {
+    setThemeState(t);
+    try {
+      localStorage.setItem("cap_theme", t);
+      document.documentElement.classList.toggle("dark", t === "dark");
+    } catch {
+      /* ignore */
+    }
+  };
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
 
   const setSoundEnabled = (v: boolean) => {
     setSoundEnabledState(v);
@@ -922,6 +955,8 @@ export function AppProvider({
     soundEnabled,
     setSoundEnabled,
     readOnly: isReadOnly(me),
+    theme,
+    toggleTheme,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

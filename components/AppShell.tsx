@@ -10,6 +10,7 @@ import { Topbar } from "./Topbar";
 import { Drawer } from "./Drawer";
 import { NewSuiviModal } from "./NewSuiviModal";
 import { TaskModal } from "./TaskModal";
+import { CommandPalette } from "./CommandPalette";
 
 function Shell({ children }: { children: ReactNode }) {
   const { me, ready } = useApp();
@@ -49,6 +50,7 @@ function Shell({ children }: { children: ReactNode }) {
       <Drawer />
       <NewSuiviModal />
       <TaskModal />
+      <CommandPalette />
     </div>
   );
 }

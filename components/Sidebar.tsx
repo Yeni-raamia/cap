@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Settings,
+  Sparkles,
   Trophy,
   Users,
   type LucideIcon,
@@ -22,6 +23,7 @@ import { navForUser } from "@/lib/nav";
 import { useApp } from "./app-context";
 
 const ICONS: Record<string, LucideIcon> = {
+  Sparkles,
   LayoutDashboard,
   Users,
   FolderKanban,

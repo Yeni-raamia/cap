@@ -1,25 +1,36 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Bell, LogOut, Search, Volume2, VolumeX } from "lucide-react";
+import { Bell, LogOut, Moon, Search, Sun, Volume2, VolumeX } from "lucide-react";
 import { canAccess, navForUser } from "@/lib/nav";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
 
+const openPalette = () => window.dispatchEvent(new Event("cap:cmdk"));
+
 export function Topbar() {
-  const { demo, me, meId, setMeId, profiles, alerts, signOut, soundEnabled, setSoundEnabled } = useApp();
+  const { demo, me, meId, setMeId, profiles, alerts, signOut, soundEnabled, setSoundEnabled, theme, toggleTheme } = useApp();
   const router = useRouter();
 
   return (
-    <header className="h-14 bg-white/85 backdrop-blur-md border-b border-slate-200/80 flex items-center gap-3 px-5 shrink-0 sticky top-0 z-20">
-      <div className="relative flex-1 max-w-sm">
+    <header className="h-14 bg-white/85 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center gap-3 px-5 shrink-0 sticky top-0 z-20">
+      <button
+        onClick={openPalette}
+        aria-label="Ouvrir la recherche (⌘K)"
+        className="group relative flex-1 max-w-sm flex items-center gap-2 pl-9 pr-2 py-1.5 text-[13px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 hover:border-emerald-300 transition-colors"
+      >
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          aria-label="Rechercher"
-          placeholder="Rechercher une référence, un objet…"
-          className="w-full pl-9 pr-3 py-1.5 text-[13px] bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-300"
-        />
-      </div>
+        <span className="truncate">Rechercher, naviguer…</span>
+        <kbd className="ml-auto text-[10px] text-slate-400 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5">⌘K</kbd>
+      </button>
+      <button
+        onClick={toggleTheme}
+        aria-label={theme === "dark" ? "Passer en thème clair" : "Passer en thème sombre"}
+        title={theme === "dark" ? "Thème clair" : "Thème sombre"}
+        className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
+      >
+        {theme === "dark" ? <Sun size={19} /> : <Moon size={19} />}
+      </button>
       <button
         onClick={() => setSoundEnabled(!soundEnabled)}
         aria-label={soundEnabled ? "Couper le son des notifications" : "Activer le son des notifications"}

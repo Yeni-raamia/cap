@@ -10,6 +10,7 @@ export interface NavItem {
 
 /* Navigation filtrée par rôle (RBAC applicatif — cf. §4.7). */
 export const NAV: NavItem[] = [
+  { id: "cockpit", href: "/cockpit", label: "Accueil", icon: "Sparkles", roles: ["agent", "manager", "directeur", "admin"] },
   { id: "espace", href: "/espace", label: "Mon espace", icon: "LayoutDashboard", roles: ["agent", "manager", "directeur", "admin"] },
   { id: "global", href: "/global", label: "Vue globale", icon: "Users", roles: ["agent", "manager", "directeur", "admin", "dsi"] },
   { id: "projets", href: "/projets", label: "Projets", icon: "FolderKanban", roles: ["agent", "manager", "directeur", "admin"] },
