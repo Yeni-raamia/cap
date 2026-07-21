@@ -6,6 +6,10 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+_Rien pour l'instant._
+
+## [1.0.0] - 2026-07-21
+
 ### Ajouté
 - **Suivi de mail** : renommage du terme « suivi » en « suivi de mail » dans l'interface.
 - **Documentation dépôt** : README bilingue, LICENSE (MIT), CONTRIBUTING, SECURITY, CODE_OF_CONDUCT, modèles d'issues/PR, intégration continue (GitHub Actions), nouveau favicon.
