@@ -6,17 +6,21 @@ import {
   AlertOctagon,
   Bell,
   CheckSquare,
+  Command,
   FolderKanban,
   Gavel,
+  Inbox,
   ListChecks,
   ListTodo,
   MessageSquare,
   Plus,
   ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 import { fmt, fmtLong, isTaskOpen, projectMetrics, subtaskProgress, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
+import { CountUp, Sparkline } from "@/components/dataviz";
 import { ItemCard } from "@/components/ItemCard";
 import { SuiviExplorer } from "@/components/SuiviExplorer";
 
@@ -28,6 +32,17 @@ export default function MonEspacePage() {
   const attends = mine.filter((i) => ["relance", "escalade"].includes(rs(i).level));
   const actifs = mine.filter((i) => i.statut !== "Clôturé");
   const rank = scores.findIndex((s) => s.id === me.id);
+  const firstName = (me.nom || "").split(/\s+/)[0] || me.nom;
+
+  // Mini-courbe : mon activité (événements de mes suivis) sur 14 jours.
+  const iso = (d: Date) => new Date(d).toISOString().slice(0, 10);
+  const byDay = new Map<string, number>();
+  mine.forEach((i) => i.timeline.forEach((e) => byDay.set(iso(e.date), (byDay.get(iso(e.date)) ?? 0) + 1)));
+  const myActivity = Array.from({ length: 14 }, (_, k) => {
+    const d = new Date(now);
+    d.setDate(now.getDate() - (13 - k));
+    return byDay.get(iso(d)) ?? 0;
+  });
 
   // À justifier : mes blocages dont le motif n'est pas encore qualifié.
   const aJustifier = mine.filter((i) => i.statut === "Bloqué" && !i.appreciation);
@@ -75,17 +90,48 @@ export default function MonEspacePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">Bonjour, {me.nom}</h1>
-          <p className="text-[13px] text-slate-500">
-            {fmtLong(now)} · {actifs.length} suivis de mail actifs{rank >= 0 && ` · ${rank + 1}ᵉ au classement`}
-          </p>
+      {/* Hero premium */}
+      <section className="relative overflow-hidden rounded-3xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft halo animate-float">
+        <div className="relative z-[1] p-6 md:p-8">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-500 mb-2">
+                <Sparkles size={13} className="text-emerald-500" /> {fmtLong(now)}
+              </div>
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                Bonjour, {firstName}.
+              </h1>
+              <p className="mt-1.5 text-[15px] text-slate-500">Ton espace, ton rythme.</p>
+            </div>
+            <div className="flex flex-col items-end gap-2">
+              <button
+                onClick={() => setShowNew(true)}
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-4 py-2.5 hover:-translate-y-0.5 transition-transform shadow-soft"
+              >
+                <Plus size={16} /> Nouveau suivi de mail
+              </button>
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
+                <Command size={12} /> <kbd className="px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-sans">⌘K</kbd> pour tout faire
+              </span>
+            </div>
+          </div>
+
+          {/* Bandeau de KPIs personnels */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 stagger">
+            <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 p-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">Actifs</span>
+                <Inbox size={14} className="text-sky-500" />
+              </div>
+              <div className="text-[28px] font-extrabold tracking-tight text-slate-900 leading-none mt-1"><CountUp value={actifs.length} /></div>
+              <Sparkline data={myActivity} stroke="#0ea5e9" width={120} height={22} className="w-full mt-1.5" />
+            </div>
+            <MiniStat label="À traiter" value={attends.length} icon={Bell} tone="#f59e0b" danger={attends.length > 0} />
+            <MiniStat label="Tâches ouvertes" value={openTaskCount} icon={ListTodo} tone="#8b5cf6" />
+            <MiniStat label="Classement" value={rank >= 0 ? rank + 1 : 0} icon={Sparkles} tone="#10b981" prefix="#" />
+          </div>
         </div>
-        <button onClick={() => setShowNew(true)} className="flex items-center gap-1.5 text-[13px] font-medium text-white bg-emerald-600 rounded-lg px-3 py-2 hover:bg-emerald-700">
-          <Plus size={16} /> Nouveau suivi de mail
-        </button>
-      </div>
+      </section>
 
       {/* Ce qui t'attend */}
       <Section icon={Bell} title="Ce qui t'attend" count={attends.length} tone="text-amber-500">
@@ -271,6 +317,35 @@ export default function MonEspacePage() {
         ) : (
           <SuiviExplorer items={mine} showResponsable={false} defaultView="cartes" />
         )}
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  icon: Icon,
+  tone,
+  danger,
+  prefix = "",
+}: {
+  label: string;
+  value: number;
+  icon: typeof Bell;
+  tone: string;
+  danger?: boolean;
+  prefix?: string;
+}) {
+  return (
+    <div className={`rounded-2xl border p-3.5 ${danger ? "border-amber-200/70 dark:border-amber-500/20 bg-amber-50/40 dark:bg-amber-500/5" : "border-slate-200/70 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30"}`}>
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">{label}</span>
+        <Icon size={14} style={{ color: tone }} />
+      </div>
+      <div className="text-[28px] font-extrabold tracking-tight text-slate-900 leading-none mt-1">
+        {prefix}
+        <CountUp value={value} />
       </div>
     </div>
   );

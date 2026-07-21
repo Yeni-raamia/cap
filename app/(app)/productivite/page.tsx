@@ -15,6 +15,7 @@ import {
 } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
+import { PageHero } from "@/components/PageHero";
 
 const STATUS_STYLE: Record<TaskStatus, string> = {
   "à faire": "bg-slate-100 text-slate-600",
@@ -86,26 +87,26 @@ export default function ProductivitePage() {
   const selTasks = selected ? tasks.filter((t) => t.assigneeId === selected) : [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800 flex items-center gap-2">
-            <Activity size={20} className="text-emerald-600" /> Productivité de l&apos;équipe
-          </h1>
-          <p className="text-[13px] text-slate-500">Charge, rendement et suivi des tâches de toute l&apos;équipe.</p>
-        </div>
-        <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5">
-          {WINDOWS.map((w) => (
-            <button
-              key={w.key}
-              onClick={() => setWindowDays(w.key)}
-              className={`text-[12px] px-2.5 py-1 rounded-md ${windowDays === w.key ? "bg-white shadow-sm font-medium text-slate-800" : "text-slate-500"}`}
-            >
-              {w.label}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className="space-y-6 animate-float">
+      <PageHero
+        kicker="Rendement"
+        icon={Activity}
+        title="Productivité de l'équipe"
+        subtitle="Charge, rendement et suivi des tâches de toute l'équipe."
+        right={
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+            {WINDOWS.map((w) => (
+              <button
+                key={w.key}
+                onClick={() => setWindowDays(w.key)}
+                className={`text-[12px] px-2.5 py-1 rounded-md transition ${windowDays === w.key ? "bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-800" : "text-slate-500"}`}
+              >
+                {w.label}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {err && <div className="text-[12px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{err}</div>}
 

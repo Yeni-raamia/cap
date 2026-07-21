@@ -26,6 +26,7 @@ import {
 } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
+import { PageHero } from "@/components/PageHero";
 
 const statusBadge: Record<ProjectStatus, string> = {
   "En cours": "bg-emerald-100 text-emerald-700",
@@ -95,31 +96,31 @@ export default function ProjetsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">Projets</h1>
-          <p className="text-[13px] text-slate-500">
-            Tâches, avancement, équipe. Un suivi de mail de métier <span className="font-mono">PRJ</span> crée son projet.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-[12px] bg-white">
-            {VIEWS.map((v) => (
-              <button key={v.id} onClick={() => setView(v.id)} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md font-medium transition ${view === v.id ? "bg-emerald-600 text-white" : "text-slate-500 hover:text-slate-700"}`}>
-                <v.icon size={14} />
-                <span className="hidden sm:inline">{v.label}</span>
+    <div className="space-y-6 animate-float">
+      <PageHero
+        kicker="Pilotage"
+        icon={FolderKanban}
+        title="Projets"
+        subtitle="Tâches, avancement, équipe. Un suivi de mail de métier PRJ crée son projet."
+        right={
+          <>
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 text-[12px] bg-white dark:bg-slate-900">
+              {VIEWS.map((v) => (
+                <button key={v.id} onClick={() => setView(v.id)} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md font-medium transition ${view === v.id ? "bg-emerald-600 text-white" : "text-slate-500 hover:text-slate-700"}`}>
+                  <v.icon size={14} />
+                  <span className="hidden sm:inline">{v.label}</span>
+                </button>
+              ))}
+            </div>
+            {!demo && (
+              <button onClick={() => setShowNew((v) => !v)} className="flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={16} />
+                <span className="hidden sm:inline">Nouveau</span>
               </button>
-            ))}
-          </div>
-          {!demo && (
-            <button onClick={() => setShowNew((v) => !v)} className="flex items-center gap-1.5 text-[13px] font-medium text-white bg-emerald-600 rounded-lg px-3 py-2 hover:bg-emerald-700">
-              <Plus size={16} />
-              <span className="hidden sm:inline">Nouveau</span>
-            </button>
-          )}
-        </div>
-      </div>
+            )}
+          </>
+        }
+      />
 
       {showNew && !demo && (
         <Card className="p-4 space-y-3">
