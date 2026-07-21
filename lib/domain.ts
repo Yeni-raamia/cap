@@ -87,7 +87,30 @@ export interface Profile {
   readonly: boolean;
   /** Compte validé par l'administrateur (accès autorisé à l'application). */
   approved: boolean;
+  /** L'utilisateur doit renouveler son mot de passe avant d'accéder à l'app. */
+  mustChangePassword: boolean;
 }
+
+/** Paramètres de sécurité configurables depuis l'administration. */
+export interface SecuritySettings {
+  approvalRequired: boolean; // inscriptions soumises à approbation admin
+  passwordMinLength: number; // longueur minimale du mot de passe
+  loginMaxAttempts: number; // tentatives échouées avant blocage (par compte/IP)
+  loginWindowMin: number; // fenêtre de blocage (minutes)
+  sessionDays: number; // durée de vie d'une session (jours)
+  passwordMaxAgeDays: number; // rotation forcée après N jours (0 = désactivé)
+  hstsEnabled: boolean; // en-tête HSTS (HTTPS strict) — effet au redémarrage
+}
+
+export const DEFAULT_SECURITY: SecuritySettings = {
+  approvalRequired: true,
+  passwordMinLength: 8,
+  loginMaxAttempts: 5,
+  loginWindowMin: 15,
+  sessionDays: 30,
+  passwordMaxAgeDays: 0,
+  hstsEnabled: false,
+};
 
 /** Un compte est en lecture seule s'il est marqué comme tel, ou s'il a le rôle DSI. */
 export const isReadOnly = (p: { role: Role; readonly?: boolean }): boolean =>
@@ -676,6 +699,8 @@ export interface AdminMember {
   deniedPages: string[];
   readonly: boolean;
   approved: boolean;
+  mustChangePassword: boolean;
+  passwordAgeDays: number | null;
 }
 
 export interface ActivityEntry {

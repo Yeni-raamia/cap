@@ -27,6 +27,7 @@ create table if not exists profiles (
   role text not null default 'agent', active integer not null default 1,
   extra_pages text not null default '', denied_pages text not null default '',
   readonly integer not null default 0, approved integer not null default 0,
+  must_change_password integer not null default 0, password_changed_at text,
   created_at text not null default (datetime('now'))
 );
 create table if not exists items (
@@ -223,6 +224,14 @@ function ensureColumns(db: Database.Database) {
     db.exec("alter table profiles add column approved integer not null default 0");
     // Les comptes déjà présents étaient légitimes : on les approuve pour ne verrouiller personne.
     db.exec("update profiles set approved = 1");
+  }
+  if (!pcols.includes("must_change_password")) {
+    db.exec("alter table profiles add column must_change_password integer not null default 0");
+  }
+  if (!pcols.includes("password_changed_at")) {
+    db.exec("alter table profiles add column password_changed_at text");
+    // Point de départ de l'âge des mots de passe existants = maintenant.
+    db.exec("update profiles set password_changed_at = datetime('now') where password_changed_at is null");
   }
   const ipcols = (db.prepare("pragma table_info(item_people)").all() as { name: string }[]).map((c) => c.name);
   if (!ipcols.includes("service")) {

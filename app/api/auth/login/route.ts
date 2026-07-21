@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { createSession, getProfileById, getProfileRowByEmail } from "@/lib/db/repo";
+import { createSession, getProfileById, getProfileRowByEmail, setMustChangePassword } from "@/lib/db/repo";
+import { getSecuritySettings } from "@/lib/db/admin";
 import { verifyPassword } from "@/lib/auth/password";
 import { setSessionCookie } from "@/lib/auth/cookie";
 import { clientIp, isRateLimited, recordAttempt, resetAttempts } from "@/lib/auth/rate-limit";
 
-const WINDOW = 15 * 60 * 1000; // 15 min
-const MAX_PER_ACCOUNT = 5; // tentatives échouées par (IP, compte)
-const MAX_PER_IP = 30; // tentatives échouées par IP (anti-énumération)
+const MAX_PER_IP_FACTOR = 6; // limite IP = maxAttempts × 6 (anti-énumération)
 
 export async function POST(request: Request) {
   const { email, password } = await request.json().catch(() => ({}));
@@ -14,13 +13,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "E-mail et mot de passe requis." }, { status: 400 });
   }
 
+  const sec = getSecuritySettings();
+  const windowMs = sec.loginWindowMin * 60 * 1000;
   const ip = clientIp(request);
   const cleanEmail = String(email).trim().toLowerCase();
   const acctKey = `login:${ip}:${cleanEmail}`;
   const ipKey = `login-ip:${ip}`;
 
-  const acct = isRateLimited(acctKey, MAX_PER_ACCOUNT, WINDOW);
-  const perIp = isRateLimited(ipKey, MAX_PER_IP, WINDOW);
+  const acct = isRateLimited(acctKey, sec.loginMaxAttempts, windowMs);
+  const perIp = isRateLimited(ipKey, sec.loginMaxAttempts * MAX_PER_IP_FACTOR, windowMs);
   if (acct.limited || perIp.limited) {
     const retryAfter = Math.max(acct.retryAfter, perIp.retryAfter);
     return NextResponse.json(
@@ -31,20 +32,28 @@ export async function POST(request: Request) {
 
   const row = getProfileRowByEmail(cleanEmail);
   if (!row || !verifyPassword(password, row.password_hash)) {
-    // Échec : on compte la tentative (message volontairement générique).
-    recordAttempt(acctKey, WINDOW);
-    recordAttempt(ipKey, WINDOW);
+    recordAttempt(acctKey, windowMs);
+    recordAttempt(ipKey, windowMs);
     return NextResponse.json({ error: "E-mail ou mot de passe incorrect." }, { status: 401 });
   }
   if (row.active !== 1) {
     return NextResponse.json({ error: "Ce compte est désactivé." }, { status: 403 });
   }
 
-  // Succès : réinitialise le compteur de ce compte.
+  // Politique de rotation : mot de passe trop ancien → renouvellement imposé.
+  let mustChange = row.must_change_password === 1;
+  if (sec.passwordMaxAgeDays > 0 && row.password_changed_at) {
+    const ageDays = (Date.now() - new Date(row.password_changed_at).getTime()) / 864e5;
+    if (ageDays > sec.passwordMaxAgeDays && !mustChange) {
+      setMustChangePassword(row.id, true);
+      mustChange = true;
+    }
+  }
+
   resetAttempts(acctKey);
-  const token = createSession(row.id);
+  const token = createSession(row.id, sec.sessionDays);
   const user = getProfileById(row.id);
-  const res = NextResponse.json({ user, pending: !user?.approved });
+  const res = NextResponse.json({ user, pending: !user?.approved, mustChangePassword: mustChange });
   setSessionCookie(res, token);
   return res;
 }

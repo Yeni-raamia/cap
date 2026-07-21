@@ -7,19 +7,23 @@ import {
   KeyRound,
   ListChecks,
   ListTree,
+  RotateCcw,
   Settings2,
+  ShieldCheck,
   Trash2,
   UserPlus,
   Users2,
 } from "lucide-react";
 import {
   ACTION_ICONS,
+  DEFAULT_SECURITY,
   TONES,
   type ActivityEntry,
   type AdminCounts,
   type AdminMember,
   type AppSettings,
   type Role,
+  type SecuritySettings,
   type Tone,
 } from "@/lib/domain";
 import { ALL_PAGES, roleHasPage } from "@/lib/nav";
@@ -44,6 +48,8 @@ const ACTION_LABEL: Record<string, string> = {
   member_pages: "Vues accessibles",
   member_readonly: "Privilège lecture/écriture",
   member_approve: "Approbation de compte",
+  member_force_password: "Renouvellement mot de passe imposé",
+  security_settings: "Paramètres de sécurité",
   blocage_demarche: "Démarche de déblocage",
   blocage_appreciation: "Appréciation du motif",
   reflist_add: "Liste — ajout",
@@ -61,7 +67,7 @@ const ACTION_LABEL: Record<string, string> = {
 const dt = (d: string | Date) =>
   new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
-type Section = "membres" | "catalogue" | "listes" | "parametres" | "journal";
+type Section = "membres" | "catalogue" | "listes" | "parametres" | "securite" | "journal";
 
 interface Overview {
   members: AdminMember[];
@@ -105,6 +111,7 @@ export default function AdminPage() {
     { id: "catalogue", label: "Catalogue", icon: ListTree },
     { id: "listes", label: "Listes", icon: ListChecks },
     { id: "parametres", label: "Paramètres", icon: Settings2 },
+    { id: "securite", label: "Sécurité", icon: ShieldCheck },
     { id: "journal", label: "Journal & stats", icon: Activity },
   ];
 
@@ -142,6 +149,8 @@ export default function AdminPage() {
         <ListesSection onChanged={load} setErr={setErr} />
       ) : section === "parametres" ? (
         <ParametresSection settings={over.settings} onSaved={load} setErr={setErr} />
+      ) : section === "securite" ? (
+        <SecuriteSection setErr={setErr} />
       ) : (
         <JournalSection over={over} />
       )}
@@ -313,6 +322,27 @@ function MembresSection({
                         Réinitialiser
                       </button>
                     </div>
+                  </div>
+
+                  {/* Rotation du mot de passe */}
+                  <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                    <div>
+                      <div className="text-[12px] font-medium text-slate-700">Mot de passe</div>
+                      <div className="text-[11px] text-slate-400">
+                        {u.mustChangePassword
+                          ? "Renouvellement demandé à la prochaine connexion."
+                          : u.passwordAgeDays != null
+                          ? `Défini il y a ${u.passwordAgeDays} jour(s).`
+                          : "Ancienneté inconnue."}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => call({ action: "force_password", id: u.id })}
+                      disabled={u.mustChangePassword}
+                      className="inline-flex items-center gap-1 text-[12px] text-amber-700 border border-amber-200 hover:bg-amber-50 rounded-lg px-2.5 py-1.5 disabled:opacity-50"
+                    >
+                      <RotateCcw size={13} /> {u.mustChangePassword ? "Renouvellement demandé" : "Forcer le renouvellement"}
+                    </button>
                   </div>
 
                   {/* Privilège lecture / écriture */}
@@ -677,6 +707,91 @@ function ParametresSection({ settings, onSaved, setErr }: { settings: AppSetting
       <button onClick={save} className="text-[13px] font-medium text-white bg-emerald-600 rounded-lg px-4 py-2 hover:bg-emerald-700">
         Enregistrer les paramètres
       </button>
+    </Card>
+  );
+}
+
+/* ================= Sécurité ================= */
+function SecuriteSection({ setErr }: { setErr: (e: string | null) => void }) {
+  const [sec, setSec] = useState<SecuritySettings>(DEFAULT_SECURITY);
+  const [loaded, setLoaded] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/admin/security", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (d.security) setSec(d.security); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }, []);
+
+  const save = async () => {
+    setErr(null);
+    setSaved(false);
+    const r = await fetch("/api/admin/security", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(sec),
+    });
+    const d = await r.json();
+    if (!r.ok) return setErr(d.error ?? "Erreur.");
+    if (d.security) setSec(d.security);
+    setSaved(true);
+  };
+
+  const num = (k: keyof SecuritySettings, label: string, hint: string, min: number, max: number) => (
+    <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-50">
+      <div>
+        <div className="text-[13px] text-slate-700">{label}</div>
+        <div className="text-[11px] text-slate-400">{hint}</div>
+      </div>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        value={sec[k] as number}
+        onChange={(e) => setSec({ ...sec, [k]: Number(e.target.value) })}
+        className="w-24 text-[13px] border border-slate-200 rounded-lg px-2 py-1.5 text-right"
+      />
+    </div>
+  );
+  const toggle = (k: "approvalRequired" | "hstsEnabled", label: string, hint: string) => (
+    <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-50">
+      <div>
+        <div className="text-[13px] text-slate-700">{label}</div>
+        <div className="text-[11px] text-slate-400">{hint}</div>
+      </div>
+      <button
+        onClick={() => setSec({ ...sec, [k]: !sec[k] })}
+        className={`text-[12px] rounded-lg px-3 py-1.5 border font-medium ${sec[k] ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-slate-50 border-slate-200 text-slate-500"}`}
+      >
+        {sec[k] ? "Activé" : "Désactivé"}
+      </button>
+    </div>
+  );
+
+  if (!loaded) return <Card className="p-8 text-center text-[13px] text-slate-400">Chargement…</Card>;
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <ShieldCheck size={16} className="text-emerald-600" />
+        <div className="text-[13px] font-semibold text-slate-700">Paramètres de sécurité</div>
+      </div>
+      <div className="space-y-0.5">
+        {toggle("approvalRequired", "Approbation des inscriptions", "Toute nouvelle inscription doit être validée par un administrateur.")}
+        {num("passwordMinLength", "Longueur minimale du mot de passe", "Nombre de caractères requis à l'inscription et au renouvellement.", 6, 64)}
+        {num("passwordMaxAgeDays", "Rotation du mot de passe (jours)", "Renouvellement imposé au-delà de cet âge. 0 = désactivé.", 0, 3650)}
+        {num("loginMaxAttempts", "Tentatives de connexion", "Échecs autorisés avant blocage temporaire (par compte).", 1, 50)}
+        {num("loginWindowMin", "Fenêtre de blocage (minutes)", "Durée du blocage après trop de tentatives.", 1, 240)}
+        {num("sessionDays", "Durée de session (jours)", "Expiration glissante ; un compte inactif est déconnecté au-delà.", 1, 365)}
+        {toggle("hstsEnabled", "HSTS (HTTPS strict)", "À n'activer qu'en HTTPS. Prise en compte au redémarrage du serveur.")}
+      </div>
+      <div className="flex items-center gap-3 mt-4">
+        <button onClick={save} className="text-[13px] font-medium text-white bg-emerald-600 rounded-lg px-3 py-1.5 hover:bg-emerald-700">
+          Enregistrer
+        </button>
+        {saved && <span className="text-[12px] text-emerald-600">Enregistré ✓</span>}
+      </div>
     </Card>
   );
 }

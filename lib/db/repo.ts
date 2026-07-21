@@ -40,6 +40,8 @@ interface ProfileRow {
   denied_pages: string;
   readonly: number;
   approved: number;
+  must_change_password: number;
+  password_changed_at: string | null;
 }
 
 export const parsePages = (csv: string | null | undefined): string[] =>
@@ -56,6 +58,7 @@ function mapProfile(r: ProfileRow): Profile {
     deniedPages: parsePages(r.denied_pages),
     readonly: r.readonly === 1,
     approved: r.approved === 1,
+    mustChangePassword: r.must_change_password === 1,
   };
 }
 
@@ -99,10 +102,28 @@ export function createProfile(input: {
       .toUpperCase() || input.email.slice(0, 2).toUpperCase();
   getDb()
     .prepare(
-      "insert into profiles (id, email, password_hash, full_name, initials, role, approved) values (?,?,?,?,?,?,?)"
+      "insert into profiles (id, email, password_hash, full_name, initials, role, approved, password_changed_at) values (?,?,?,?,?,?,?,datetime('now'))"
     )
     .run(id, input.email.toLowerCase(), input.passwordHash, input.fullName, initials, input.role, input.approved ? 1 : 0);
   return getProfileById(id)!;
+}
+
+/** Empreinte de mot de passe d'un compte (pour vérifier l'ancien mot de passe). */
+export function getPasswordHashById(userId: string): string | null {
+  const r = getDb().prepare("select password_hash from profiles where id = ?").get(userId) as { password_hash: string } | undefined;
+  return r?.password_hash ?? null;
+}
+
+/** Change le mot de passe : pose la date de changement et lève l'obligation de rotation. */
+export function setUserPassword(userId: string, passwordHash: string): void {
+  getDb()
+    .prepare("update profiles set password_hash = ?, password_changed_at = datetime('now'), must_change_password = 0 where id = ?")
+    .run(passwordHash, userId);
+}
+
+/** Force (ou lève) l'obligation de renouvellement du mot de passe. */
+export function setMustChangePassword(userId: string, must: boolean): void {
+  getDb().prepare("update profiles set must_change_password = ? where id = ?").run(must ? 1 : 0, userId);
 }
 
 export function updateRole(userId: string, role: Role): void {
@@ -130,10 +151,10 @@ export function listAdmins(): Profile[] {
 /* ---------- Sessions ---------- */
 const SESSION_DAYS = 30;
 
-export function createSession(userId: string): string {
+export function createSession(userId: string, days: number = SESSION_DAYS): string {
   // Jeton fort (≈ 288 bits) — rotation à chaque connexion.
   const token = randomUUID() + randomUUID().replace(/-/g, "");
-  const expires = new Date(Date.now() + SESSION_DAYS * 864e5).toISOString();
+  const expires = new Date(Date.now() + days * 864e5).toISOString();
   getDb()
     .prepare("insert into sessions (token, user_id, expires_at) values (?,?,?)")
     .run(token, userId, expires);

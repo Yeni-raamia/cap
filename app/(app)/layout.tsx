@@ -20,6 +20,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const user = await getAuthUser();
   if (!user) redirect("/login");
   if (!user.approved) redirect("/pending"); // compte en attente d'approbation admin
+  if (user.mustChangePassword) redirect("/change-password"); // renouvellement du mot de passe imposé
 
   const items = listItems();
   const profiles = listProfiles();

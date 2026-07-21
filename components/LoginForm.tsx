@@ -29,8 +29,8 @@ export function LoginForm({ firstRun }: { firstRun: boolean }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Une erreur est survenue.");
-      // Compte en attente d'approbation → page tampon dédiée.
-      router.push(data.pending ? "/pending" : "/espace");
+      // Redirection selon l'état : attente d'approbation, renouvellement imposé, ou espace.
+      router.push(data.pending ? "/pending" : data.mustChangePassword ? "/change-password" : "/espace");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");

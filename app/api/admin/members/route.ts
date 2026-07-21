@@ -5,6 +5,7 @@ import {
   countAdmins,
   createMember,
   emailExists,
+  forceMemberPasswordChange,
   listActivity,
   listMembers,
   logActivity,
@@ -120,6 +121,18 @@ export async function POST(request: Request) {
     }
     resetMemberPassword(targetId, password);
     logActivity(user.id, "member_password", nameOf(targetId));
+  } else if (action === "force_password") {
+    const target = getProfileById(targetId);
+    if (!target) return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 });
+    forceMemberPasswordChange(targetId);
+    insertNotification({
+      userId: targetId,
+      itemId: null,
+      kind: "projet",
+      message: "L'administrateur demande le renouvellement de votre mot de passe à la prochaine connexion.",
+      channel: ["in-app"],
+    });
+    logActivity(user.id, "member_force_password", nameOf(targetId));
   } else {
     return NextResponse.json({ error: "Action inconnue." }, { status: 400 });
   }

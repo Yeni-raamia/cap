@@ -4,8 +4,9 @@
  * ================================================================== */
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
-import { createProfile } from "./repo";
+import { createProfile, setMustChangePassword, setUserPassword } from "./repo";
 import { hashPassword } from "@/lib/auth/password";
+import { DEFAULT_SECURITY, type SecuritySettings } from "@/lib/domain";
 import type {
   ActivityEntry,
   AdminCounts,
@@ -37,6 +38,34 @@ export function getSettings(): AppSettings {
   };
 }
 
+/* ---------- Paramètres de sécurité (configurables) ---------- */
+const numSetting = (key: string, fallback: number) => {
+  const v = getSetting(key);
+  const n = v == null ? NaN : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+};
+export function getSecuritySettings(): SecuritySettings {
+  const d = DEFAULT_SECURITY;
+  return {
+    approvalRequired: (getSetting("sec_approval_required") ?? (d.approvalRequired ? "1" : "0")) === "1",
+    passwordMinLength: Math.max(6, Math.min(64, numSetting("sec_pw_min", d.passwordMinLength))),
+    loginMaxAttempts: Math.max(1, Math.min(50, numSetting("sec_login_max", d.loginMaxAttempts))),
+    loginWindowMin: Math.max(1, Math.min(240, numSetting("sec_login_window", d.loginWindowMin))),
+    sessionDays: Math.max(1, Math.min(365, numSetting("sec_session_days", d.sessionDays))),
+    passwordMaxAgeDays: Math.max(0, Math.min(3650, numSetting("sec_pw_max_age", d.passwordMaxAgeDays))),
+    hstsEnabled: (getSetting("sec_hsts") ?? (d.hstsEnabled ? "1" : "0")) === "1",
+  };
+}
+export function setSecuritySettings(p: Partial<SecuritySettings>): void {
+  if (p.approvalRequired !== undefined) setSetting("sec_approval_required", p.approvalRequired ? "1" : "0");
+  if (p.passwordMinLength !== undefined) setSetting("sec_pw_min", String(p.passwordMinLength));
+  if (p.loginMaxAttempts !== undefined) setSetting("sec_login_max", String(p.loginMaxAttempts));
+  if (p.loginWindowMin !== undefined) setSetting("sec_login_window", String(p.loginWindowMin));
+  if (p.sessionDays !== undefined) setSetting("sec_session_days", String(p.sessionDays));
+  if (p.passwordMaxAgeDays !== undefined) setSetting("sec_pw_max_age", String(p.passwordMaxAgeDays));
+  if (p.hstsEnabled !== undefined) setSetting("sec_hsts", p.hstsEnabled ? "1" : "0");
+}
+
 /* ---------- Membres ---------- */
 interface MemberRow {
   id: string;
@@ -50,9 +79,13 @@ interface MemberRow {
   denied_pages: string;
   readonly: number;
   approved: number;
+  must_change_password: number;
+  password_changed_at: string | null;
 }
 const csv = (s: string | null | undefined) => (s ?? "").split(",").map((x) => x.trim()).filter(Boolean);
 function mapMember(r: MemberRow): AdminMember {
+  const changed = r.password_changed_at ? new Date(r.password_changed_at).getTime() : null;
+  const passwordAgeDays = changed != null ? Math.floor((Date.now() - changed) / 864e5) : null;
   return {
     id: r.id,
     nom: r.full_name,
@@ -65,6 +98,8 @@ function mapMember(r: MemberRow): AdminMember {
     deniedPages: csv(r.denied_pages),
     readonly: r.readonly === 1,
     approved: r.approved === 1,
+    mustChangePassword: r.must_change_password === 1,
+    passwordAgeDays,
   };
 }
 
@@ -106,8 +141,12 @@ export function setMemberReadonly(id: string, readonly: boolean): void {
   getDb().prepare("update profiles set readonly = ? where id = ?").run(readonly ? 1 : 0, id);
 }
 export function resetMemberPassword(id: string, password: string): void {
-  getDb().prepare("update profiles set password_hash = ? where id = ?").run(hashPassword(password), id);
-  deleteSessionsForUser(id);
+  setUserPassword(id, hashPassword(password)); // pose la date de changement + lève l'obligation
+  deleteSessionsForUser(id); // déconnexion des sessions existantes
+}
+/** Force l'utilisateur à renouveler son mot de passe (rotation à la demande de l'admin). */
+export function forceMemberPasswordChange(id: string): void {
+  setMustChangePassword(id, true);
 }
 export function deleteSessionsForUser(id: string): void {
   getDb().prepare("delete from sessions where user_id = ?").run(id);
