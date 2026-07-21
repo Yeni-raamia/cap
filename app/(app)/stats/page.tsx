@@ -20,7 +20,19 @@ import { RapportPdf } from "@/components/RapportPdf";
 const box = "bg-white border border-slate-200 rounded-xl p-4";
 
 export default function StatsPage() {
-  const { items, profiles, catalogue, now, projects } = useApp();
+  const { items, profiles, catalogue, now, projects, theme } = useApp();
+  const dark = theme === "dark";
+  const grid = dark ? "#1e293b" : "#eef2f6";
+  const tick = { fontSize: 11, fill: dark ? "#94a3b8" : "#64748b" };
+  const tip = {
+    contentStyle: {
+      background: dark ? "#0f172a" : "#ffffff",
+      border: `1px solid ${dark ? "#1e293b" : "#e2e8f0"}`,
+      borderRadius: 8,
+      fontSize: 12,
+    },
+    labelStyle: { color: dark ? "#e2e8f0" : "#0f172a" },
+  };
   const agents = profiles.filter((u) => u.role === "agent");
   const bd = computeBreakdowns(items, profiles, now, catalogue.types);
   const maxCause = Math.max(1, ...bd.causes.map((c) => c.n));
@@ -57,10 +69,10 @@ export default function StatsPage() {
           <div className="text-[13px] font-semibold text-slate-700 mb-3">Volume par métier</div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={parMetier}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef2f6" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
+              <XAxis dataKey="name" tick={tick} />
+              <YAxis tick={tick} allowDecimals={false} />
+              <Tooltip {...tip} />
               <Bar dataKey="v" radius={[4, 4, 0, 0]} fill="#1FA07A" />
             </BarChart>
           </ResponsiveContainer>
@@ -72,10 +84,10 @@ export default function StatsPage() {
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={parAgent}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef2f6" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} domain={[0, 100]} />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
+              <XAxis dataKey="name" tick={tick} />
+              <YAxis tick={tick} domain={[0, 100]} />
+              <Tooltip {...tip} />
               <Bar dataKey="taux" radius={[4, 4, 0, 0]}>
                 {parAgent.map((e, i) => (
                   <Cell
@@ -94,10 +106,10 @@ export default function StatsPage() {
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={relances}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef2f6" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
+              <XAxis dataKey="name" tick={tick} />
+              <YAxis tick={tick} allowDecimals={false} />
+              <Tooltip {...tip} />
               <Bar dataKey="v" radius={[4, 4, 0, 0]} fill="#3E7CB1" />
             </BarChart>
           </ResponsiveContainer>
