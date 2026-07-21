@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   AlertOctagon,
   Bell,
+  CheckCircle2,
   CheckSquare,
   Command,
   FolderKanban,
@@ -21,6 +22,7 @@ import { fmt, fmtLong, greeting, isTaskOpen, projectMetrics, subtaskProgress, TA
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
 import { CountUp, Sparkline } from "@/components/dataviz";
+import { EmptyState } from "@/components/EmptyState";
 import { ItemCard } from "@/components/ItemCard";
 import { SuiviExplorer } from "@/components/SuiviExplorer";
 
@@ -137,9 +139,9 @@ export default function MonEspacePage() {
       {/* Ce qui t'attend */}
       <Section icon={Bell} title="Ce qui t'attend" count={attends.length} tone="text-amber-500">
         {attends.length === 0 ? (
-          <Card className="p-6 text-center text-[13px] text-slate-400">Rien ne t&apos;attend. Tout est à jour.</Card>
+          <Card><EmptyState icon={CheckCircle2} title="Tout est à jour" subtitle="Rien ne t'attend pour l'instant — profites-en." compact /></Card>
         ) : (
-          <div className="space-y-3">{attends.map((i) => <ItemCard key={i.id} item={i} />)}</div>
+          <div className="space-y-3 stagger">{attends.map((i) => <ItemCard key={i.id} item={i} />)}</div>
         )}
       </Section>
 
@@ -314,7 +316,18 @@ export default function MonEspacePage() {
       <div>
         <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide mb-2">Mes suivis de mail</h2>
         {mine.length === 0 ? (
-          <Card className="p-6 text-center text-[13px] text-slate-400">Aucun suivi de mail. Crée-en un pour commencer.</Card>
+          <Card>
+            <EmptyState
+              icon={Inbox}
+              title="Aucun suivi de mail"
+              subtitle="Crée ton premier suivi de mail pour commencer à tout tracer."
+              action={
+                <button onClick={() => setShowNew(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                  <Plus size={15} /> Nouveau suivi de mail
+                </button>
+              }
+            />
+          </Card>
         ) : (
           <SuiviExplorer items={mine} showResponsable={false} defaultView="cartes" />
         )}

@@ -736,10 +736,23 @@ export function AppProvider({
   const decideProjectStatus = async (id: string, approve: boolean) =>
     demo ? DEMO_MSG : postProjects("/api/projects/status", { op: "decide", id, approve });
   // Demande de clôture d'un projet (agent) + décision (manager/directeur).
-  const requestProjectClosure = async (id: string, summary: string, deliverables: string[]) =>
-    demo ? DEMO_MSG : postProjects("/api/projects/closure", { op: "request", id, summary, deliverables });
-  const decideProjectClosure = async (id: string, approve: boolean, note = "") =>
-    demo ? DEMO_MSG : postProjects("/api/projects/closure", { op: "decide", id, approve, note });
+  const requestProjectClosure = async (id: string, summary: string, deliverables: string[]) => {
+    if (demo) return DEMO_MSG;
+    const e = await postProjects("/api/projects/closure", { op: "request", id, summary, deliverables });
+    if (!e) toast("Demande de clôture envoyée.", "success");
+    return e;
+  };
+  const decideProjectClosure = async (id: string, approve: boolean, note = "") => {
+    if (demo) return DEMO_MSG;
+    const e = await postProjects("/api/projects/closure", { op: "decide", id, approve, note });
+    if (!e) {
+      if (approve) {
+        fireConfetti();
+        toast("Projet clôturé 🎉", "success");
+      } else toast("Demande de clôture refusée.", "info");
+    }
+    return e;
+  };
 
   /* ---------- Tâches (productivité) ---------- */
   const refreshTasks = async () => {

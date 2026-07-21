@@ -11,6 +11,7 @@ import { Drawer } from "./Drawer";
 import { NewSuiviModal } from "./NewSuiviModal";
 import { TaskModal } from "./TaskModal";
 import { CommandPalette } from "./CommandPalette";
+import { Toasts } from "./Toasts";
 
 function Shell({ children }: { children: ReactNode }) {
   const { me, ready } = useApp();
@@ -51,6 +52,7 @@ function Shell({ children }: { children: ReactNode }) {
       <NewSuiviModal />
       <TaskModal />
       <CommandPalette />
+      <Toasts />
     </div>
   );
 }

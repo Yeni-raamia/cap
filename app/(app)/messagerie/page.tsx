@@ -5,6 +5,7 @@ import { AlertOctagon, FolderKanban, Inbox, MessageSquare, Plus, Trash2, UserRou
 import { type ConversationSummary } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
+import { EmptyState } from "@/components/EmptyState";
 import { PageHero } from "@/components/PageHero";
 import { Discussion } from "@/components/Discussion";
 
@@ -183,7 +184,9 @@ export default function MessageriePage() {
               <Discussion target={{ convId: selected.id }} height="h-[60vh]" />
             </>
           ) : (
-            <div className="text-[13px] text-slate-400 text-center py-24">Sélectionne une conversation.</div>
+            <div className="py-16">
+              <EmptyState icon={MessageSquare} title="Aucune conversation ouverte" subtitle="Sélectionne une conversation à gauche, ou démarre un message privé." />
+            </div>
           )}
         </Card>
       </div>
