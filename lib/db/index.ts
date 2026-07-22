@@ -82,6 +82,19 @@ create table if not exists project_closure_requests (
   created_at text not null default (datetime('now')), decided_at text
 );
 create index if not exists idx_closure_project on project_closure_requests(project_id);
+create table if not exists objectives (
+  id text primary key, title text not null, description text not null default '',
+  start_date text not null, end_date text not null, owner_id text,
+  color text not null default '#10b981', status text not null default 'planifie',
+  downgrade_reason text not null default '', downgraded_by text, downgraded_at text,
+  created_by text, created_at text not null default (datetime('now'))
+);
+create table if not exists objective_projects ( objective_id text not null, project_id text not null );
+create table if not exists objective_tasks ( objective_id text not null, task_id text not null );
+create table if not exists objective_members ( objective_id text not null, profile_id text not null );
+create index if not exists idx_objproj on objective_projects(objective_id);
+create index if not exists idx_objtask on objective_tasks(objective_id);
+create index if not exists idx_objmem on objective_members(objective_id);
 create index if not exists idx_tasks_project on project_tasks(project_id);
 create index if not exists idx_pmembers_project on project_members(project_id);
 create index if not exists idx_pnotes_project on project_notes(project_id);

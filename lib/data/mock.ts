@@ -14,10 +14,38 @@ import {
   type Priorite,
   type Profile,
   type Project,
+  type Objective,
   type Statut,
   type TimelineEvent,
   type EventKind,
 } from "../domain";
+
+/* ---------- Plan de l'année de démonstration ---------- */
+export function seedObjectives(): Objective[] {
+  const y = new Date().getFullYear();
+  const d = (m: number, day: number) => new Date(y, m, day);
+  const base = (o: Partial<Objective> & { id: string; title: string; startDate: Date; endDate: Date; color: string }): Objective => ({
+    description: "",
+    ownerId: "u1",
+    status: "en_cours",
+    projectIds: [],
+    taskIds: [],
+    memberIds: [],
+    downgradeReason: "",
+    downgradedBy: null,
+    downgradedAt: null,
+    createdBy: "u1",
+    createdAt: d(0, 5),
+    ...o,
+  });
+  return [
+    base({ id: "o1", title: "Moderniser la supervision (SIEM)", startDate: d(0, 15), endDate: d(4, 30), color: "#0ea5e9", ownerId: "u6", projectIds: ["demo-p1"], memberIds: ["u4", "u6"], status: "en_cours" }),
+    base({ id: "o2", title: "Durcir l'annuaire & les accès", startDate: d(2, 1), endDate: d(6, 15), color: "#8b5cf6", ownerId: "u3", projectIds: ["demo-p2"], memberIds: ["u3", "u6"] }),
+    base({ id: "o3", title: "Certification ISO 27001", startDate: d(1, 1), endDate: d(11, 20), color: "#10b981", ownerId: "u1", memberIds: ["u2", "u3"], status: "en_cours" }),
+    base({ id: "o4", title: "Programme de sensibilisation", startDate: d(3, 10), endDate: d(8, 30), color: "#f59e0b", ownerId: "u5", memberIds: ["u5"], status: "planifie" }),
+    base({ id: "o5", title: "Refonte du plan de continuité", startDate: d(5, 1), endDate: d(9, 30), color: "#f43f5e", ownerId: "u2", status: "declasse", downgradeReason: "Priorité reportée : ressources mobilisées sur la certification.", downgradedBy: "u1", downgradedAt: d(5, 20) }),
+  ];
+}
 
 /* ---------- Équipe de démonstration (neutre) ---------- */
 export const PROFILES: Profile[] = [

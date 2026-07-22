@@ -6,6 +6,7 @@ import { getAuthUser } from "@/lib/auth/session";
 import { getCatalogue, listItems, listNotificationsFor, listProfiles } from "@/lib/db/repo";
 import { listProjects } from "@/lib/db/projects";
 import { listTasks } from "@/lib/db/tasks";
+import { listObjectives } from "@/lib/db/objectives";
 import { listNegligences } from "@/lib/db/negligences";
 import { listConversationsFor } from "@/lib/db/messaging";
 import { getRefLists, getSettings } from "@/lib/db/admin";
@@ -32,6 +33,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const negligences = listNegligences();
   const conversations = listConversationsFor(user.id);
   const tasks = listTasks();
+  const objectives = listObjectives();
 
   return (
     <AppShell
@@ -46,6 +48,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialNegligences={negligences}
       initialConversations={conversations}
       initialTasks={tasks}
+      initialObjectives={objectives}
     >
       {children}
     </AppShell>

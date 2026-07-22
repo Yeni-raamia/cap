@@ -655,6 +655,68 @@ export function projectMetrics(p: Project, now: Date): ProjectMetrics {
 /** Un projet archivé (terminé ou annulé) est masqué de la liste active. */
 export const isProjectArchived = (p: Project): boolean => p.status === "Terminé" || p.status === "Annulé";
 
+/* ---------- Plan de l'année (objectifs annuels) ---------- */
+export type ObjectiveStatus = "planifie" | "en_cours" | "atteint" | "declasse";
+export const OBJECTIVE_STATUTS: ObjectiveStatus[] = ["planifie", "en_cours", "atteint", "declasse"];
+export const OBJECTIVE_STATUT_LABEL: Record<ObjectiveStatus, string> = {
+  planifie: "Planifié",
+  en_cours: "En cours",
+  atteint: "Atteint",
+  declasse: "Déclassé",
+};
+/** Palette de couleurs pour les objectifs (accents de la timeline). */
+export const OBJECTIVE_COLORS = ["#10b981", "#0ea5e9", "#8b5cf6", "#f59e0b", "#f43f5e", "#14b8a6", "#6366f1", "#ec4899"];
+
+export interface Objective {
+  id: string;
+  title: string;
+  description: string;
+  startDate: Date;
+  endDate: Date;
+  ownerId: string;
+  color: string;
+  status: ObjectiveStatus;
+  projectIds: string[];
+  taskIds: string[];
+  memberIds: string[];
+  downgradeReason: string;
+  downgradedBy: string | null;
+  downgradedAt: Date | null;
+  createdBy: string | null;
+  createdAt: Date;
+}
+
+/** Avancement automatique d'un objectif, dérivé des projets et tâches liés. */
+export function objectiveProgress(o: Objective, projects: Project[], tasks: Task[], now: Date): number {
+  if (o.status === "atteint") return 100;
+  const units: number[] = [];
+  projects.filter((p) => o.projectIds.includes(p.id)).forEach((p) => units.push(projectMetrics(p, now).progress));
+  tasks.filter((t) => o.taskIds.includes(t.id)).forEach((t) => units.push(t.status === "fait" ? 100 : t.status === "en cours" ? 40 : 0));
+  if (units.length === 0) return 0;
+  return Math.round(units.reduce((s, v) => s + v, 0) / units.length);
+}
+
+/** Fraction de la période écoulée (0..100). */
+export function objectiveTimePct(o: Objective, now: Date): number {
+  const start = o.startDate.getTime();
+  const end = o.endDate.getTime();
+  if (now.getTime() <= start) return 0;
+  if (now.getTime() >= end) return 100;
+  return Math.round(((now.getTime() - start) / (end - start)) * 100);
+}
+
+export type ObjectiveHealth = "planned" | "on_track" | "at_risk" | "late" | "done" | "downgraded";
+/** Santé d'un objectif : en avance/à l'heure, à risque, en retard… */
+export function objectiveHealth(o: Objective, progress: number, now: Date): ObjectiveHealth {
+  if (o.status === "atteint") return "done";
+  if (o.status === "declasse") return "downgraded";
+  if (now.getTime() < o.startDate.getTime()) return "planned";
+  const timePct = objectiveTimePct(o, now);
+  if (now.getTime() > o.endDate.getTime() && progress < 100) return "late";
+  if (progress < timePct - 20) return "at_risk";
+  return "on_track";
+}
+
 /* ---------- Productivité ---------- */
 export const isTaskOpen = (t: Task): boolean => t.status !== "fait";
 export const isTaskLate = (t: Task, now: Date): boolean =>

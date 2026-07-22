@@ -15,6 +15,7 @@ export const NAV: NavItem[] = [
   { id: "global", href: "/global", label: "Vue globale", icon: "Users", roles: ["agent", "manager", "directeur", "admin", "dsi"] },
   { id: "projets", href: "/projets", label: "Projets", icon: "FolderKanban", roles: ["agent", "manager", "directeur", "admin"] },
   { id: "productivite", href: "/productivite", label: "Productivité", icon: "Activity", roles: ["agent", "manager", "directeur", "admin"] },
+  { id: "plan", href: "/plan", label: "Plan de l'année", icon: "CalendarRange", roles: ["agent", "manager", "directeur", "admin"] },
   { id: "blocages", href: "/blocages", label: "Ce qui ne bouge pas", icon: "AlertTriangle", roles: ["manager", "directeur", "admin"] },
   { id: "negligences", href: "/negligences", label: "Négligences", icon: "AlertOctagon", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "stats", href: "/stats", label: "Statistiques", icon: "BarChart3", roles: ["manager", "directeur", "admin", "dsi"] },

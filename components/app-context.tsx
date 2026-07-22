@@ -16,6 +16,7 @@ import {
   addBlocageAction as mockAddBlocageAction,
   setAppreciation as mockSetAppreciation,
   seedProjects,
+  seedObjectives,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -31,6 +32,7 @@ import {
   type ConversationSummary,
   type Message,
   type Negligence,
+  type Objective,
   type RefLists,
   type Catalogue,
   type Item,
@@ -181,6 +183,9 @@ interface AppCtx {
   // Tâches (productivité)
   tasks: Task[];
   taskAction: (op: "create" | "update" | "delete", input: TaskInput) => Promise<string | null>;
+  // Plan de l'année (objectifs)
+  objectives: Objective[];
+  objectiveAction: (op: "create" | "update" | "downgrade" | "achieve" | "delete", input: Record<string, unknown>) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -254,6 +259,14 @@ const reviveTask = (t: Task): Task => ({
   subtasks: t.subtasks ?? [],
 });
 const reviveTasks = (arr: Task[]): Task[] => arr.map(reviveTask);
+const reviveObjective = (o: Objective): Objective => ({
+  ...o,
+  startDate: new Date(o.startDate),
+  endDate: new Date(o.endDate),
+  downgradedAt: o.downgradedAt ? new Date(o.downgradedAt) : null,
+  createdAt: new Date(o.createdAt),
+});
+const reviveObjectives = (arr: Objective[]): Objective[] => arr.map(reviveObjective);
 
 /* Bip sonore court via Web Audio (aucun fichier requis, marche hors-ligne). */
 function playBeep() {
@@ -292,6 +305,7 @@ export function AppProvider({
   initialNegligences,
   initialConversations,
   initialTasks,
+  initialObjectives,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -306,6 +320,7 @@ export function AppProvider({
   initialNegligences?: Negligence[];
   initialConversations?: ConversationSummary[];
   initialTasks?: Task[];
+  initialObjectives?: Objective[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -332,6 +347,7 @@ export function AppProvider({
     demo ? seedProjects() : reviveProjects(initialProjects ?? [])
   );
   const [tasks, setTasks] = useState<Task[]>(demo ? [] : reviveTasks(initialTasks ?? []));
+  const [objectives, setObjectives] = useState<Objective[]>(demo ? seedObjectives() : reviveObjectives(initialObjectives ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [theme, setThemeState] = useState<"light" | "dark">("light");
@@ -791,6 +807,27 @@ export function AppProvider({
     return null;
   };
 
+  /* ---------- Plan de l'année (objectifs) ---------- */
+  const objectiveAction = async (op: "create" | "update" | "downgrade" | "achieve" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Plan de l'année indisponible en mode démo.";
+    const res = await fetch("/api/objectives", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, ...input }),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      toast(d.error ?? "Erreur.", "error");
+      return d.error ?? "Erreur.";
+    }
+    if (d.objectives) setObjectives(reviveObjectives(d.objectives));
+    if (op === "achieve") {
+      fireConfetti();
+      toast("Objectif atteint 🎯", "success");
+    } else if (op === "create") toast("Objectif ajouté au plan de l'année.", "success");
+    return null;
+  };
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -1000,6 +1037,8 @@ export function AppProvider({
     tasks,
     taskAction,
     subtaskAction,
+    objectives,
+    objectiveAction,
     openTaskId,
     setOpenTaskId,
     soundEnabled,
