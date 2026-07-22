@@ -667,6 +667,13 @@ export const OBJECTIVE_STATUT_LABEL: Record<ObjectiveStatus, string> = {
 /** Palette de couleurs pour les objectifs (accents de la timeline). */
 export const OBJECTIVE_COLORS = ["#10b981", "#0ea5e9", "#8b5cf6", "#f59e0b", "#f43f5e", "#14b8a6", "#6366f1", "#ec4899"];
 
+export interface Milestone {
+  id: string;
+  label: string;
+  date: Date;
+  done: boolean;
+}
+
 export interface Objective {
   id: string;
   title: string;
@@ -679,6 +686,7 @@ export interface Objective {
   projectIds: string[];
   taskIds: string[];
   memberIds: string[];
+  milestones: Milestone[];
   downgradeReason: string;
   downgradedBy: string | null;
   downgradedAt: Date | null;

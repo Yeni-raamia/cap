@@ -3,7 +3,9 @@
  * ================================================================== */
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
-import type { Objective, ObjectiveStatus } from "@/lib/domain";
+import type { Milestone, Objective, ObjectiveStatus } from "@/lib/domain";
+
+export interface MilestoneInput { label: string; date: string; done?: boolean }
 
 const now = () => new Date().toISOString();
 
@@ -29,6 +31,7 @@ export function listObjectives(): Objective[] {
   const projs = db.prepare("select * from objective_projects").all() as { objective_id: string; project_id: string }[];
   const tks = db.prepare("select * from objective_tasks").all() as { objective_id: string; task_id: string }[];
   const mems = db.prepare("select * from objective_members").all() as { objective_id: string; profile_id: string }[];
+  const miles = db.prepare("select * from objective_milestones order by date").all() as { id: string; objective_id: string; label: string; date: string; done: number }[];
   return rows.map((r) => ({
     id: r.id,
     title: r.title,
@@ -41,6 +44,9 @@ export function listObjectives(): Objective[] {
     projectIds: projs.filter((x) => x.objective_id === r.id).map((x) => x.project_id),
     taskIds: tks.filter((x) => x.objective_id === r.id).map((x) => x.task_id),
     memberIds: mems.filter((x) => x.objective_id === r.id).map((x) => x.profile_id),
+    milestones: miles
+      .filter((x) => x.objective_id === r.id)
+      .map((x): Milestone => ({ id: x.id, label: x.label, date: new Date(x.date), done: x.done === 1 })),
     downgradeReason: r.downgrade_reason,
     downgradedBy: r.downgraded_by,
     downgradedAt: r.downgraded_at ? new Date(r.downgraded_at) : null,
@@ -64,6 +70,7 @@ export function createObjective(input: {
   projectIds?: string[];
   taskIds?: string[];
   memberIds?: string[];
+  milestones?: MilestoneInput[];
 }): string {
   const id = randomUUID();
   const db = getDb();
@@ -73,6 +80,7 @@ export function createObjective(input: {
   setLinks(id, "objective_projects", "project_id", input.projectIds ?? []);
   setLinks(id, "objective_tasks", "task_id", input.taskIds ?? []);
   setLinks(id, "objective_members", "profile_id", input.memberIds ?? []);
+  setMilestones(id, input.milestones ?? []);
   return id;
 }
 
@@ -81,6 +89,13 @@ function setLinks(objId: string, table: string, col: string, ids: string[]): voi
   db.prepare(`delete from ${table} where objective_id=?`).run(objId);
   const ins = db.prepare(`insert into ${table} (objective_id, ${col}) values (?,?)`);
   [...new Set(ids)].filter(Boolean).forEach((v) => ins.run(objId, v));
+}
+
+function setMilestones(objId: string, ms: MilestoneInput[]): void {
+  const db = getDb();
+  db.prepare("delete from objective_milestones where objective_id=?").run(objId);
+  const ins = db.prepare("insert into objective_milestones (id, objective_id, label, date, done) values (?,?,?,?,?)");
+  ms.filter((m) => m.label?.trim() && m.date).forEach((m) => ins.run(randomUUID(), objId, m.label.trim(), m.date, m.done ? 1 : 0));
 }
 
 export function updateObjective(
@@ -96,6 +111,7 @@ export function updateObjective(
     projectIds?: string[];
     taskIds?: string[];
     memberIds?: string[];
+    milestones?: MilestoneInput[];
   }
 ): void {
   const db = getDb();
@@ -116,6 +132,7 @@ export function updateObjective(
   if (fields.projectIds) setLinks(id, "objective_projects", "project_id", fields.projectIds);
   if (fields.taskIds) setLinks(id, "objective_tasks", "task_id", fields.taskIds);
   if (fields.memberIds) setLinks(id, "objective_members", "profile_id", fields.memberIds);
+  if (fields.milestones) setMilestones(id, fields.milestones);
 }
 
 /** Déclasse un objectif avec un motif (ou annule le déclassement si reason vide). */
@@ -135,5 +152,6 @@ export function deleteObjective(id: string): void {
   db.prepare("delete from objective_projects where objective_id=?").run(id);
   db.prepare("delete from objective_tasks where objective_id=?").run(id);
   db.prepare("delete from objective_members where objective_id=?").run(id);
+  db.prepare("delete from objective_milestones where objective_id=?").run(id);
   db.prepare("delete from objectives where id=?").run(id);
 }

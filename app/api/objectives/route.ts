@@ -31,6 +31,12 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const op: string = body?.op;
   const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === "string") : []);
+  const parseMilestones = (v: unknown): { label: string; date: string; done: boolean }[] =>
+    Array.isArray(v)
+      ? v
+          .map((m) => ({ label: String(m?.label || "").trim(), date: toIso(m?.date) ?? "", done: Boolean(m?.done) }))
+          .filter((m) => m.label && m.date)
+      : [];
 
   if (op === "create") {
     const title = String(body?.title || "").trim();
@@ -49,6 +55,7 @@ export async function POST(request: Request) {
       projectIds: arr(body?.projectIds),
       taskIds: arr(body?.taskIds),
       memberIds: arr(body?.memberIds),
+      milestones: parseMilestones(body?.milestones),
     });
     logActivity(user.id, "objectif.creation", title);
     return NextResponse.json({ objectives: listObjectives() });
@@ -69,6 +76,7 @@ export async function POST(request: Request) {
       projectIds: body?.projectIds !== undefined ? arr(body.projectIds) : undefined,
       taskIds: body?.taskIds !== undefined ? arr(body.taskIds) : undefined,
       memberIds: body?.memberIds !== undefined ? arr(body.memberIds) : undefined,
+      milestones: body?.milestones !== undefined ? parseMilestones(body.milestones) : undefined,
     });
   } else if (op === "downgrade") {
     const reason = String(body?.reason || "").trim();

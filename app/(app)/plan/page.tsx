@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarRange, ChevronLeft, ChevronRight, Flag, Plane, Plus, Target, TrendingDown } from "lucide-react";
+import { CalendarRange, ChevronLeft, ChevronRight, FileDown, Flag, Plane, Plus, Target, TrendingDown } from "lucide-react";
 import {
   fmt,
   objectiveHealth,
@@ -17,6 +17,7 @@ import { CountUp, Ring } from "@/components/dataviz";
 import { PageHero } from "@/components/PageHero";
 import { EmptyState } from "@/components/EmptyState";
 import { ObjectiveModal } from "@/components/ObjectiveModal";
+import { RoadmapPrint } from "@/components/RoadmapPrint";
 
 const MONTHS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
 
@@ -32,14 +33,21 @@ const HEALTH: Record<ObjectiveHealth, { label: string; color: string; text: stri
 export default function PlanPage() {
   const { objectives, projects, tasks, me, now, profileById, demo } = useApp();
   const [year, setYear] = useState(now.getFullYear());
+  const [quarter, setQuarter] = useState<number | null>(null); // null = année entière
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [printing, setPrinting] = useState(false);
 
   const canManage = !demo && ["manager", "directeur", "admin"].includes(me.role);
 
   const yearStart = new Date(year, 0, 1).getTime();
   const yearEnd = new Date(year, 11, 31, 23, 59, 59).getTime();
-  const yearMs = yearEnd - yearStart;
+
+  // Fenêtre affichée : année entière ou un trimestre.
+  const winStart = quarter === null ? yearStart : new Date(year, quarter * 3, 1).getTime();
+  const winEnd = quarter === null ? yearEnd : new Date(year, quarter * 3 + 3, 0, 23, 59, 59).getTime();
+  const winMs = winEnd - winStart;
+  const winMonths = quarter === null ? MONTHS : MONTHS.slice(quarter * 3, quarter * 3 + 3);
 
   // Objectifs qui recoupent l'année sélectionnée, triés par début.
   const shown = useMemo(
@@ -63,7 +71,8 @@ export default function PlanPage() {
     avg: rows.length ? Math.round(rows.reduce((s, r) => s + r.progress, 0) / rows.length) : 0,
   };
 
-  const todayPct = now.getFullYear() === year ? ((now.getTime() - yearStart) / yearMs) * 100 : -1;
+  const todayPct = now.getTime() >= winStart && now.getTime() <= winEnd ? ((now.getTime() - winStart) / winMs) * 100 : -1;
+  const visibleRows = rows.filter((r) => r.o.startDate.getTime() <= winEnd && r.o.endDate.getTime() >= winStart);
 
   const openObj = openId ? objectives.find((o) => o.id === openId) ?? null : null;
 
@@ -75,12 +84,21 @@ export default function PlanPage() {
         title="Plan de l'année"
         subtitle="Les grands objectifs de l'année, comme un plan de vol : d'où l'on part, où l'on va, et les turbulences."
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5 text-[12px]">
+              <button onClick={() => setQuarter(null)} className={`px-2 py-1 rounded-md font-medium transition ${quarter === null ? "bg-emerald-600 text-white" : "text-slate-500 hover:text-slate-700"}`}>Année</button>
+              {[0, 1, 2, 3].map((q) => (
+                <button key={q} onClick={() => setQuarter(q)} className={`px-2 py-1 rounded-md font-medium transition ${quarter === q ? "bg-emerald-600 text-white" : "text-slate-500 hover:text-slate-700"}`}>T{q + 1}</button>
+              ))}
+            </div>
             <div className="inline-flex items-center gap-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-1">
               <button onClick={() => setYear((y) => y - 1)} aria-label="Année précédente" className="p-1.5 text-slate-500 hover:text-slate-800"><ChevronLeft size={16} /></button>
               <span className="text-[13px] font-bold text-slate-800 tabular-nums w-12 text-center">{year}</span>
               <button onClick={() => setYear((y) => y + 1)} aria-label="Année suivante" className="p-1.5 text-slate-500 hover:text-slate-800"><ChevronRight size={16} /></button>
             </div>
+            <button onClick={() => { setPrinting(true); setTimeout(() => { window.print(); setPrinting(false); }, 60); }} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+              <FileDown size={15} /> PDF
+            </button>
             {canManage && (
               <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
                 <Plus size={16} /> Objectif
@@ -108,17 +126,19 @@ export default function PlanPage() {
       <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft p-5 overflow-hidden">
         <div className="flex items-center gap-2 mb-4">
           <Plane size={16} className="text-emerald-500 -rotate-45" />
-          <h2 className="text-[14px] font-bold text-slate-800">Plan de vol {year}</h2>
+          <h2 className="text-[14px] font-bold text-slate-800">Plan de vol {year}{quarter !== null && ` · T${quarter + 1}`}</h2>
         </div>
 
         {rows.length === 0 ? (
           <EmptyState icon={CalendarRange} title="Aucun objectif pour cette année" subtitle={canManage ? "Ajoute un premier objectif pour tracer le cap." : "Les objectifs seront définis par un manager."} action={canManage ? <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft"><Plus size={15} /> Nouvel objectif</button> : undefined} />
+        ) : visibleRows.length === 0 ? (
+          <div className="text-[13px] text-slate-400 text-center py-8">Aucun objectif sur ce trimestre.</div>
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[720px]">
               {/* En-tête des mois */}
               <div className="flex pl-[210px] pr-2 relative">
-                {MONTHS.map((m, i) => (
+                {winMonths.map((m, i) => (
                   <div key={i} className="flex-1 text-[10px] font-medium text-slate-400 text-center uppercase tracking-wide">{m}</div>
                 ))}
               </div>
@@ -133,11 +153,11 @@ export default function PlanPage() {
                   </div>
                 )}
 
-                {rows.map(({ o, progress, health }) => {
-                  const cs = Math.max(o.startDate.getTime(), yearStart);
-                  const ce = Math.min(o.endDate.getTime(), yearEnd);
-                  const left = ((cs - yearStart) / yearMs) * 100;
-                  const width = Math.max(2, ((ce - cs) / yearMs) * 100);
+                {visibleRows.map(({ o, progress, health }) => {
+                  const cs = Math.max(o.startDate.getTime(), winStart);
+                  const ce = Math.min(o.endDate.getTime(), winEnd);
+                  const left = ((cs - winStart) / winMs) * 100;
+                  const width = Math.max(2, ((ce - cs) / winMs) * 100);
                   const owner = profileById(o.ownerId);
                   const hc = HEALTH[health];
                   const downgraded = o.status === "declasse";
@@ -158,9 +178,21 @@ export default function PlanPage() {
                       {/* Piste */}
                       <div className="relative flex-1 h-full">
                         {/* Lignes de mois */}
-                        {Array.from({ length: 11 }, (_, i) => (
-                          <div key={i} className="absolute inset-y-0 w-px bg-slate-100 dark:bg-slate-800" style={{ left: `${((i + 1) / 12) * 100}%` }} />
+                        {Array.from({ length: winMonths.length - 1 }, (_, i) => (
+                          <div key={i} className="absolute inset-y-0 w-px bg-slate-100 dark:bg-slate-800" style={{ left: `${((i + 1) / winMonths.length) * 100}%` }} />
                         ))}
+                        {/* Jalons */}
+                        {o.milestones.filter((m) => m.date.getTime() >= winStart && m.date.getTime() <= winEnd).map((m) => {
+                          const mLeft = ((m.date.getTime() - winStart) / winMs) * 100;
+                          return (
+                            <span
+                              key={m.id}
+                              title={`${m.label} · ${m.date.toLocaleDateString("fr-FR")}${m.done ? " ✓" : ""}`}
+                              className="absolute top-1/2 z-[1] h-2.5 w-2.5 rotate-45 border -translate-x-1/2 -translate-y-1/2"
+                              style={{ left: `${mLeft}%`, background: m.done ? o.color : "#fff", borderColor: o.color }}
+                            />
+                          );
+                        })}
                         {/* Barre de l'objectif */}
                         <div
                           className="absolute top-1/2 -translate-y-1/2 h-5 rounded-full flex items-center shadow-soft transition-transform group-hover:scale-y-110"
@@ -213,6 +245,8 @@ export default function PlanPage() {
           }}
         />
       )}
+
+      {printing && <RoadmapPrint year={year} rows={rows.map(({ o, progress }) => ({ o, progress }))} />}
     </div>
   );
 }

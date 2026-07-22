@@ -265,6 +265,7 @@ const reviveObjective = (o: Objective): Objective => ({
   endDate: new Date(o.endDate),
   downgradedAt: o.downgradedAt ? new Date(o.downgradedAt) : null,
   createdAt: new Date(o.createdAt),
+  milestones: (o.milestones ?? []).map((m) => ({ ...m, date: new Date(m.date) })),
 });
 const reviveObjectives = (arr: Objective[]): Objective[] => arr.map(reviveObjective);
 

@@ -22,6 +22,9 @@ export function ObjectiveModal({ objective, creating, onClose }: { objective: Ob
   const [projectIds, setProjectIds] = useState<string[]>(objective?.projectIds ?? []);
   const [taskIds, setTaskIds] = useState<string[]>(objective?.taskIds ?? []);
   const [memberIds, setMemberIds] = useState<string[]>(objective?.memberIds ?? []);
+  const [milestones, setMilestones] = useState<{ label: string; date: string; done: boolean }[]>(
+    (objective?.milestones ?? []).map((m) => ({ label: m.label, date: toDateInput(m.date), done: m.done }))
+  );
   const [reason, setReason] = useState("");
   const [showDowngrade, setShowDowngrade] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -42,7 +45,7 @@ export function ObjectiveModal({ objective, creating, onClose }: { objective: Ob
   };
 
   const save = () => {
-    const payload = { title: title.trim(), description: desc, startDate: start, endDate: end, color, ownerId, projectIds, taskIds, memberIds };
+    const payload = { title: title.trim(), description: desc, startDate: start, endDate: end, color, ownerId, projectIds, taskIds, memberIds, milestones: milestones.filter((m) => m.label.trim() && m.date) };
     if (creating) run(objectiveAction("create", payload));
     else if (objective) run(objectiveAction("update", { id: objective.id, ...payload }));
   };
@@ -151,6 +154,35 @@ export function ObjectiveModal({ objective, creating, onClose }: { objective: Ob
               })}
             </div>
           </LinkSection>
+
+          {/* Jalons */}
+          {(editable || milestones.length > 0) && (
+            <LinkSection label="Jalons" hint="étapes clés de l'objectif">
+              <div className="space-y-1.5">
+                {milestones.map((m, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    {editable ? (
+                      <>
+                        <button onClick={() => setMilestones((a) => a.map((x, i) => (i === idx ? { ...x, done: !x.done } : x)))} aria-label={m.done ? "Fait" : "À faire"} className={`h-4 w-4 rounded border grid place-items-center shrink-0 ${m.done ? "bg-emerald-500 border-emerald-500 text-white" : "border-slate-300"}`}>{m.done && <Flag size={10} />}</button>
+                        <input value={m.label} onChange={(e) => setMilestones((a) => a.map((x, i) => (i === idx ? { ...x, label: e.target.value } : x)))} placeholder="Intitulé du jalon…" className="flex-1 text-[13px] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-transparent" />
+                        <input type="date" value={m.date} onChange={(e) => setMilestones((a) => a.map((x, i) => (i === idx ? { ...x, date: e.target.value } : x)))} className="text-[12px] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-transparent" />
+                        <button onClick={() => setMilestones((a) => a.filter((_, i) => i !== idx))} aria-label="Supprimer" className="text-slate-300 hover:text-rose-500"><X size={14} /></button>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-2 text-[13px]">
+                        <span className={`h-2.5 w-2.5 rotate-45 border ${m.done ? "bg-emerald-500 border-emerald-500" : "border-slate-400"}`} />
+                        <span className={m.done ? "text-slate-400 line-through" : "text-slate-700"}>{m.label}</span>
+                        <span className="text-[11px] text-slate-400">{m.date}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {editable && (
+                  <button onClick={() => setMilestones((a) => [...a, { label: "", date: toDateInput(new Date()), done: false }])} className="text-[12px] font-medium text-emerald-700 dark:text-emerald-400 hover:underline">+ Ajouter un jalon</button>
+                )}
+              </div>
+            </LinkSection>
+          )}
 
           {/* Déclassement */}
           {showDowngrade && (

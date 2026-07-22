@@ -31,6 +31,7 @@ export function seedObjectives(): Objective[] {
     projectIds: [],
     taskIds: [],
     memberIds: [],
+    milestones: [],
     downgradeReason: "",
     downgradedBy: null,
     downgradedAt: null,
@@ -39,9 +40,9 @@ export function seedObjectives(): Objective[] {
     ...o,
   });
   return [
-    base({ id: "o1", title: "Moderniser la supervision (SIEM)", startDate: d(0, 15), endDate: d(4, 30), color: "#0ea5e9", ownerId: "u6", projectIds: ["demo-p1"], memberIds: ["u4", "u6"], status: "en_cours" }),
+    base({ id: "o1", title: "Moderniser la supervision (SIEM)", startDate: d(0, 15), endDate: d(4, 30), color: "#0ea5e9", ownerId: "u6", projectIds: ["demo-p1"], memberIds: ["u4", "u6"], status: "en_cours", milestones: [{ id: "m1", label: "Cahier des charges", date: d(1, 15), done: true }, { id: "m2", label: "Bascule pilote", date: d(3, 1), done: false }] }),
     base({ id: "o2", title: "Durcir l'annuaire & les accès", startDate: d(2, 1), endDate: d(6, 15), color: "#8b5cf6", ownerId: "u3", projectIds: ["demo-p2"], memberIds: ["u3", "u6"] }),
-    base({ id: "o3", title: "Certification ISO 27001", startDate: d(1, 1), endDate: d(11, 20), color: "#10b981", ownerId: "u1", memberIds: ["u2", "u3"], status: "en_cours" }),
+    base({ id: "o3", title: "Certification ISO 27001", startDate: d(1, 1), endDate: d(11, 20), color: "#10b981", ownerId: "u1", memberIds: ["u2", "u3"], status: "en_cours", milestones: [{ id: "m3", label: "Audit à blanc", date: d(5, 30), done: false }, { id: "m4", label: "Audit de certification", date: d(10, 15), done: false }] }),
     base({ id: "o4", title: "Programme de sensibilisation", startDate: d(3, 10), endDate: d(8, 30), color: "#f59e0b", ownerId: "u5", memberIds: ["u5"], status: "planifie" }),
     base({ id: "o5", title: "Refonte du plan de continuité", startDate: d(5, 1), endDate: d(9, 30), color: "#f43f5e", ownerId: "u2", status: "declasse", downgradeReason: "Priorité reportée : ressources mobilisées sur la certification.", downgradedBy: "u1", downgradedAt: d(5, 20) }),
   ];

@@ -92,6 +92,10 @@ create table if not exists objectives (
 create table if not exists objective_projects ( objective_id text not null, project_id text not null );
 create table if not exists objective_tasks ( objective_id text not null, task_id text not null );
 create table if not exists objective_members ( objective_id text not null, profile_id text not null );
+create table if not exists objective_milestones (
+  id text primary key, objective_id text not null, label text not null, date text not null, done integer not null default 0
+);
+create index if not exists idx_objmile on objective_milestones(objective_id);
 create index if not exists idx_objproj on objective_projects(objective_id);
 create index if not exists idx_objtask on objective_tasks(objective_id);
 create index if not exists idx_objmem on objective_members(objective_id);

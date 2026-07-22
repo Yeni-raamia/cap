@@ -18,6 +18,7 @@ import {
   setRelanceDate,
 } from "@/lib/db/repo";
 import { getSettings, logActivity } from "@/lib/db/admin";
+import { listObjectives } from "@/lib/db/objectives";
 import { isEmailConfigured, sendEmail } from "./email";
 
 export interface ReminderSummary {
@@ -82,6 +83,25 @@ export async function runReminders(): Promise<ReminderSummary> {
           const to = getEmailById(dir.id);
           if (emailOn && to) emails.push({ to, subject: `Cap · Escalade (${item.ref})`, text: message });
         }
+      }
+    }
+  }
+
+  // Échéances d'objectifs annuels (Plan de l'année) : rappel au responsable
+  // et à l'équipe quand la fin approche (≤ 7 jours) et que l'objectif n'est
+  // ni atteint ni déclassé.
+  for (const o of listObjectives()) {
+    if (o.status === "atteint" || o.status === "declasse") continue;
+    const daysLeft = (o.endDate.getTime() - now.getTime()) / 86400000;
+    if (daysLeft < 0 || daysLeft > 7) continue;
+    const message = `Objectif « ${o.title} » arrive à échéance le ${o.endDate.toLocaleDateString("fr-FR")}.`;
+    const recipients = [...new Set([o.ownerId, ...o.memberIds])].filter(Boolean);
+    for (const uid of recipients) {
+      if (!notifExistsToday(uid, null, "echeance")) {
+        insertNotification({ userId: uid, itemId: null, kind: "echeance", message, channel });
+        echeances++;
+        const to = getEmailById(uid);
+        if (emailOn && to) emails.push({ to, subject: `Cap · Échéance d'objectif`, text: message });
       }
     }
   }
