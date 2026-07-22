@@ -30,6 +30,8 @@ import {
   isReadOnly,
   LEVELS,
   reminderState,
+  weeklyChallenges,
+  weekStart,
   type AppSettings,
   type ConversationSummary,
   type Message,
@@ -476,6 +478,36 @@ export function AppProvider({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myLevelIdx, demo]);
+
+  // Notification de défi hebdomadaire relevé.
+  const myChallenges = useMemo(() => weeklyChallenges(me.id, items, tasks, now), [me.id, items, tasks, now]);
+  useEffect(() => {
+    if (demo || !me.id) return;
+    const weekKey = weekStart(now).toISOString().slice(0, 10);
+    const storeKey = `cap_defis_${weekKey}`;
+    const doneNow = myChallenges.filter((c) => c.done);
+    let prev: string[] | null = null;
+    try {
+      const v = localStorage.getItem(storeKey);
+      prev = v === null ? null : (JSON.parse(v) as string[]);
+    } catch {
+      prev = null;
+    }
+    // À la première visite de la semaine on initialise sans notifier (évite de fêter un défi déjà relevé).
+    if (prev !== null) {
+      const fresh = doneNow.filter((c) => !prev!.includes(c.id));
+      if (fresh.length > 0) {
+        fireConfetti();
+        fresh.forEach((c) => toast(`Défi relevé : ${c.icon} ${c.label} 🔥`, "success"));
+      }
+    }
+    try {
+      localStorage.setItem(storeKey, JSON.stringify(doneNow.map((c) => c.id)));
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myChallenges, demo]);
 
   /* ---------- Mutations ---------- */
   const actFeedback = (action: Action) => {

@@ -7,6 +7,7 @@ import {
   buildSubjectLine,
   isUrgentType,
   nextRefNumber,
+  parseEmail,
   parseSubject,
   type ParsedSubject,
   type Priorite,
@@ -36,7 +37,8 @@ export function NewSuiviModal() {
 
   // Mode « coller » (ancien parseur)
   const [raw, setRaw] = useState("");
-  const parsedRaw = useMemo(() => parseSubject(raw, catalogue), [raw, catalogue]);
+  const email = useMemo(() => parseEmail(raw), [raw]);
+  const parsedRaw = useMemo(() => parseSubject(email.subject || raw, catalogue), [email.subject, raw, catalogue]);
 
   const [copied, setCopied] = useState(false);
 
@@ -146,7 +148,7 @@ export function NewSuiviModal() {
               mode === "coller" ? "bg-emerald-600 text-white" : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            Coller un objet existant
+Coller un e-mail
           </button>
         </div>
 
@@ -259,16 +261,26 @@ export function NewSuiviModal() {
         ) : (
           <>
             <label className="text-[12px] font-medium text-slate-600" htmlFor="raw-objet">
-              Colle l&apos;objet du mail (fil déjà en cours)
+              Colle l&apos;objet, ou <span className="font-semibold">l&apos;e-mail complet</span> (en-têtes + corps)
             </label>
-            <input
+            <textarea
               id="raw-objet"
               autoFocus
               value={raw}
               onChange={(e) => setRaw(e.target.value)}
-              placeholder="[SOC-2026-0042] ALERTE — Vulnérabilité critique…"
+              rows={4}
+              placeholder={"Objet : [SOC-2026-0042] ALERTE — Vulnérabilité critique…\nDe : Alice <alice@dssi.fr>\nÀ : Prestataire réseau\n\nMerci de corriger la faille Exchange…"}
               className={`${inputCls} font-mono`}
             />
+            {email.subject && (email.to || email.points.length > 0) && (
+              <button
+                type="button"
+                onClick={() => { if (email.to) setDest(email.to); if (email.points.length) setPoints(email.points.join("\n")); }}
+                className="mt-2 inline-flex items-center gap-1.5 text-[12px] font-medium text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 rounded-lg px-2.5 py-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+              >
+                ⤵ Pré-remplir depuis l&apos;e-mail{email.to ? ` · dest. « ${email.to} »` : ""}{email.points.length ? ` · ${email.points.length} point(s)` : ""}
+              </button>
+            )}
             {raw && !parsedRaw && (
               <div className="text-[11px] text-rose-500 mt-1">
                 Objet non reconnu — vérifie le format [MÉTIER-2026-####] TYPE — objet.

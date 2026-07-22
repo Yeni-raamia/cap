@@ -14,6 +14,7 @@ import {
   insertNotification,
   listEscalationTargets,
   listItems,
+  listProfiles,
   notifExistsToday,
   setRelanceDate,
 } from "@/lib/db/repo";
@@ -26,6 +27,7 @@ export interface ReminderSummary {
   escalades: number;
   digests: number;
   echeances: number;
+  recaps: number;
   emailsSent: number;
   emailConfigured: boolean;
 }
@@ -43,6 +45,7 @@ export async function runReminders(): Promise<ReminderSummary> {
   let escalades = 0;
   let digests = 0;
   let echeances = 0;
+  let recaps = 0;
   let emailsSent = 0;
 
   const emails: Array<{ to: string; subject: string; text: string }> = [];
@@ -106,6 +109,38 @@ export async function runReminders(): Promise<ReminderSummary> {
     }
   }
 
+  // Récapitulatif hebdomadaire (le lundi) : chaque membre actif reçoit le
+  // bilan de sa semaine écoulée (7 derniers jours). Idempotent via le même
+  // verrou « digest » que le digest du matin — il a donc priorité le lundi.
+  if (now.getDay() === 1) {
+    const weekAgo = now.getTime() - 7 * 86400000;
+    for (const p of listProfiles()) {
+      if (!p.approved) continue;
+      let relancesW = 0;
+      let reponsesW = 0;
+      let cloturesW = 0;
+      for (const it of items) {
+        for (const e of it.timeline) {
+          if (e.author !== p.id || e.date.getTime() < weekAgo) continue;
+          if (e.kind === "relance") relancesW++;
+          else if (e.kind === "reponse") reponsesW++;
+          else if (e.kind === "cloture") cloturesW++;
+        }
+      }
+      const actifs = items.filter((i) => i.ownerId === p.id && i.statut !== "Clôturé").length;
+      // On n'envoie qu'aux membres réellement impliqués (activité ou suivis en cours).
+      if (relancesW + reponsesW + cloturesW === 0 && actifs === 0) continue;
+      if (notifExistsToday(p.id, null, "digest")) continue;
+      const message =
+        `Récap de la semaine : ${cloturesW} clôture(s), ${relancesW} relance(s), ` +
+        `${reponsesW} réponse(s) enregistrée(s). ${actifs} suivi(s) encore en cours. Bonne semaine !`;
+      insertNotification({ userId: p.id, itemId: null, kind: "digest", message, channel });
+      recaps++;
+      const to = getEmailById(p.id);
+      if (emailOn && to) emails.push({ to, subject: "Cap · Votre récap de la semaine", text: message });
+    }
+  }
+
   // Digest du matin aux directeurs (toujours actif, un par jour et par directeur).
   const nbEscalades = items.filter((i) => reminderState(i, now, types).level === "escalade").length;
   const nbBloques = items.filter((i) => i.statut === "Bloqué").length;
@@ -127,8 +162,8 @@ export async function runReminders(): Promise<ReminderSummary> {
   logActivity(
     null,
     "reminders_run",
-    `${relances} relance(s), ${escalades} escalade(s), ${echeances} échéance(s), ${digests} digest(s), ${emailsSent} e-mail(s)`
+    `${relances} relance(s), ${escalades} escalade(s), ${echeances} échéance(s), ${digests} digest(s), ${recaps} récap(s), ${emailsSent} e-mail(s)`
   );
 
-  return { relances, escalades, digests, echeances, emailsSent, emailConfigured: emailOn };
+  return { relances, escalades, digests, echeances, recaps, emailsSent, emailConfigured: emailOn };
 }

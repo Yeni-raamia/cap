@@ -6,6 +6,7 @@ import { computeGame, memberOfMonth, weeklyChallenges, type Badge } from "@/lib/
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
 import { CountUp, Ring } from "@/components/dataviz";
+import Link from "next/link";
 import { PageHero } from "@/components/PageHero";
 
 const medal = ["🥇", "🥈", "🥉"];
@@ -100,13 +101,13 @@ export default function ClassementPage() {
       {/* Podium */}
       <div className="grid sm:grid-cols-3 gap-3 stagger">
         {board.slice(0, 3).map(({ p, g }, i) => (
-          <div key={p.id} className={`rounded-2xl border shadow-soft p-4 text-center ${i === 0 ? "border-amber-200 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-500/5" : "border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900"}`}>
+          <Link key={p.id} href={`/membre/${p.id}`} className={`rounded-2xl border shadow-soft p-4 text-center transition-transform hover:-translate-y-0.5 ${i === 0 ? "border-amber-200 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-500/5" : "border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900"}`}>
             <div className="text-[26px]">{medal[i]}</div>
             <div className="mt-1 flex justify-center"><Avatar init={p.init} size="h-11 w-11" /></div>
             <div className="text-[13.5px] font-bold text-slate-800 mt-2 truncate">{p.nom}</div>
             <div className="text-[11px] text-slate-500">{g.levelIcon} {g.levelName}</div>
             <div className="text-[20px] font-extrabold text-slate-900 mt-1"><CountUp value={g.xp} /> <span className="text-[11px] font-medium text-slate-400">XP</span></div>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -116,7 +117,8 @@ export default function ClassementPage() {
           const isMe = p.id === me.id;
           const earned = g.badges.filter((b) => b.earned);
           return (
-            <Card key={p.id} className={`p-3.5 flex items-center gap-3 ${isMe ? "ring-2 ring-emerald-300 dark:ring-emerald-500/40" : ""}`}>
+            <Link key={p.id} href={`/membre/${p.id}`} className="block">
+            <Card className={`p-3.5 flex items-center gap-3 hover:-translate-y-0.5 transition-transform ${isMe ? "ring-2 ring-emerald-300 dark:ring-emerald-500/40" : ""}`}>
               <div className="w-7 text-center">{medal[i] || <span className="text-slate-400 text-[13px] font-semibold">{i + 1}</span>}</div>
               <div className="relative">
                 <Avatar init={p.init} size="h-9 w-9" />
@@ -140,6 +142,7 @@ export default function ClassementPage() {
                 <div className="text-[10px] text-slate-400">XP</div>
               </div>
             </Card>
+            </Link>
           );
         })}
       </div>

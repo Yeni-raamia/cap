@@ -422,6 +422,46 @@ export function buildSubjectLine(ref: string, type: string, objet: string): stri
   return `[${ref}] ${type} — ${objet}`.trim();
 }
 
+/** Extrait objet/expéditeur/destinataire/points d'un e-mail collé (heuristique). */
+export function parseEmail(raw: string): { subject: string; from: string; to: string; points: string[] } {
+  const lines = raw.split(/\r?\n/);
+  const grab = (re: RegExp): string => {
+    for (const l of lines) {
+      const m = l.match(re);
+      if (m) return m[1].trim();
+    }
+    return "";
+  };
+  // « Nom <email> » → nom si présent, sinon l'adresse ; garde le 1er destinataire.
+  const clean = (v: string): string => {
+    if (!v) return "";
+    const first = v.split(/[,;]/)[0].trim();
+    const m = first.match(/^([^<]+)<([^>]+)>/);
+    if (m) return (m[1].trim() || m[2].trim()).replace(/^["']|["']$/g, "");
+    return first.replace(/[<>]/g, "").trim();
+  };
+  const subject = grab(/^\s*(?:objet|subject)\s*:\s*(.+)$/i);
+  const from = clean(grab(/^\s*(?:de|from|exp[ée]diteur)\s*:\s*(.+)$/i));
+  const to = clean(grab(/^\s*(?:[àa]|to|destinataire|pour)\s*:\s*(.+)$/i));
+
+  // Corps : après la 1re ligne vide qui suit un en-tête, sinon lignes non-en-tête.
+  const headerRe = /^\s*(?:objet|subject|de|from|exp[ée]diteur|[àa]|to|cc|destinataire|pour|date|envoy[ée])\s*:/i;
+  const body: string[] = [];
+  let inBody = false;
+  for (const l of lines) {
+    if (!inBody) {
+      if (l.trim() === "" ) { inBody = true; continue; }
+      if (headerRe.test(l)) continue;
+      inBody = true;
+    }
+    const t = l.replace(/^\s*[-•*·▸]\s*/, "").trim();
+    if (t && !/^>/.test(t) && !/^--\s*$/.test(t)) body.push(t);
+  }
+  const points = body.filter((p) => p.length > 3).slice(0, 6);
+
+  return { subject, from, to, points };
+}
+
 /* ---------- 4.5 · État de relance d'un item ---------- */
 export type ReminderLevel = "none" | "ok" | "relance" | "escalade" | "bloque";
 

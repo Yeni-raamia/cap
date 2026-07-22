@@ -4,12 +4,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  CalendarRange,
   CornerDownLeft,
+  FolderKanban,
+  Inbox,
   LogOut,
   Moon,
   Plus,
   Search,
   Sun,
+  UserRound,
 } from "lucide-react";
 import { navForUser } from "@/lib/nav";
 import { useApp } from "./app-context";
@@ -24,7 +28,7 @@ interface Cmd {
 }
 
 export function CommandPalette() {
-  const { demo, me, setShowNew, toggleTheme, theme, signOut } = useApp();
+  const { demo, me, setShowNew, toggleTheme, theme, signOut, items, projects, objectives, profiles, openItem } = useApp();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -114,8 +118,31 @@ export function CommandPalette() {
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (!s) return commands;
-    return commands.filter((c) => c.label.toLowerCase().includes(s) || c.group.toLowerCase().includes(s));
-  }, [q, commands]);
+    const cmds = commands.filter((c) => c.label.toLowerCase().includes(s) || c.group.toLowerCase().includes(s));
+    if (demo) return cmds;
+
+    // Recherche dans les données (suivis, projets, objectifs, membres).
+    const close = () => setOpen(false);
+    const results: Cmd[] = [];
+    items
+      .filter((i) => `${i.ref} ${i.objet}`.toLowerCase().includes(s))
+      .slice(0, 6)
+      .forEach((i) => results.push({ id: `it-${i.id}`, label: `${i.ref} — ${i.objet}`, hint: "Suivi de mail", group: "Suivis de mail", icon: <Inbox size={15} className="text-sky-500" />, run: () => { openItem(i); close(); } }));
+    projects
+      .filter((p) => p.name.toLowerCase().includes(s))
+      .slice(0, 5)
+      .forEach((p) => results.push({ id: `pj-${p.id}`, label: p.name, hint: "Projet", group: "Projets", icon: <FolderKanban size={15} className="text-emerald-500" />, run: () => { router.push(`/projets/${p.id}`); close(); } }));
+    objectives
+      .filter((o) => o.title.toLowerCase().includes(s))
+      .slice(0, 5)
+      .forEach((o) => results.push({ id: `ob-${o.id}`, label: o.title, hint: "Objectif", group: "Plan de l'année", icon: <CalendarRange size={15} className="text-violet-500" />, run: () => { router.push("/plan"); close(); } }));
+    profiles
+      .filter((p) => p.id && p.nom.toLowerCase().includes(s))
+      .slice(0, 5)
+      .forEach((p) => results.push({ id: `mb-${p.id}`, label: p.nom, hint: "Membre", group: "Membres", icon: <UserRound size={15} className="text-amber-500" />, run: () => { router.push(`/membre/${p.id}`); close(); } }));
+
+    return [...cmds, ...results];
+  }, [q, commands, demo, items, projects, objectives, profiles, openItem, router]);
 
   useEffect(() => {
     if (sel >= filtered.length) setSel(0);
