@@ -83,6 +83,73 @@ export function countProfiles(): number {
   return row.n;
 }
 
+/* ---------- Pièces jointes / preuves ---------- */
+interface AttachmentRow {
+  id: string;
+  item_id: string;
+  filename: string;
+  mime: string;
+  size: number;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
+function mapAttachment(r: AttachmentRow): import("@/lib/domain").Attachment {
+  return {
+    id: r.id,
+    itemId: r.item_id,
+    filename: r.filename,
+    mime: r.mime,
+    size: r.size,
+    uploadedBy: r.uploaded_by ?? "",
+    createdAt: new Date(r.created_at),
+  };
+}
+
+export function listAttachments(itemId: string): import("@/lib/domain").Attachment[] {
+  const rows = getDb()
+    .prepare("select id, item_id, filename, mime, size, uploaded_by, created_at from attachments where item_id = ? order by created_at")
+    .all(itemId) as AttachmentRow[];
+  return rows.map(mapAttachment);
+}
+
+export function createAttachment(input: {
+  itemId: string;
+  filename: string;
+  mime: string;
+  size: number;
+  data: Buffer;
+  uploadedBy: string;
+}): import("@/lib/domain").Attachment {
+  const id = randomUUID();
+  getDb()
+    .prepare("insert into attachments (id, item_id, filename, mime, size, data, uploaded_by) values (?,?,?,?,?,?,?)")
+    .run(id, input.itemId, input.filename, input.mime, input.size, input.data, input.uploadedBy);
+  return mapAttachment(
+    getDb().prepare("select id, item_id, filename, mime, size, uploaded_by, created_at from attachments where id = ?").get(id) as AttachmentRow
+  );
+}
+
+/** Contenu binaire d'une pièce jointe (téléchargement). */
+export function getAttachmentData(id: string): { filename: string; mime: string; data: Buffer } | null {
+  const r = getDb().prepare("select filename, mime, data from attachments where id = ?").get(id) as
+    | { filename: string; mime: string; data: Buffer }
+    | undefined;
+  return r ?? null;
+}
+
+/** Métadonnées seules (contrôle d'accès avant suppression). */
+export function getAttachmentMeta(id: string): import("@/lib/domain").Attachment | null {
+  const r = getDb()
+    .prepare("select id, item_id, filename, mime, size, uploaded_by, created_at from attachments where id = ?")
+    .get(id) as AttachmentRow | undefined;
+  return r ? mapAttachment(r) : null;
+}
+
+export function deleteAttachment(id: string): void {
+  getDb().prepare("delete from attachments where id = ?").run(id);
+}
+
 /* ---------- Modèles de relance ---------- */
 export function listTemplates(): import("@/lib/domain").EmailTemplate[] {
   const rows = getDb()

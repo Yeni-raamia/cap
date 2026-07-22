@@ -415,6 +415,39 @@ export const DEFAULT_TEMPLATES: Omit<EmailTemplate, "id">[] = [
   },
 ];
 
+/* ---------- Pièces jointes / preuves ---------- */
+export interface Attachment {
+  id: string;
+  itemId: string;
+  filename: string;
+  mime: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: Date;
+}
+
+/** Taille maximale d'une pièce jointe (10 Mo). */
+export const ATTACH_MAX_BYTES = 10 * 1024 * 1024;
+
+/** Extensions autorisées (preuves : images, PDF, mails, bureautique, archives). */
+export const ATTACH_EXTS = [
+  "png", "jpg", "jpeg", "webp", "gif", "pdf", "txt", "csv",
+  "eml", "msg", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip",
+];
+
+/** Extension (minuscule, sans point) d'un nom de fichier. */
+export function fileExt(name: string): string {
+  const i = name.lastIndexOf(".");
+  return i >= 0 ? name.slice(i + 1).toLowerCase() : "";
+}
+
+/** Taille lisible (Ko / Mo). */
+export function formatBytes(n: number): string {
+  if (n < 1024) return `${n} o`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} Ko`;
+  return `${(n / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
 /* ---------- Helpers temps ---------- */
 export const DAY = 864e5;
 export const daysAgo = (n: number): Date => new Date(Date.now() - n * DAY);

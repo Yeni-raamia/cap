@@ -70,6 +70,8 @@ const ACTION_LABEL: Record<string, string> = {
   template_create: "Modèle — ajout",
   template_update: "Modèle — édition",
   template_delete: "Modèle — suppression",
+  attachment_add: "Pièce jointe — ajout",
+  attachment_delete: "Pièce jointe — suppression",
 };
 const dt = (d: string | Date) =>
   new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });

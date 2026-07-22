@@ -132,6 +132,12 @@ create table if not exists ref_lists (
   label text not null default '', icon text, ordre integer not null default 0
 );
 create index if not exists idx_reflists_key on ref_lists(list_key);
+create table if not exists attachments (
+  id text primary key, item_id text not null, filename text not null,
+  mime text not null default '', size integer not null default 0,
+  data blob not null, uploaded_by text, created_at text not null default (datetime('now'))
+);
+create index if not exists idx_attach_item on attachments(item_id);
 create table if not exists email_templates (
   id text primary key, name text not null, category text not null default 'relance',
   subject text not null default '', body text not null default '', ordre integer not null default 0,
