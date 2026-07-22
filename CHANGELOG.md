@@ -8,6 +8,27 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.5.0] - 2026-07-22
+
+### Ajouté — Espace membre
+- **Page « Mon compte »** (`/compte`, accessible via l'avatar du bandeau) : chaque membre gère son profil.
+- **Photo de profil** : upload d'une image redimensionnée automatiquement (~256 px, JPEG) et affichée dans le bandeau, le profil et le classement ; retrait possible (retour aux initiales).
+- **Édition du nom** (initiales recalculées) et du **poste**.
+- **Changement de mot de passe** en self-service, conforme à la politique de sécurité.
+
+### Ajouté — Nouvelles fonctionnalités
+- **Profil membre** : nouvelle page `/membre/[id]` (activité récente, badges, XP/niveau, objectifs et projets) ; podium et lignes du classement cliquables.
+- **Recherche globale ⌘K** : la palette cherche désormais suivis de mail, projets, objectifs et membres par mot-clé, en plus des pages.
+- **Import de mail semi-auto** : le mode « Coller un e-mail » accepte un e-mail complet (en-têtes + corps) et pré-remplit destinataire et points clés.
+- **Notifications de défi relevé** : confettis + toast quand un défi hebdomadaire se termine.
+- **Récap hebdomadaire** : bilan de la semaine par membre actif (in-app + e-mail) envoyé le lundi par le moteur de rappels ; déclencheur manuel `?forceWeekly=1` pour les tests.
+
+### Ajouté — Administration
+- **Suppression d'un compte** : action réservée à l'admin (garde-fous : pas soi-même, pas le dernier admin). Les données créées sont conservées et l'auteur orphelin s'affiche « Compte supprimé ».
+
+### Technique
+- Migration additive : nouvelle colonne `profiles.avatar` (aucune réinitialisation de données).
+
 ## [1.4.0] - 2026-07-22
 
 ### Ajouté — Gamification (enrichissements)
