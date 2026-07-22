@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { Award, Lock } from "lucide-react";
-import { computeGame, type Badge } from "@/lib/domain";
+import { Award, Crown, Flame, Lock } from "lucide-react";
+import { computeGame, memberOfMonth, weeklyChallenges, type Badge } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
 import { CountUp, Ring } from "@/components/dataviz";
@@ -11,7 +11,10 @@ import { PageHero } from "@/components/PageHero";
 const medal = ["🥇", "🥈", "🥉"];
 
 export default function ClassementPage() {
-  const { me, profiles, items, tasks, projects, objectives } = useApp();
+  const { me, profiles, items, tasks, projects, objectives, now, profileById } = useApp();
+
+  const motmId = useMemo(() => memberOfMonth(profiles.filter((p) => p.id).map((p) => p.id), items, tasks, now), [profiles, items, tasks, now]);
+  const challenges = useMemo(() => weeklyChallenges(me.id, items, tasks, now), [me.id, items, tasks, now]);
 
   const board = useMemo(
     () =>
@@ -33,6 +36,43 @@ export default function ClassementPage() {
         title="Classement de l'équipe"
         subtitle="Gagne de l'XP en relançant, en obtenant des réponses, en clôturant et en atteignant les objectifs. Monte de niveau, débloque des badges."
       />
+
+      {/* Membre du mois */}
+      {motmId && (
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-gradient-to-r from-amber-50 to-white dark:from-amber-500/10 dark:to-slate-900 shadow-soft p-4 flex items-center gap-3">
+          <div className="relative">
+            <Avatar init={profileById(motmId).init} size="h-11 w-11" />
+            <Crown size={16} className="absolute -top-2 left-1/2 -translate-x-1/2 text-amber-500" />
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold text-amber-600 uppercase tracking-wide">Membre du mois 👑</div>
+            <div className="text-[15px] font-bold text-slate-800">{profileById(motmId).nom}</div>
+            <div className="text-[11.5px] text-slate-500">La plus forte activité ce mois-ci — bravo !</div>
+          </div>
+        </div>
+      )}
+
+      {/* Défis de la semaine */}
+      <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Flame size={16} className="text-orange-500" />
+          <h2 className="text-[14px] font-bold text-slate-800">Défis de la semaine</h2>
+        </div>
+        <div className="grid sm:grid-cols-3 gap-3">
+          {challenges.map((c) => (
+            <div key={c.id} className={`rounded-xl border p-3 ${c.done ? "border-emerald-200/70 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5" : "border-slate-200/70 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20"}`}>
+              <div className="flex items-center justify-between">
+                <span className="text-[12.5px] font-medium text-slate-700 flex items-center gap-1.5"><span>{c.icon}</span> {c.label}</span>
+                {c.done && <span className="text-[11px] font-semibold text-emerald-600">✓</span>}
+              </div>
+              <div className="mt-2 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${c.done ? "bg-emerald-500" : "bg-orange-400"}`} style={{ width: `${Math.round((c.current / c.target) * 100)}%` }} />
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1 text-right">{c.current}/{c.target}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Mon profil de jeu */}
       {mine && (

@@ -847,9 +847,66 @@ export function computeGame(
     { id: "chef", label: "Chef d'orchestre", icon: "🎼", desc: "Mener un projet à son terme.", earned: projet >= 1 },
     { id: "cap", label: "Cap sur l'année", icon: "🎯", desc: "Atteindre un objectif annuel.", earned: objectif >= 1 },
     { id: "zero", label: "Zéro dérive", icon: "🧭", desc: "Aucun suivi critique en cours (≥ 5 clôturés).", earned: lateOwned === 0 && cloture >= 5 },
+    { id: "veteran", label: "Vétéran", icon: "🎖️", desc: "50 suivis de mail clôturés.", earned: cloture >= 50 },
+    { id: "pilier", label: "Pilier", icon: "🏛️", desc: "3 projets menés à terme.", earned: projet >= 3 },
+    { id: "stratege", label: "Stratège", icon: "♟️", desc: "3 objectifs annuels atteints.", earned: objectif >= 3 },
+    { id: "polyvalent", label: "Couteau suisse", icon: "🧰", desc: "Une clôture, une tâche, un projet et un objectif.", earned: cloture >= 1 && tache >= 1 && projet >= 1 && objectif >= 1 },
   ];
 
   return { id, xp, level, levelName: LEVELS[level].name, levelIcon: LEVELS[level].icon, nextXp, progressPct, badges };
+}
+
+/** Début de la semaine (lundi 00:00) contenant `d`. */
+export function weekStart(d: Date): Date {
+  const s = new Date(d);
+  const day = (s.getDay() + 6) % 7; // lundi = 0
+  s.setDate(s.getDate() - day);
+  s.setHours(0, 0, 0, 0);
+  return s;
+}
+
+export interface Challenge {
+  id: string;
+  label: string;
+  icon: string;
+  current: number;
+  target: number;
+  done: boolean;
+}
+
+/** Défis de la semaine, dérivés de l'activité récente de la personne. */
+export function weeklyChallenges(id: string, items: Item[], tasks: Task[], now: Date): Challenge[] {
+  const ws = weekStart(now).getTime();
+  const mine = items.filter((i) => i.ownerId === id);
+  const evWeek = (kind: string) => mine.reduce((s, i) => s + i.timeline.filter((e) => e.kind === kind && e.date.getTime() >= ws).length, 0);
+  const clot = evWeek("cloture");
+  const rep = evWeek("reponse");
+  const tks = tasks.filter((t) => t.assigneeId === id && t.status === "fait" && t.completedAt && t.completedAt.getTime() >= ws).length;
+  const mk = (cur: number, target: number, label: string, icon: string, idc: string): Challenge => ({ id: idc, label, icon, current: Math.min(cur, target), target, done: cur >= target });
+  return [
+    mk(clot, 5, "Clôture 5 suivis de mail", "✅", "c_clot"),
+    mk(rep, 3, "Obtiens 3 réponses", "⚡", "c_rep"),
+    mk(tks, 4, "Achève 4 tâches", "☑️", "c_task"),
+  ];
+}
+
+/** Membre du mois : plus forte activité du mois en cours (id du profil). */
+export function memberOfMonth(profileIds: string[], items: Item[], tasks: Task[], now: Date): string | null {
+  const ms = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  let bestId: string | null = null;
+  let best = 0;
+  for (const id of profileIds) {
+    const mine = items.filter((i) => i.ownerId === id);
+    const clot = mine.reduce((s, i) => s + i.timeline.filter((e) => e.kind === "cloture" && e.date.getTime() >= ms).length, 0);
+    const rep = mine.reduce((s, i) => s + i.timeline.filter((e) => e.kind === "reponse" && e.date.getTime() >= ms).length, 0);
+    const tks = tasks.filter((t) => t.assigneeId === id && t.status === "fait" && t.completedAt && t.completedAt.getTime() >= ms).length;
+    const score = clot * 3 + rep * 2 + tks;
+    if (score > best) {
+      best = score;
+      bestId = id;
+    }
+  }
+  return best > 0 ? bestId : null;
 }
 
 /* ---------- Administration ---------- */

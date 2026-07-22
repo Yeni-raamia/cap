@@ -23,10 +23,12 @@ import {
   seedItems,
 } from "@/lib/data";
 import {
+  computeGame,
   computeScores,
   DEFAULT_CATALOGUE,
   DEFAULT_REF_LISTS,
   isReadOnly,
+  LEVELS,
   reminderState,
   type AppSettings,
   type ConversationSummary,
@@ -451,6 +453,29 @@ export function AppProvider({
 
   // État de relance calculé avec les SLA du catalogue courant (types ajoutés inclus).
   const rs = (item: Item): ReminderState => reminderState(item, now, catalogue.types);
+
+  // Célébration de montée de niveau (gamification).
+  const myLevelIdx = useMemo(() => computeGame(me.id, items, tasks, projects, objectives).level, [me.id, items, tasks, projects, objectives]);
+  useEffect(() => {
+    if (demo || !me.id) return;
+    let stored: number | null = null;
+    try {
+      const v = localStorage.getItem("cap_level");
+      stored = v === null || v === "" ? null : Number(v);
+    } catch {
+      /* ignore */
+    }
+    if (stored !== null && myLevelIdx > stored) {
+      fireConfetti();
+      toast(`Niveau supérieur : ${LEVELS[myLevelIdx].icon} ${LEVELS[myLevelIdx].name} !`, "success");
+    }
+    try {
+      localStorage.setItem("cap_level", String(myLevelIdx));
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myLevelIdx, demo]);
 
   /* ---------- Mutations ---------- */
   const actFeedback = (action: Action) => {
