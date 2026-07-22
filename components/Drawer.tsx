@@ -26,6 +26,7 @@ import { Avatar, Card, MetierChip, Token, TypeTag } from "./atoms";
 import { Fil } from "./Fil";
 import { Deblocage } from "./Deblocage";
 import { Discussion } from "./Discussion";
+import { TemplatePicker } from "./TemplatePicker";
 
 const evMeta: Record<EventKind, { icon: ComponentType<{ size?: number; className?: string }>; c: string }> = {
   creation: { icon: Circle, c: "text-slate-400" },
@@ -260,6 +261,9 @@ export function Drawer() {
               </select>
             </Card>
           )}
+
+          {/* Modèles de relance : aperçu + copie */}
+          {item.statut !== "Clôturé" && <TemplatePicker item={item} />}
 
           {/* Discussion du suivi */}
           <Card className="p-3">

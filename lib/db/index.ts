@@ -8,7 +8,7 @@ import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { DEFAULT_REF_LISTS, METIERS, TYPES } from "@/lib/domain";
+import { DEFAULT_REF_LISTS, DEFAULT_TEMPLATES, METIERS, TYPES } from "@/lib/domain";
 
 // Emplacement du fichier de base — surchargable via DATABASE_PATH.
 const DB_PATH = process.env.DATABASE_PATH || join(process.cwd(), "data", "cap.sqlite");
@@ -132,6 +132,11 @@ create table if not exists ref_lists (
   label text not null default '', icon text, ordre integer not null default 0
 );
 create index if not exists idx_reflists_key on ref_lists(list_key);
+create table if not exists email_templates (
+  id text primary key, name text not null, category text not null default 'relance',
+  subject text not null default '', body text not null default '', ordre integer not null default 0,
+  created_at text not null default (datetime('now'))
+);
 create table if not exists negligences (
   id text primary key, item_id text,
   objet text not null default '', service text not null default '', concerne text not null default '',
@@ -188,9 +193,20 @@ export function getDb(): Database.Database {
   ensureColumns(db);
   seedCatalogue(db);
   seedRefLists(db);
+  seedTemplates(db);
 
   _db = db;
   return db;
+}
+
+// Modèles de relance — seed initial si la table est vide. Ensuite éditables.
+function seedTemplates(db: Database.Database) {
+  const n = (db.prepare("select count(*) as n from email_templates").get() as { n: number }).n;
+  if (n > 0) return;
+  const ins = db.prepare(
+    "insert into email_templates (id, name, category, subject, body, ordre) values (?,?,?,?,?,?)"
+  );
+  DEFAULT_TEMPLATES.forEach((t, i) => ins.run(randomUUID(), t.name, t.category, t.subject, t.body, i + 1));
 }
 
 // Listes de référence (appréciations, causes, actions) — seed depuis les valeurs

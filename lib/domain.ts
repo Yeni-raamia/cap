@@ -348,6 +348,73 @@ export const DEFAULT_REF_LISTS: RefLists = {
   services: DEFAULT_SERVICES,
 };
 
+/* ---------- Modèles de relance / réponses types ---------- */
+export type TemplateCategory = "relance" | "escalade" | "cloture" | "autre";
+
+export const TEMPLATE_CATEGORIES: { value: TemplateCategory; label: string }[] = [
+  { value: "relance", label: "Relance" },
+  { value: "escalade", label: "Escalade" },
+  { value: "cloture", label: "Clôture" },
+  { value: "autre", label: "Autre" },
+];
+
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  category: TemplateCategory;
+  subject: string;
+  body: string;
+}
+
+/** Variables reconnues dans un modèle (documentation affichée à l'admin). */
+export const TEMPLATE_VARS: { key: string; desc: string }[] = [
+  { key: "{ref}", desc: "Référence du suivi" },
+  { key: "{objet}", desc: "Objet du suivi" },
+  { key: "{destinataire}", desc: "Destinataire principal" },
+  { key: "{service}", desc: "Service du destinataire" },
+  { key: "{jours}", desc: "Jours depuis la dernière mise à jour" },
+  { key: "{relances}", desc: "Nombre de relances déjà effectuées" },
+  { key: "{priorite}", desc: "Priorité du suivi" },
+  { key: "{moi}", desc: "Votre nom" },
+];
+
+/** Remplace les variables {clef} d'un modèle par leurs valeurs. */
+export function applyTemplate(text: string, vars: Record<string, string>): string {
+  return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? vars[k] : m));
+}
+
+/** Modèles par défaut (seed initial, ensuite éditables en administration). */
+export const DEFAULT_TEMPLATES: Omit<EmailTemplate, "id">[] = [
+  {
+    name: "Relance simple",
+    category: "relance",
+    subject: "[{ref}] Relance — {objet}",
+    body:
+      "Bonjour,\n\nSauf erreur de ma part, je n'ai pas encore de retour concernant « {objet} » (réf. {ref}), en attente depuis {jours} jour(s).\n\nPourriez-vous m'indiquer où en est ce point ? Je reste disponible.\n\nCordialement,\n{moi} — DSSI",
+  },
+  {
+    name: "Relance ferme (2ᵉ relance)",
+    category: "relance",
+    subject: "[{ref}] 2ᵉ relance — {objet}",
+    body:
+      "Bonjour,\n\nMalgré ma précédente sollicitation, le point « {objet} » (réf. {ref}) reste sans réponse depuis {jours} jour(s) — {relances} relance(s) à ce jour.\n\nCe sujet étant important pour la sécurité, merci de traiter en priorité et de me confirmer une échéance.\n\nCordialement,\n{moi} — DSSI",
+  },
+  {
+    name: "Escalade à la direction",
+    category: "escalade",
+    subject: "[{ref}] Escalade — {objet}",
+    body:
+      "Bonjour,\n\nJe porte à votre attention le point « {objet} » (réf. {ref}), sans mouvement depuis {jours} jour(s) malgré {relances} relance(s) auprès de {destinataire}.\n\nUne décision de votre part est nécessaire pour débloquer la situation.\n\nCordialement,\n{moi} — DSSI",
+  },
+  {
+    name: "Accusé de clôture",
+    category: "cloture",
+    subject: "[{ref}] Clôturé — {objet}",
+    body:
+      "Bonjour,\n\nLe point « {objet} » (réf. {ref}) est désormais traité et clôturé de notre côté. Merci pour votre collaboration.\n\nCordialement,\n{moi} — DSSI",
+  },
+];
+
 /* ---------- Helpers temps ---------- */
 export const DAY = 864e5;
 export const daysAgo = (n: number): Date => new Date(Date.now() - n * DAY);

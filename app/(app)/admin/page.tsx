@@ -5,6 +5,7 @@ import {
   Activity,
   FolderKanban,
   KeyRound,
+  FileText,
   ListChecks,
   ListTree,
   RotateCcw,
@@ -29,6 +30,7 @@ import {
 import { ALL_PAGES, roleHasPage } from "@/lib/nav";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, TypeTag } from "@/components/atoms";
+import { TemplatesAdmin } from "@/components/TemplatesAdmin";
 
 const ROLES: Role[] = ["agent", "manager", "directeur", "admin", "dsi"];
 const roleBadge = (r: string) =>
@@ -63,11 +65,16 @@ const ACTION_LABEL: Record<string, string> = {
   catalogue_delete: "Catalogue — suppression",
   settings_update: "Paramètres modifiés",
   reminders_run: "Moteur de relance exécuté",
+  member_delete: "Compte supprimé",
+  account_update: "Profil mis à jour",
+  template_create: "Modèle — ajout",
+  template_update: "Modèle — édition",
+  template_delete: "Modèle — suppression",
 };
 const dt = (d: string | Date) =>
   new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
-type Section = "membres" | "catalogue" | "listes" | "parametres" | "securite" | "journal";
+type Section = "membres" | "catalogue" | "listes" | "modeles" | "parametres" | "securite" | "journal";
 
 interface Overview {
   members: AdminMember[];
@@ -110,6 +117,7 @@ export default function AdminPage() {
     { id: "membres", label: "Membres", icon: Users2 },
     { id: "catalogue", label: "Catalogue", icon: ListTree },
     { id: "listes", label: "Listes", icon: ListChecks },
+    { id: "modeles", label: "Modèles", icon: FileText },
     { id: "parametres", label: "Paramètres", icon: Settings2 },
     { id: "securite", label: "Sécurité", icon: ShieldCheck },
     { id: "journal", label: "Journal & stats", icon: Activity },
@@ -147,6 +155,8 @@ export default function AdminPage() {
         <CatalogueSection onChanged={load} setErr={setErr} />
       ) : section === "listes" ? (
         <ListesSection onChanged={load} setErr={setErr} />
+      ) : section === "modeles" ? (
+        <TemplatesAdmin />
       ) : section === "parametres" ? (
         <ParametresSection settings={over.settings} onSaved={load} setErr={setErr} />
       ) : section === "securite" ? (

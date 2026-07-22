@@ -223,6 +223,25 @@ export function deleteRefItem(listKey: string, value: string): void {
   getDb().prepare("delete from ref_lists where list_key=? and value=?").run(listKey, value);
 }
 
+/* ---------- Modèles de relance (CRUD admin) ---------- */
+export function createTemplate(input: { name: string; category: string; subject: string; body: string }): void {
+  const db = getDb();
+  const ordre = (db.prepare("select coalesce(max(ordre),0)+1 as n from email_templates").get() as { n: number }).n;
+  db.prepare(
+    "insert into email_templates (id, name, category, subject, body, ordre) values (?,?,?,?,?,?)"
+  ).run(randomUUID(), input.name, input.category, input.subject, input.body, ordre);
+}
+
+export function updateTemplate(id: string, input: { name: string; category: string; subject: string; body: string }): void {
+  getDb()
+    .prepare("update email_templates set name=?, category=?, subject=?, body=? where id=?")
+    .run(input.name, input.category, input.subject, input.body, id);
+}
+
+export function deleteTemplate(id: string): void {
+  getDb().prepare("delete from email_templates where id=?").run(id);
+}
+
 /* ---------- Journal d'activité ---------- */
 export function logActivity(actorId: string | null, action: string, detail = ""): void {
   getDb()

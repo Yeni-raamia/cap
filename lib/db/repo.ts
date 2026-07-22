@@ -83,6 +83,20 @@ export function countProfiles(): number {
   return row.n;
 }
 
+/* ---------- Modèles de relance ---------- */
+export function listTemplates(): import("@/lib/domain").EmailTemplate[] {
+  const rows = getDb()
+    .prepare("select id, name, category, subject, body from email_templates order by ordre, name")
+    .all() as { id: string; name: string; category: string; subject: string; body: string }[];
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    category: r.category as import("@/lib/domain").TemplateCategory,
+    subject: r.subject,
+    body: r.body,
+  }));
+}
+
 export function listProfiles(): Profile[] {
   const rows = getDb().prepare("select * from profiles order by full_name").all() as ProfileRow[];
   return rows.map(mapProfile);

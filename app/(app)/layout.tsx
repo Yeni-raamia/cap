@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { DEMO_MODE } from "@/lib/config";
 import { getAuthUser } from "@/lib/auth/session";
-import { getCatalogue, listItems, listNotificationsFor, listProfiles } from "@/lib/db/repo";
+import { getCatalogue, listItems, listNotificationsFor, listProfiles, listTemplates } from "@/lib/db/repo";
 import { listProjects } from "@/lib/db/projects";
 import { listTasks } from "@/lib/db/tasks";
 import { listObjectives } from "@/lib/db/objectives";
@@ -34,6 +34,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const conversations = listConversationsFor(user.id);
   const tasks = listTasks();
   const objectives = listObjectives();
+  const templates = listTemplates();
 
   return (
     <AppShell
@@ -49,6 +50,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialConversations={conversations}
       initialTasks={tasks}
       initialObjectives={objectives}
+      initialTemplates={templates}
     >
       {children}
     </AppShell>

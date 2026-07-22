@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Catalogue, ConversationSummary, Item, Negligence, Notif, Objective, Profile, Project, RefLists, Task } from "@/lib/domain";
+import type { AppSettings, Catalogue, ConversationSummary, EmailTemplate, Item, Negligence, Notif, Objective, Profile, Project, RefLists, Task } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -72,6 +72,7 @@ export function AppShell({
   initialConversations,
   initialTasks,
   initialObjectives,
+  initialTemplates,
 }: {
   children: ReactNode;
   demo?: boolean;
@@ -87,6 +88,7 @@ export function AppShell({
   initialConversations?: ConversationSummary[];
   initialTasks?: Task[];
   initialObjectives?: Objective[];
+  initialTemplates?: EmailTemplate[];
 }) {
   return (
     <AppProvider
@@ -103,6 +105,7 @@ export function AppShell({
       initialConversations={initialConversations}
       initialTasks={initialTasks}
       initialObjectives={initialObjectives}
+      initialTemplates={initialTemplates}
     >
       <Shell>{children}</Shell>
     </AppProvider>

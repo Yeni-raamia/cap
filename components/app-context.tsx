@@ -27,6 +27,7 @@ import {
   computeScores,
   DEFAULT_CATALOGUE,
   DEFAULT_REF_LISTS,
+  DEFAULT_TEMPLATES,
   isReadOnly,
   LEVELS,
   reminderState,
@@ -34,6 +35,7 @@ import {
   weekStart,
   type AppSettings,
   type ConversationSummary,
+  type EmailTemplate,
   type Message,
   type Negligence,
   type Objective,
@@ -150,6 +152,8 @@ interface AppCtx {
   catalogueAction: (action: CatalogueAction) => Promise<string | null>;
   refLists: RefLists;
   refListAction: (action: RefListActionPayload) => Promise<string | null>;
+  templates: EmailTemplate[];
+  templateAction: (op: "create" | "update" | "delete", input: Record<string, unknown>) => Promise<string | null>;
   negligences: Negligence[];
   negligenceById: (id: string) => Negligence | null;
   negligenceByItem: (itemId: string) => Negligence | null;
@@ -314,6 +318,7 @@ export function AppProvider({
   initialConversations,
   initialTasks,
   initialObjectives,
+  initialTemplates,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -329,6 +334,7 @@ export function AppProvider({
   initialConversations?: ConversationSummary[];
   initialTasks?: Task[];
   initialObjectives?: Objective[];
+  initialTemplates?: EmailTemplate[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -341,6 +347,9 @@ export function AppProvider({
   );
   const [catalogue, setCatalogue] = useState<Catalogue>(
     demo || !initialCatalogue ? DEFAULT_CATALOGUE : initialCatalogue
+  );
+  const [templates, setTemplates] = useState<EmailTemplate[]>(
+    demo ? DEFAULT_TEMPLATES.map((t, i) => ({ ...t, id: `tpl-${i}` })) : initialTemplates ?? []
   );
   const [refLists, setRefLists] = useState<RefLists>(
     demo || !initialRefLists ? DEFAULT_REF_LISTS : initialRefLists
@@ -782,6 +791,20 @@ export function AppProvider({
     return true;
   };
 
+  // Modèles de relance (CRUD admin).
+  const templateAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Indisponible en mode démo.";
+    const res = await fetch("/api/admin/templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: op, ...input }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) return d.error ?? "Erreur.";
+    if (d.templates) setTemplates(d.templates);
+    return null;
+  };
+
   const markNotificationsRead = () => {
     if (demo) return;
     if (!notifications.some((n) => !n.read)) return;
@@ -1089,6 +1112,8 @@ export function AppProvider({
     catalogueAction,
     refLists,
     refListAction,
+    templates,
+    templateAction,
     negligences,
     negligenceById,
     negligenceByItem,
