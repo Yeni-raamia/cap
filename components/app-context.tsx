@@ -128,6 +128,7 @@ interface AppCtx {
   setMeId: (id: string) => void;
   profiles: Profile[];
   profileById: (id: string) => Profile;
+  updateAccount: (fields: { fullName?: string; poste?: string; avatar?: string }) => Promise<boolean>;
   catalogue: Catalogue;
   rs: (item: Item) => ReminderState;
   scores: Score[];
@@ -209,6 +210,8 @@ interface AppCtx {
 
 const EPOCH = new Date(0);
 const FALLBACK_PROFILE: Profile = { id: "", nom: "…", poste: "", role: "agent", init: "?", extraPages: [], deniedPages: [], readonly: false, approved: true, mustChangePassword: false };
+// Auteur dont le compte a été supprimé par l'admin (données conservées).
+const DELETED_PROFILE: Profile = { ...FALLBACK_PROFILE, nom: "Compte supprimé", init: "—" };
 const Ctx = createContext<AppCtx | null>(null);
 
 /** Reconvertit les dates (ISO string) d'une réponse JSON en objets Date. */
@@ -450,8 +453,13 @@ export function AppProvider({
     : initialUser ?? FALLBACK_PROFILE;
   const ready = nowState !== null && (demo || Boolean(initialUser));
 
-  const profileById = (id: string): Profile =>
-    profiles.find((p) => p.id === id) ?? FALLBACK_PROFILE;
+  const profileById = (id: string): Profile => {
+    const found = profiles.find((p) => p.id === id);
+    if (found) return found;
+    // Profils chargés mais id absent → compte supprimé (données orphelines).
+    if (id && profiles.length > 0) return DELETED_PROFILE;
+    return FALLBACK_PROFILE;
+  };
 
   // État de relance calculé avec les SLA du catalogue courant (types ajoutés inclus).
   const rs = (item: Item): ReminderState => reminderState(item, now, catalogue.types);
@@ -753,6 +761,27 @@ export function AppProvider({
     return null;
   };
 
+  // Espace membre : mise à jour de son propre profil (nom, poste, avatar).
+  const updateAccount = async (fields: { fullName?: string; poste?: string; avatar?: string }): Promise<boolean> => {
+    if (demo) {
+      toast("Modification indisponible en mode démo.", "info");
+      return false;
+    }
+    const res = await fetch("/api/account", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast(d.error ?? "Échec de la mise à jour.", "error");
+      return false;
+    }
+    if (d.profiles) setProfiles(d.profiles);
+    toast("Profil mis à jour.", "success");
+    return true;
+  };
+
   const markNotificationsRead = () => {
     if (demo) return;
     if (!notifications.some((n) => !n.read)) return;
@@ -1038,6 +1067,7 @@ export function AppProvider({
     setMeId,
     profiles,
     profileById,
+    updateAccount,
     catalogue,
     rs,
     scores,

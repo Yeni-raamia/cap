@@ -38,7 +38,26 @@ export function MetierChip({ code }: { code: string }) {
   );
 }
 
-export function Avatar({ init, size = "h-8 w-8" }: { init: string; size?: string }) {
+export function Avatar({
+  init,
+  src,
+  size = "h-8 w-8",
+}: {
+  init: string;
+  src?: string;
+  size?: string;
+}) {
+  if (src) {
+    return (
+      // Photo de profil (data URL) — eslint-disable pour <img> hors next/image (local, data URL).
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={init}
+        className={`${size} rounded-full object-cover shrink-0 ring-1 ring-black/5 shadow-sm`}
+      />
+    );
+  }
   return (
     <div
       className={`${size} rounded-full bg-gradient-to-br from-slate-700 to-slate-900 text-white grid place-items-center text-[11px] font-semibold shrink-0 ring-1 ring-black/5 shadow-sm`}

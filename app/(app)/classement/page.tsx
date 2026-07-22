@@ -42,7 +42,7 @@ export default function ClassementPage() {
       {motmId && (
         <div className="rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-gradient-to-r from-amber-50 to-white dark:from-amber-500/10 dark:to-slate-900 shadow-soft p-4 flex items-center gap-3">
           <div className="relative">
-            <Avatar init={profileById(motmId).init} size="h-11 w-11" />
+            <Avatar init={profileById(motmId).init} src={profileById(motmId).avatar || undefined} size="h-11 w-11" />
             <Crown size={16} className="absolute -top-2 left-1/2 -translate-x-1/2 text-amber-500" />
           </div>
           <div>
@@ -103,7 +103,7 @@ export default function ClassementPage() {
         {board.slice(0, 3).map(({ p, g }, i) => (
           <Link key={p.id} href={`/membre/${p.id}`} className={`rounded-2xl border shadow-soft p-4 text-center transition-transform hover:-translate-y-0.5 ${i === 0 ? "border-amber-200 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-500/5" : "border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900"}`}>
             <div className="text-[26px]">{medal[i]}</div>
-            <div className="mt-1 flex justify-center"><Avatar init={p.init} size="h-11 w-11" /></div>
+            <div className="mt-1 flex justify-center"><Avatar init={p.init} src={p.avatar || undefined} size="h-11 w-11" /></div>
             <div className="text-[13.5px] font-bold text-slate-800 mt-2 truncate">{p.nom}</div>
             <div className="text-[11px] text-slate-500">{g.levelIcon} {g.levelName}</div>
             <div className="text-[20px] font-extrabold text-slate-900 mt-1"><CountUp value={g.xp} /> <span className="text-[11px] font-medium text-slate-400">XP</span></div>
@@ -121,7 +121,7 @@ export default function ClassementPage() {
             <Card className={`p-3.5 flex items-center gap-3 hover:-translate-y-0.5 transition-transform ${isMe ? "ring-2 ring-emerald-300 dark:ring-emerald-500/40" : ""}`}>
               <div className="w-7 text-center">{medal[i] || <span className="text-slate-400 text-[13px] font-semibold">{i + 1}</span>}</div>
               <div className="relative">
-                <Avatar init={p.init} size="h-9 w-9" />
+                <Avatar init={p.init} src={p.avatar || undefined} size="h-9 w-9" />
                 <span className="absolute -bottom-1 -right-1 text-[12px]">{g.levelIcon}</span>
               </div>
               <div className="flex-1 min-w-0">

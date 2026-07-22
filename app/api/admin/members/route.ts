@@ -107,6 +107,19 @@ export async function POST(request: Request) {
       deleteProfileAccount(targetId);
       logActivity(user.id, "member_approve", `${target.nom} refusé (supprimé)`);
     }
+  } else if (action === "delete") {
+    const target = getProfileById(targetId);
+    if (!target) return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 });
+    if (targetId === user.id) {
+      return NextResponse.json({ error: "Tu ne peux pas supprimer ton propre compte." }, { status: 400 });
+    }
+    if (target.role === "admin" && countAdmins() <= 1) {
+      return NextResponse.json({ error: "Impossible : c'est le dernier administrateur." }, { status: 400 });
+    }
+    // Suppression du compte et de ses sessions ; les données créées (suivis,
+    // projets, tâches…) sont conservées et l'auteur apparaît « Compte supprimé ».
+    deleteProfileAccount(targetId);
+    logActivity(user.id, "member_delete", `${target.nom} (${target.role}) supprimé`);
   } else if (action === "readonly") {
     const ro = Boolean(body?.readonly);
     if (targetId === user.id && ro) {

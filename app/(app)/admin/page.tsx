@@ -409,6 +409,28 @@ function MembresSection({
                       })}
                     </div>
                   </div>
+
+                  {/* Zone de danger — suppression définitive du compte */}
+                  {u.id !== meId && (
+                    <div className="flex items-center justify-between bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+                      <div>
+                        <div className="text-[12px] font-medium text-rose-700">Supprimer le compte</div>
+                        <div className="text-[11px] text-rose-400">
+                          Le compte et ses sessions sont supprimés. Les données créées sont conservées (auteur « Compte supprimé »).
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Supprimer définitivement le compte de ${u.nom} ? Cette action est irréversible.`)) {
+                            call({ action: "delete", id: u.id });
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 text-[12px] text-white bg-rose-600 hover:bg-rose-700 rounded-lg px-2.5 py-1.5"
+                      >
+                        <Trash2 size={13} /> Supprimer
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

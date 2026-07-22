@@ -33,6 +33,7 @@ interface ProfileRow {
   password_hash: string;
   full_name: string;
   initials: string;
+  avatar: string | null;
   poste: string | null;
   role: Role;
   active: number;
@@ -47,6 +48,20 @@ interface ProfileRow {
 export const parsePages = (csv: string | null | undefined): string[] =>
   (csv ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
+/** Initiales dérivées d'un nom complet (deux premières lettres des mots). */
+export function initialsFrom(fullName: string, fallback = "?"): string {
+  return (
+    fullName
+      .replace(/[^A-Za-zÀ-ÿ ]/g, "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || fallback.slice(0, 2).toUpperCase()
+  );
+}
+
 function mapProfile(r: ProfileRow): Profile {
   return {
     id: r.id,
@@ -54,6 +69,7 @@ function mapProfile(r: ProfileRow): Profile {
     poste: r.poste ?? "",
     role: r.role,
     init: r.initials,
+    avatar: r.avatar ?? "",
     extraPages: parsePages(r.extra_pages),
     deniedPages: parsePages(r.denied_pages),
     readonly: r.readonly === 1,
@@ -91,15 +107,7 @@ export function createProfile(input: {
   approved?: boolean;
 }): Profile {
   const id = randomUUID();
-  const initials =
-    input.fullName
-      .replace(/[^A-Za-zÀ-ÿ ]/g, "")
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || input.email.slice(0, 2).toUpperCase();
+  const initials = initialsFrom(input.fullName, input.email);
   getDb()
     .prepare(
       "insert into profiles (id, email, password_hash, full_name, initials, role, approved, password_changed_at) values (?,?,?,?,?,?,?,datetime('now'))"
@@ -140,6 +148,35 @@ export function deleteProfileAccount(userId: string): void {
   const db = getDb();
   db.prepare("delete from sessions where user_id = ?").run(userId);
   db.prepare("delete from profiles where id = ?").run(userId);
+}
+
+/**
+ * Mise à jour du profil par l'utilisateur lui-même (nom, poste, avatar).
+ * Les initiales sont recalculées quand le nom change. Un avatar vide (`""`)
+ * retire la photo ; `undefined` laisse le champ inchangé.
+ */
+export function updateOwnProfile(
+  userId: string,
+  fields: { fullName?: string; poste?: string; avatar?: string }
+): void {
+  const db = getDb();
+  if (fields.fullName !== undefined) {
+    const nom = fields.fullName.trim();
+    if (nom) {
+      db.prepare("update profiles set full_name = ?, initials = ? where id = ?").run(
+        nom,
+        initialsFrom(nom),
+        userId
+      );
+    }
+  }
+  if (fields.poste !== undefined) {
+    db.prepare("update profiles set poste = ? where id = ?").run(fields.poste.trim(), userId);
+  }
+  if (fields.avatar !== undefined) {
+    // Chaîne vide → retrait de la photo (NULL).
+    db.prepare("update profiles set avatar = ? where id = ?").run(fields.avatar || null, userId);
+  }
 }
 
 /** Administrateurs actifs (pour notifier les demandes d'inscription). */

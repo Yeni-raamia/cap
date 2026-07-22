@@ -242,6 +242,9 @@ function ensureColumns(db: Database.Database) {
     // Les comptes déjà présents étaient légitimes : on les approuve pour ne verrouiller personne.
     db.exec("update profiles set approved = 1");
   }
+  if (!pcols.includes("avatar")) {
+    db.exec("alter table profiles add column avatar text");
+  }
   if (!pcols.includes("must_change_password")) {
     db.exec("alter table profiles add column must_change_password integer not null default 0");
   }

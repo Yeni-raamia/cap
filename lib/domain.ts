@@ -79,6 +79,8 @@ export interface Profile {
   poste: string;
   role: Role;
   init: string;
+  /** Photo de profil (data URL redimensionnée), ou vide → initiales. */
+  avatar?: string;
   /** Pages supplémentaires accordées par l'admin, au-delà du rôle. */
   extraPages: string[];
   /** Pages retirées par l'admin, même si le rôle y donnerait accès. */

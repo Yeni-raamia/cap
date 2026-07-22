@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell, LogOut, Moon, Search, Sun, Volume2, VolumeX } from "lucide-react";
 import { canAccess, navForUser } from "@/lib/nav";
@@ -54,7 +55,13 @@ export function Topbar() {
       </button>
 
       <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
-        <Avatar init={me.init} size="h-8 w-8" />
+        {demo ? (
+          <Avatar init={me.init} src={me.avatar || undefined} size="h-8 w-8" />
+        ) : (
+          <Link href="/compte" aria-label="Mon compte" title="Mon compte" className="rounded-full hover:ring-2 hover:ring-emerald-300 transition">
+            <Avatar init={me.init} src={me.avatar || undefined} size="h-8 w-8" />
+          </Link>
+        )}
         {demo ? (
           // Sélecteur d'utilisateur — démo RBAC (mode démo uniquement)
           <select

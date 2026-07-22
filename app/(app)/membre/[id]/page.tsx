@@ -54,7 +54,7 @@ export default function MembrePage() {
         <div className="aurora" aria-hidden />
         <div className="relative z-[1] p-6 md:p-8 flex items-center gap-5 flex-wrap">
           <div className="relative">
-            <Avatar init={u.init} size="h-20 w-20" />
+            <Avatar init={u.init} src={u.avatar || undefined} size="h-20 w-20" />
             <span className="absolute -bottom-1 -right-1 text-[22px]">{g.levelIcon}</span>
           </div>
           <div className="flex-1 min-w-0">
