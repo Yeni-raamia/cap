@@ -24,16 +24,16 @@ projets, productivité, messagerie et négligences — le tout **100 % local (LA
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/dashboard.png" alt="Mon espace — tableau de bord personnel" /><br/><sub><b>Mon espace</b> — tableau de bord personnel</sub></td>
-    <td width="50%"><img src="docs/screenshots/global.png" alt="Vue globale de l'équipe" /><br/><sub><b>Vue globale</b> — tout le travail de l'équipe</sub></td>
+    <td width="50%"><img src="docs/screenshots/cockpit.png" alt="Cockpit — tableau de bord d'accueil" /><br/><sub><b>Cockpit</b> — accueil, briefing du jour & data-viz</sub></td>
+    <td width="50%"><img src="docs/screenshots/global-premium.png" alt="Vue globale — centre de supervision" /><br/><sub><b>Vue globale</b> — centre de supervision de l'équipe</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/projets.png" alt="Module Projets" /><br/><sub><b>Projets</b> — avancement & équipe</sub></td>
-    <td width="50%"><img src="docs/screenshots/stats.png" alt="Statistiques" /><br/><sub><b>Statistiques</b> — pilotage & rapports PDF</sub></td>
+    <td width="50%"><img src="docs/screenshots/projets-premium.png" alt="Projets — cartes riches" /><br/><sub><b>Projets</b> — avancement, jauges & équipe</sub></td>
+    <td width="50%"><img src="docs/screenshots/cockpit-dark.png" alt="Cockpit en mode sombre" /><br/><sub><b>Mode sombre</b> — thème clair / sombre sur toute l'app</sub></td>
   </tr>
 </table>
 
-<sub>Captures réalisées en mode démonstration (<code>NEXT_PUBLIC_DEMO=1</code>), avec des données fictives.</sub>
+<sub>Captures réalisées en mode démonstration (<code>NEXT_PUBLIC_DEMO=1</code>), avec des données fictives. Palette de commandes <kbd>⌘K</kbd>, notifications sonores et confettis à la clôture non visibles ici 🙂</sub>
 
 ---
 

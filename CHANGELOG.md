@@ -8,6 +8,17 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.1.0] - 2026-07-22
+
+### Ajouté — Refonte design premium
+- **Cockpit** : nouvelle page d'accueil « briefing » (salutation selon l'heure, aurore animée, KPIs animés, heatmap d'activité, colonnes ce qui t'attend / à valider / à justifier, pouls et charge de l'équipe). Devient la page d'accueil par défaut.
+- **Palette de commandes ⌘K** : recherche + navigation + actions au clavier, sur tout l'écran.
+- **Mode clair / sombre** : bascule persistée, cohérente sur toute l'application (override `?theme=`).
+- **Refontes de fond** : Vue globale en centre de supervision, Productivité (podium de rendement, jauges), Projets (cartes riches à jauge circulaire et pile d'avatars).
+- **En-tête éditorial (PageHero)** sur toutes les pages, hero premium sur Mon espace.
+- **Touches “wow”** : confettis à la clôture, toasts élégants (succès/erreur/info), états vides soignés, animations d'entrée en cascade.
+- **Data-viz** sans dépendance : compteurs animés, sparklines, jauges circulaires, heatmap, mini-barres.
+
 ## [1.0.0] - 2026-07-21
 
 ### Ajouté
