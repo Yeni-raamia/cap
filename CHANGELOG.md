@@ -8,6 +8,14 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.4.0] - 2026-07-22
+
+### Ajouté — Gamification (enrichissements)
+- **Montée de niveau célébrée** : confettis + toast dès qu'un palier d'XP est franchi.
+- **Défis de la semaine** : 3 objectifs hebdomadaires dérivés de l'activité (clôtures, réponses, tâches) avec progression, sur le Classement.
+- **Membre du mois** : mise en avant automatique de la plus forte activité du mois en cours.
+- 4 badges supplémentaires : Vétéran, Pilier, Stratège, Couteau suisse.
+
 ## [1.3.0] - 2026-07-22
 
 ### Ajouté — Plan de l'année (enrichissements)
