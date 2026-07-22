@@ -17,7 +17,9 @@ async function handle(request: Request) {
   if (!authorized(request)) {
     return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
   }
-  const summary = await runReminders();
+  // ?forceWeekly=1 force le récap hebdomadaire même hors lundi (test manuel).
+  const forceWeekly = new URL(request.url).searchParams.get("forceWeekly") === "1";
+  const summary = await runReminders({ forceWeekly });
   return NextResponse.json({ ok: true, ...summary });
 }
 

@@ -32,7 +32,7 @@ export interface ReminderSummary {
   emailConfigured: boolean;
 }
 
-export async function runReminders(): Promise<ReminderSummary> {
+export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<ReminderSummary> {
   const now = new Date();
   const items = listItems();
   const types = getCatalogue().types; // SLA depuis le catalogue (y compris types ajoutés)
@@ -112,7 +112,7 @@ export async function runReminders(): Promise<ReminderSummary> {
   // Récapitulatif hebdomadaire (le lundi) : chaque membre actif reçoit le
   // bilan de sa semaine écoulée (7 derniers jours). Idempotent via le même
   // verrou « digest » que le digest du matin — il a donc priorité le lundi.
-  if (now.getDay() === 1) {
+  if (now.getDay() === 1 || opts?.forceWeekly) {
     const weekAgo = now.getTime() - 7 * 86400000;
     for (const p of listProfiles()) {
       if (!p.approved) continue;
