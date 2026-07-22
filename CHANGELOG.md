@@ -8,6 +8,14 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.3.0] - 2026-07-22
+
+### Ajouté — Plan de l'année (enrichissements)
+- **Jalons** : étapes clés (intitulé + date + fait) éditables dans la modale, affichées en losanges sur la timeline.
+- **Vue par trimestre** : bascule Année / T1–T4 sur la timeline (zoom 3 mois, curseur « aujourd'hui » recalculé).
+- **Export PDF** de la roadmap : Gantt annuel imprimable + tableau détaillé (responsable, période, avancement, statut, motif de déclassement).
+- **Notifications d'échéance d'objectif** : rappel au responsable et à l'équipe quand la fin approche (≤ 7 jours) via le moteur de relance.
+
 ## [1.2.0] - 2026-07-22
 
 ### Ajouté — Plan de l'année
