@@ -170,7 +170,7 @@ export function ObjectiveModal({ objective, creating, onClose }: { objective: Ob
           <div className="flex items-center gap-2 p-4 border-t border-slate-100 dark:border-slate-800 flex-wrap">
             {creating ? (
               <button disabled={!title.trim() || busy} onClick={save} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-4 py-2 hover:-translate-y-0.5 transition-transform shadow-soft disabled:opacity-50">
-                <Target size={15} /> Créer l'objectif
+                <Target size={15} /> Créer l&apos;objectif
               </button>
             ) : objective && (
               <>
