@@ -16,6 +16,7 @@ import { BarChart3 } from "lucide-react";
 import { useApp } from "@/components/app-context";
 import { PageHero } from "@/components/PageHero";
 import { RapportPdf } from "@/components/RapportPdf";
+import { ExportSuivis } from "@/components/ExportSuivis";
 
 const box = "bg-white border border-slate-200 rounded-xl p-4";
 
@@ -64,6 +65,15 @@ export default function StatsPage() {
         subtitle="Le registre, en vivant. Ce qui avance, ce qui répond, qui fait bouger les lignes."
         right={<RapportPdf />}
       />
+
+      {/* Exports Excel/CSV */}
+      <div className={`${box} flex items-center justify-between gap-3 flex-wrap`}>
+        <div className="text-[12.5px] text-slate-600 dark:text-slate-300">
+          <span className="font-semibold text-slate-800 dark:text-slate-100">Exports</span> — données brutes pour Excel / reporting.
+        </div>
+        <ExportSuivis />
+      </div>
+
       <div className="grid md:grid-cols-2 gap-4">
         <div className={box}>
           <div className="text-[13px] font-semibold text-slate-700 mb-3">Volume par métier</div>
