@@ -8,6 +8,19 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.2.0] - 2026-07-22
+
+### Ajouté — Plan de l'année
+- Nouveau module **Plan de l'année** : objectifs annuels (période début→fin, responsable, couleur, projets/tâches/équipe liés), gérés par managers/directeurs.
+- **Timeline « plan de vol »** : mois en colonnes, barres colorées par objectif avec remplissage = avancement, curseur « aujourd'hui », destination (drapeau), sélecteur d'année.
+- **Avancement automatique** dérivé des projets et tâches liés ; santé calculée (sur la bonne voie / à risque / en retard).
+- **Déclassement** d'un objectif avec motif tracé ; « marquer atteint » (confettis).
+
+### Ajouté — Gamification (honorifique)
+- **Profil de jeu** dérivé de l'activité : XP sur clôtures, réponses, relances, tâches, projets menés et objectifs atteints.
+- **6 niveaux** (Novice → Légende) et **8 badges** débloquables.
+- **Classement refondu** : profil de jeu, podium, classement par XP, grille des badges ; pastille de niveau sur le Cockpit.
+
 ## [1.1.0] - 2026-07-22
 
 ### Ajouté — Refonte design premium
