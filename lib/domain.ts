@@ -757,6 +757,93 @@ export function memberProductivity(memberId: string, tasks: Task[], now: Date, w
 
 export const PROJECT_METIER = "PRJ"; // métier déclencheur d'un projet
 
+/* ---------- Gamification (honorifique) ---------- */
+export const XP = {
+  cloture: 15,
+  reponse: 10,
+  relance: 3,
+  tache: 5,
+  sousTache: 1,
+  projet: 50,
+  objectif: 200,
+};
+
+export const LEVELS: { min: number; name: string; icon: string }[] = [
+  { min: 0, name: "Novice", icon: "🌱" },
+  { min: 150, name: "Éclaireur", icon: "🧭" },
+  { min: 450, name: "Confirmé", icon: "⚙️" },
+  { min: 1000, name: "Expert", icon: "🛡️" },
+  { min: 2000, name: "Maître", icon: "⭐" },
+  { min: 3500, name: "Légende", icon: "👑" },
+];
+
+export interface Badge {
+  id: string;
+  label: string;
+  icon: string;
+  desc: string;
+  earned: boolean;
+}
+
+export interface GameProfile {
+  id: string;
+  xp: number;
+  level: number; // index dans LEVELS
+  levelName: string;
+  levelIcon: string;
+  nextXp: number | null; // XP du prochain palier (null si niveau max)
+  progressPct: number; // progression vers le prochain niveau
+  badges: Badge[];
+}
+
+/** Profil de jeu (XP, niveau, badges) dérivé de l'activité réelle. */
+export function computeGame(
+  id: string,
+  items: Item[],
+  tasks: Task[],
+  projects: Project[],
+  objectives: Objective[]
+): GameProfile {
+  const mine = items.filter((i) => i.ownerId === id);
+  const cloture = mine.filter((i) => i.statut === "Clôturé").length;
+  const reponse = mine.reduce((s, i) => s + i.timeline.filter((e) => e.kind === "reponse").length, 0);
+  const relance = mine.reduce((s, i) => s + i.relancesCount, 0);
+  const myTasks = tasks.filter((t) => t.assigneeId === id);
+  const tache = myTasks.filter((t) => t.status === "fait").length;
+  const sousTache = myTasks.reduce((s, t) => s + t.subtasks.filter((x) => x.done).length, 0);
+  const projet = projects.filter((p) => p.ownerId === id && p.status === "Terminé").length;
+  const objectif = objectives.filter((o) => o.status === "atteint" && (o.ownerId === id || o.memberIds.includes(id))).length;
+  const lateOwned = mine.filter((i) => i.statut !== "Clôturé").filter((i) => i.priorite === "Critique").length; // approximation douce
+
+  const xp =
+    cloture * XP.cloture +
+    reponse * XP.reponse +
+    relance * XP.relance +
+    tache * XP.tache +
+    sousTache * XP.sousTache +
+    projet * XP.projet +
+    objectif * XP.objectif;
+
+  let level = 0;
+  for (let i = 0; i < LEVELS.length; i++) if (xp >= LEVELS[i].min) level = i;
+  const nextXp = level < LEVELS.length - 1 ? LEVELS[level + 1].min : null;
+  const base = LEVELS[level].min;
+  const progressPct = nextXp ? Math.round(((xp - base) / (nextXp - base)) * 100) : 100;
+
+  const badges: Badge[] = [
+    { id: "premiere", label: "Première clôture", icon: "✅", desc: "Clôturer un premier suivi de mail.", earned: cloture >= 1 },
+    { id: "sentinelle", label: "Sentinelle", icon: "🛡️", desc: "25 suivis de mail clôturés.", earned: cloture >= 25 },
+    { id: "marathon", label: "Marathonien", icon: "🏅", desc: "100 suivis de mail clôturés.", earned: cloture >= 100 },
+    { id: "reactif", label: "Réactif", icon: "⚡", desc: "20 réponses obtenues.", earned: reponse >= 20 },
+    { id: "besogneux", label: "Bourreau de travail", icon: "💪", desc: "25 tâches achevées.", earned: tache >= 25 },
+    { id: "chef", label: "Chef d'orchestre", icon: "🎼", desc: "Mener un projet à son terme.", earned: projet >= 1 },
+    { id: "cap", label: "Cap sur l'année", icon: "🎯", desc: "Atteindre un objectif annuel.", earned: objectif >= 1 },
+    { id: "zero", label: "Zéro dérive", icon: "🧭", desc: "Aucun suivi critique en cours (≥ 5 clôturés).", earned: lateOwned === 0 && cloture >= 5 },
+  ];
+
+  return { id, xp, level, levelName: LEVELS[level].name, levelIcon: LEVELS[level].icon, nextXp, progressPct, badges };
+}
+
 /* ---------- Administration ---------- */
 export interface AdminMember {
   id: string;

@@ -16,7 +16,7 @@ import {
   Sun,
   TrendingUp,
 } from "lucide-react";
-import { fmtLong, greeting, isProjectArchived } from "@/lib/domain";
+import { computeGame, fmtLong, greeting, isProjectArchived } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar } from "@/components/atoms";
 import { CountUp, Sparkline, Ring, Heatmap } from "@/components/dataviz";
@@ -24,9 +24,10 @@ import { CountUp, Sparkline, Ring, Heatmap } from "@/components/dataviz";
 const iso = (d: Date) => new Date(d).toISOString().slice(0, 10);
 
 export default function CockpitPage() {
-  const { items, projects, negligences, profiles, me, now, rs, scores, setShowNew, openItem, profileById } = useApp();
+  const { items, projects, tasks, negligences, objectives, profiles, me, now, rs, scores, setShowNew, openItem, profileById } = useApp();
 
   const firstName = (me.nom || "").split(/\s+/)[0] || me.nom;
+  const game = useMemo(() => computeGame(me.id, items, tasks, projects, objectives), [me.id, items, tasks, projects, objectives]);
 
   const data = useMemo(() => {
     const active = items.filter((i) => i.statut !== "Clôturé");
@@ -125,6 +126,9 @@ export default function CockpitPage() {
                     🏆 {rank + 1}ᵉ au classement
                   </span>
                 )}
+                <Link href="/classement" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-emerald-700 dark:text-emerald-400 rounded-full border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 hover:-translate-y-0.5 transition-transform">
+                  {game.levelIcon} {game.levelName} · {game.xp} XP
+                </Link>
               </div>
             </div>
             <div className="flex flex-col items-end gap-3">

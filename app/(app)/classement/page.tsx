@@ -1,66 +1,136 @@
 "use client";
 
-import { Award } from "lucide-react";
+import { useMemo } from "react";
+import { Award, Lock } from "lucide-react";
+import { computeGame, type Badge } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
+import { CountUp, Ring } from "@/components/dataviz";
 import { PageHero } from "@/components/PageHero";
 
 const medal = ["🥇", "🥈", "🥉"];
 
 export default function ClassementPage() {
-  const { me, scores, profileById } = useApp();
+  const { me, profiles, items, tasks, projects, objectives } = useApp();
+
+  const board = useMemo(
+    () =>
+      profiles
+        .filter((p) => p.id)
+        .map((p) => ({ p, g: computeGame(p.id, items, tasks, projects, objectives) }))
+        .sort((a, b) => b.g.xp - a.g.xp),
+    [profiles, items, tasks, projects, objectives]
+  );
+
+  const mine = board.find((r) => r.p.id === me.id);
+  const myRank = board.findIndex((r) => r.p.id === me.id);
 
   return (
-    <div className="space-y-5 animate-float">
+    <div className="space-y-6 animate-float">
       <PageHero
-        kicker="Classement"
+        kicker="Hall of fame"
         icon={Award}
-        title="Ceux qui font avancer les choses"
-        subtitle="Le score récompense relancer, obtenir des réponses et clôturer — pas le volume brut."
+        title="Classement de l'équipe"
+        subtitle="Gagne de l'XP en relançant, en obtenant des réponses, en clôturant et en atteignant les objectifs. Monte de niveau, débloque des badges."
       />
+
+      {/* Mon profil de jeu */}
+      {mine && (
+        <div className="rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-gradient-to-br from-white to-emerald-50/40 dark:from-slate-900 dark:to-emerald-950/20 shadow-soft p-5">
+          <div className="flex items-center gap-4 flex-wrap">
+            <Ring value={mine.g.progressPct} size={78} stroke={8} color="#10b981">
+              <span className="text-[22px]">{mine.g.levelIcon}</span>
+            </Ring>
+            <div className="min-w-0">
+              <div className="text-[12px] text-slate-500">Niveau {mine.g.level + 1} · {myRank >= 0 ? `${myRank + 1}ᵉ` : ""}</div>
+              <div className="text-2xl font-extrabold tracking-tight text-slate-900">{mine.g.levelName}</div>
+              <div className="text-[12px] text-slate-500 mt-0.5">
+                <b className="text-emerald-600"><CountUp value={mine.g.xp} /> XP</b>
+                {mine.g.nextXp != null ? ` · ${mine.g.nextXp - mine.g.xp} XP avant le niveau suivant` : " · niveau maximal atteint 👑"}
+              </div>
+            </div>
+            <div className="ml-auto flex items-center gap-1.5 flex-wrap justify-end max-w-[50%]">
+              {mine.g.badges.filter((b) => b.earned).map((b) => <BadgePill key={b.id} b={b} />)}
+              {mine.g.badges.every((b) => !b.earned) && <span className="text-[12px] text-slate-400">Débloque ton premier badge en clôturant un suivi de mail.</span>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Podium */}
+      <div className="grid sm:grid-cols-3 gap-3 stagger">
+        {board.slice(0, 3).map(({ p, g }, i) => (
+          <div key={p.id} className={`rounded-2xl border shadow-soft p-4 text-center ${i === 0 ? "border-amber-200 dark:border-amber-500/30 bg-amber-50/40 dark:bg-amber-500/5" : "border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900"}`}>
+            <div className="text-[26px]">{medal[i]}</div>
+            <div className="mt-1 flex justify-center"><Avatar init={p.init} size="h-11 w-11" /></div>
+            <div className="text-[13.5px] font-bold text-slate-800 mt-2 truncate">{p.nom}</div>
+            <div className="text-[11px] text-slate-500">{g.levelIcon} {g.levelName}</div>
+            <div className="text-[20px] font-extrabold text-slate-900 mt-1"><CountUp value={g.xp} /> <span className="text-[11px] font-medium text-slate-400">XP</span></div>
+          </div>
+        ))}
+      </div>
+
+      {/* Classement complet */}
       <div className="space-y-2">
-        {scores.map((s, i) => {
-          const u = profileById(s.id);
-          const mine = s.id === me.id;
+        {board.map(({ p, g }, i) => {
+          const isMe = p.id === me.id;
+          const earned = g.badges.filter((b) => b.earned);
           return (
-            <Card
-              key={s.id}
-              className={`p-4 flex items-center gap-3 ${mine ? "ring-2 ring-emerald-300" : ""}`}
-            >
-              <div className="w-8 text-center text-lg">
-                {medal[i] || <span className="text-slate-400 text-sm font-semibold">{i + 1}</span>}
+            <Card key={p.id} className={`p-3.5 flex items-center gap-3 ${isMe ? "ring-2 ring-emerald-300 dark:ring-emerald-500/40" : ""}`}>
+              <div className="w-7 text-center">{medal[i] || <span className="text-slate-400 text-[13px] font-semibold">{i + 1}</span>}</div>
+              <div className="relative">
+                <Avatar init={p.init} size="h-9 w-9" />
+                <span className="absolute -bottom-1 -right-1 text-[12px]">{g.levelIcon}</span>
               </div>
-              <Avatar init={u.init} />
-              <div className="flex-1">
-                <div className="text-[14px] font-medium text-slate-800">
-                  {u.nom}
-                  {mine && <span className="text-[11px] text-emerald-600 ml-1">· toi</span>}
+              <div className="flex-1 min-w-0">
+                <div className="text-[13.5px] font-semibold text-slate-800 truncate">
+                  {p.nom}{isMe && <span className="text-[11px] text-emerald-600 ml-1">· toi</span>}
                 </div>
-                <div className="flex gap-1.5 mt-1 flex-wrap">
-                  {s.badges.map((b) => (
-                    <span
-                      key={b}
-                      className="inline-flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-full"
-                    >
-                      <Award size={10} />
-                      {b}
-                    </span>
-                  ))}
-                  {s.badges.length === 0 && (
-                    <span className="text-[11px] text-slate-400">Pas encore de badge</span>
-                  )}
+                <div className="flex items-center gap-1 mt-1 flex-wrap">
+                  <span className="text-[10px] font-medium text-slate-500">{g.levelName}</span>
+                  {earned.slice(0, 6).map((b) => <span key={b.id} title={b.label} className="text-[12px]">{b.icon}</span>)}
+                  {earned.length === 0 && <span className="text-[10px] text-slate-400">—</span>}
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-xl font-semibold text-slate-800">{s.score}</div>
-                <div className="text-[10px] text-slate-400">
-                  {s.closures} clôtures · {s.relances} relances
-                </div>
+              <div className="w-28 hidden sm:block">
+                <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-emerald-400" style={{ width: `${g.progressPct}%` }} /></div>
+              </div>
+              <div className="text-right w-16">
+                <div className="text-[16px] font-extrabold text-slate-900 tabular-nums">{g.xp}</div>
+                <div className="text-[10px] text-slate-400">XP</div>
               </div>
             </Card>
           );
         })}
       </div>
+
+      {/* Badges à débloquer */}
+      {mine && (
+        <div>
+          <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide mb-2">Badges</h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {mine.g.badges.map((b) => (
+              <div key={b.id} className={`rounded-2xl border p-3 flex items-center gap-3 ${b.earned ? "border-emerald-200/70 dark:border-emerald-500/30 bg-white dark:bg-slate-900" : "border-slate-200/70 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20"}`}>
+                <div className={`grid place-items-center h-10 w-10 rounded-xl text-[20px] ${b.earned ? "bg-emerald-50 dark:bg-emerald-500/10" : "bg-slate-100 dark:bg-slate-800 grayscale opacity-60"}`}>
+                  {b.earned ? b.icon : <Lock size={16} className="text-slate-400" />}
+                </div>
+                <div className="min-w-0">
+                  <div className={`text-[12.5px] font-semibold ${b.earned ? "text-slate-800" : "text-slate-400"}`}>{b.label}</div>
+                  <div className="text-[11px] text-slate-400">{b.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function BadgePill({ b }: { b: Badge }) {
+  return (
+    <span title={b.desc} className="inline-flex items-center gap-1 text-[11px] font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 rounded-full px-2 py-0.5">
+      <span>{b.icon}</span> {b.label}
+    </span>
   );
 }
