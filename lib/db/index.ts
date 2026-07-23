@@ -267,6 +267,11 @@ function ensureColumns(db: Database.Database) {
   if (!pcols.includes("avatar")) {
     db.exec("alter table profiles add column avatar text");
   }
+  if (!pcols.includes("totp_secret")) {
+    db.exec("alter table profiles add column totp_secret text");
+    db.exec("alter table profiles add column totp_enabled integer not null default 0");
+    db.exec("alter table profiles add column totp_backup text");
+  }
   if (!pcols.includes("must_change_password")) {
     db.exec("alter table profiles add column must_change_password integer not null default 0");
   }

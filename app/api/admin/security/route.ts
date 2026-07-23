@@ -18,6 +18,7 @@ export async function POST(request: Request) {
   const patch: Partial<SecuritySettings> = {};
   if (typeof body.approvalRequired === "boolean") patch.approvalRequired = body.approvalRequired;
   if (typeof body.hstsEnabled === "boolean") patch.hstsEnabled = body.hstsEnabled;
+  if (typeof body.twofaRequired === "boolean") patch.twofaRequired = body.twofaRequired;
   const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : undefined);
   if (num(body.passwordMinLength) !== undefined) patch.passwordMinLength = body.passwordMinLength;
   if (num(body.loginMaxAttempts) !== undefined) patch.loginMaxAttempts = body.loginMaxAttempts;

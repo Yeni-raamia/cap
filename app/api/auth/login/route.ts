@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { createSession, getProfileById, getProfileRowByEmail, setMustChangePassword } from "@/lib/db/repo";
-import { getSecuritySettings } from "@/lib/db/admin";
+import { getSecuritySettings, logActivity } from "@/lib/db/admin";
 import { verifyPassword } from "@/lib/auth/password";
 import { setSessionCookie } from "@/lib/auth/cookie";
+import { issuePreauthToken, setPreauthCookie } from "@/lib/auth/preauth";
 import { clientIp, isRateLimited, recordAttempt, resetAttempts } from "@/lib/auth/rate-limit";
 
 const MAX_PER_IP_FACTOR = 6; // limite IP = maxAttempts × 6 (anti-énumération)
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
   if (!row || !verifyPassword(password, row.password_hash)) {
     recordAttempt(acctKey, windowMs);
     recordAttempt(ipKey, windowMs);
+    logActivity(row?.id ?? null, "login_failed", cleanEmail);
     return NextResponse.json({ error: "E-mail ou mot de passe incorrect." }, { status: 401 });
   }
   if (row.active !== 1) {
@@ -51,7 +53,18 @@ export async function POST(request: Request) {
   }
 
   resetAttempts(acctKey);
+
+  // Double authentification active : on ne crée pas encore la session. On pose
+  // un jeton pré-auth signé (court) et on renvoie la main au client pour l'étape
+  // TOTP (POST /api/auth/2fa), qui ouvrira la vraie session.
+  if (row.totp_enabled === 1) {
+    const res = NextResponse.json({ twofaRequired: true });
+    setPreauthCookie(res, issuePreauthToken(row.id));
+    return res;
+  }
+
   const token = createSession(row.id, sec.sessionDays);
+  logActivity(row.id, "login");
   const user = getProfileById(row.id);
   const res = NextResponse.json({ user, pending: !user?.approved, mustChangePassword: mustChange });
   setSessionCookie(res, token);

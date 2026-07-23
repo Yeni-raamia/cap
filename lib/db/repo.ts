@@ -43,6 +43,9 @@ interface ProfileRow {
   approved: number;
   must_change_password: number;
   password_changed_at: string | null;
+  totp_secret: string | null;
+  totp_enabled: number;
+  totp_backup: string | null;
 }
 
 export const parsePages = (csv: string | null | undefined): string[] =>
@@ -75,6 +78,7 @@ function mapProfile(r: ProfileRow): Profile {
     readonly: r.readonly === 1,
     approved: r.approved === 1,
     mustChangePassword: r.must_change_password === 1,
+    totpEnabled: r.totp_enabled === 1,
   };
 }
 
@@ -213,6 +217,39 @@ export function setUserPassword(userId: string, passwordHash: string): void {
 /** Force (ou lève) l'obligation de renouvellement du mot de passe. */
 export function setMustChangePassword(userId: string, must: boolean): void {
   getDb().prepare("update profiles set must_change_password = ? where id = ?").run(must ? 1 : 0, userId);
+}
+
+/* ---------- Double authentification (TOTP) ---------- */
+
+/** Secret / activation / codes de secours d'un compte (lecture interne 2FA). */
+export function getTotp(userId: string): { secret: string | null; enabled: boolean; backup: string | null } | null {
+  const r = getDb()
+    .prepare("select totp_secret, totp_enabled, totp_backup from profiles where id = ?")
+    .get(userId) as { totp_secret: string | null; totp_enabled: number; totp_backup: string | null } | undefined;
+  if (!r) return null;
+  return { secret: r.totp_secret, enabled: r.totp_enabled === 1, backup: r.totp_backup };
+}
+
+/** Enregistre un secret TOTP en attente (2FA pas encore activée). */
+export function setTotpSecret(userId: string, secret: string): void {
+  getDb().prepare("update profiles set totp_secret = ?, totp_enabled = 0 where id = ?").run(secret, userId);
+}
+
+/** Active la 2FA (le secret en attente devient effectif) et stocke les codes de secours. */
+export function enableTotp(userId: string, backupHash: string): void {
+  getDb().prepare("update profiles set totp_enabled = 1, totp_backup = ? where id = ?").run(backupHash, userId);
+}
+
+/** Désactive la 2FA et efface secret + codes de secours. */
+export function disableTotp(userId: string): void {
+  getDb()
+    .prepare("update profiles set totp_enabled = 0, totp_secret = null, totp_backup = null where id = ?")
+    .run(userId);
+}
+
+/** Met à jour le lot de codes de secours (après consommation d'un code). */
+export function setTotpBackup(userId: string, backupHash: string): void {
+  getDb().prepare("update profiles set totp_backup = ? where id = ?").run(backupHash, userId);
 }
 
 export function updateRole(userId: string, role: Role): void {

@@ -6,6 +6,7 @@ import { Camera, KeyRound, Loader2, Trash2, UserRound } from "lucide-react";
 import { useApp } from "@/components/app-context";
 import { Avatar } from "@/components/atoms";
 import { PageHero } from "@/components/PageHero";
+import { TwoFactorSection } from "@/components/TwoFactorSection";
 
 /** Redimensionne une image (File) en carré ~256 px et renvoie une data URL JPEG. */
 function resizeToDataUrl(file: File, size = 256): Promise<string> {
@@ -241,6 +242,9 @@ export default function ComptePage() {
           {savingPwd && <Loader2 size={14} className="animate-spin" />} Changer le mot de passe
         </button>
       </section>
+
+      {/* Double authentification (2FA) */}
+      {!demo && <TwoFactorSection enabled={me.totpEnabled} />}
     </div>
   );
 }

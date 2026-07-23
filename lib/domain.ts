@@ -91,6 +91,8 @@ export interface Profile {
   approved: boolean;
   /** L'utilisateur doit renouveler son mot de passe avant d'accéder à l'app. */
   mustChangePassword: boolean;
+  /** Double authentification (TOTP) active pour ce compte. */
+  totpEnabled: boolean;
 }
 
 /** Paramètres de sécurité configurables depuis l'administration. */
@@ -102,6 +104,7 @@ export interface SecuritySettings {
   sessionDays: number; // durée de vie d'une session (jours)
   passwordMaxAgeDays: number; // rotation forcée après N jours (0 = désactivé)
   hstsEnabled: boolean; // en-tête HSTS (HTTPS strict) — effet au redémarrage
+  twofaRequired: boolean; // double authentification (TOTP) exigée pour tous
 }
 
 export const DEFAULT_SECURITY: SecuritySettings = {
@@ -112,6 +115,7 @@ export const DEFAULT_SECURITY: SecuritySettings = {
   sessionDays: 30,
   passwordMaxAgeDays: 0,
   hstsEnabled: false,
+  twofaRequired: false,
 };
 
 /** Salutation adaptée à l'heure. */

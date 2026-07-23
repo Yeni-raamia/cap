@@ -67,6 +67,12 @@ const ACTION_LABEL: Record<string, string> = {
   reminders_run: "Moteur de relance exécuté",
   member_delete: "Compte supprimé",
   account_update: "Profil mis à jour",
+  login: "Connexion",
+  login_2fa: "Connexion (2FA validée)",
+  login_backup_code: "Connexion (code de secours)",
+  login_failed: "Échec de connexion",
+  "2fa_enabled": "Double authentification activée",
+  "2fa_disabled": "Double authentification désactivée",
   template_create: "Modèle — ajout",
   template_update: "Modèle — édition",
   template_delete: "Modèle — suppression",
@@ -788,7 +794,7 @@ function SecuriteSection({ setErr }: { setErr: (e: string | null) => void }) {
       />
     </div>
   );
-  const toggle = (k: "approvalRequired" | "hstsEnabled", label: string, hint: string) => (
+  const toggle = (k: "approvalRequired" | "hstsEnabled" | "twofaRequired", label: string, hint: string) => (
     <div className="flex items-center justify-between gap-3 py-2 border-b border-slate-50">
       <div>
         <div className="text-[13px] text-slate-700">{label}</div>
@@ -818,6 +824,7 @@ function SecuriteSection({ setErr }: { setErr: (e: string | null) => void }) {
         {num("loginMaxAttempts", "Tentatives de connexion", "Échecs autorisés avant blocage temporaire (par compte).", 1, 50)}
         {num("loginWindowMin", "Fenêtre de blocage (minutes)", "Durée du blocage après trop de tentatives.", 1, 240)}
         {num("sessionDays", "Durée de session (jours)", "Expiration glissante ; un compte inactif est déconnecté au-delà.", 1, 365)}
+        {toggle("twofaRequired", "Double authentification obligatoire", "Chaque membre devra activer la 2FA (TOTP) pour accéder à l'application.")}
         {toggle("hstsEnabled", "HSTS (HTTPS strict)", "À n'activer qu'en HTTPS. Prise en compte au redémarrage du serveur.")}
       </div>
       <div className="flex items-center gap-3 mt-4">

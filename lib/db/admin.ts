@@ -54,6 +54,7 @@ export function getSecuritySettings(): SecuritySettings {
     sessionDays: Math.max(1, Math.min(365, numSetting("sec_session_days", d.sessionDays))),
     passwordMaxAgeDays: Math.max(0, Math.min(3650, numSetting("sec_pw_max_age", d.passwordMaxAgeDays))),
     hstsEnabled: (getSetting("sec_hsts") ?? (d.hstsEnabled ? "1" : "0")) === "1",
+    twofaRequired: (getSetting("sec_2fa_required") ?? (d.twofaRequired ? "1" : "0")) === "1",
   };
 }
 export function setSecuritySettings(p: Partial<SecuritySettings>): void {
@@ -64,6 +65,7 @@ export function setSecuritySettings(p: Partial<SecuritySettings>): void {
   if (p.sessionDays !== undefined) setSetting("sec_session_days", String(p.sessionDays));
   if (p.passwordMaxAgeDays !== undefined) setSetting("sec_pw_max_age", String(p.passwordMaxAgeDays));
   if (p.hstsEnabled !== undefined) setSetting("sec_hsts", p.hstsEnabled ? "1" : "0");
+  if (p.twofaRequired !== undefined) setSetting("sec_2fa_required", p.twofaRequired ? "1" : "0");
 }
 
 /* ---------- Membres ---------- */

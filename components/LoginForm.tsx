@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Compass, LogIn } from "lucide-react";
+import { Compass, LogIn, ShieldCheck } from "lucide-react";
 import { APP_BASELINE, APP_MOTTO, APP_NAME } from "@/lib/config";
 
 type Mode = "signin" | "signup";
@@ -13,8 +13,17 @@ export function LoginForm({ firstRun }: { firstRun: boolean }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [awaiting2fa, setAwaiting2fa] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Redirection selon l'état : attente d'approbation, renouvellement imposé, ou accueil.
+  const routeAfterAuth = (data: { user?: { role?: string }; pending?: boolean; mustChangePassword?: boolean }) => {
+    const home = data.user?.role === "dsi" ? "/global" : "/cockpit";
+    router.push(data.pending ? "/pending" : data.mustChangePassword ? "/change-password" : home);
+    router.refresh();
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +38,40 @@ export function LoginForm({ firstRun }: { firstRun: boolean }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Une erreur est survenue.");
-      // Redirection selon l'état : attente d'approbation, renouvellement imposé, ou accueil.
-      const home = data.user?.role === "dsi" ? "/global" : "/cockpit";
-      router.push(data.pending ? "/pending" : data.mustChangePassword ? "/change-password" : home);
-      router.refresh();
+      // Double authentification : passage à l'étape de saisie du code.
+      if (data.twofaRequired) {
+        setAwaiting2fa(true);
+        setPassword("");
+        return;
+      }
+      routeAfterAuth(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verify2fa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        // Jeton pré-auth expiré : on repart de la saisie e-mail / mot de passe.
+        if (data.expired) {
+          setAwaiting2fa(false);
+          setCode("");
+        }
+        throw new Error(data.error || "Code incorrect.");
+      }
+      routeAfterAuth(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
     } finally {
@@ -53,6 +92,53 @@ export function LoginForm({ firstRun }: { firstRun: boolean }) {
           </div>
         </div>
 
+        {awaiting2fa ? (
+          <form onSubmit={verify2fa} className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-3 shadow-xl shadow-slate-200/50">
+            <div className="flex items-center gap-2 text-[15px] font-semibold text-slate-800">
+              <ShieldCheck size={17} className="text-emerald-600" />
+              Vérification en deux étapes
+            </div>
+            <p className="text-[12px] text-slate-500">
+              Saisissez le code à 6 chiffres de votre application d&apos;authentification, ou un
+              code de secours.
+            </p>
+            <div>
+              <label className="text-[12px] font-medium text-slate-600" htmlFor="code">
+                Code
+              </label>
+              <input
+                id="code"
+                inputMode="text"
+                autoComplete="one-time-code"
+                autoFocus
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="w-full mt-1 text-center tracking-[0.3em] text-[15px] border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-emerald-400"
+                placeholder="123456"
+              />
+            </div>
+            {error && <div className="text-[12px] text-rose-600">{error}</div>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-1.5 text-[13px] font-medium text-white bg-emerald-600 rounded-lg py-2 hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <ShieldCheck size={15} />
+              {loading ? "…" : "Vérifier"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAwaiting2fa(false);
+                setCode("");
+                setError(null);
+              }}
+              className="w-full text-[12px] text-slate-500 hover:text-slate-700"
+            >
+              Revenir à la connexion
+            </button>
+          </form>
+        ) : (
         <form onSubmit={submit} className="bg-white border border-slate-200/80 rounded-2xl p-6 space-y-3 shadow-xl shadow-slate-200/50">
           <div className="text-[15px] font-semibold text-slate-800">
             {mode === "signin" ? "Connexion" : "Créer un compte"}
@@ -140,6 +226,7 @@ export function LoginForm({ firstRun }: { firstRun: boolean }) {
             </button>
           )}
         </form>
+        )}
 
         <p className="text-[11px] text-slate-400 mt-4 text-center">{APP_MOTTO}</p>
       </div>

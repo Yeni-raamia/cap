@@ -9,7 +9,7 @@ import { listTasks } from "@/lib/db/tasks";
 import { listObjectives } from "@/lib/db/objectives";
 import { listNegligences } from "@/lib/db/negligences";
 import { listConversationsFor } from "@/lib/db/messaging";
-import { getRefLists, getSettings } from "@/lib/db/admin";
+import { getRefLists, getSecuritySettings, getSettings } from "@/lib/db/admin";
 
 export default async function AppGroupLayout({ children }: { children: ReactNode }) {
   // Mode démo : pas d'authentification, l'app s'amorce côté client.
@@ -22,6 +22,8 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   if (!user) redirect("/login");
   if (!user.approved) redirect("/pending"); // compte en attente d'approbation admin
   if (user.mustChangePassword) redirect("/change-password"); // renouvellement du mot de passe imposé
+  // 2FA imposée par la politique : enrôlement obligatoire avant tout accès.
+  if (getSecuritySettings().twofaRequired && !user.totpEnabled) redirect("/enroll-2fa");
 
   const items = listItems();
   const profiles = listProfiles();
