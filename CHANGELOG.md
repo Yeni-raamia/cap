@@ -8,6 +8,21 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.6.0] - 2026-07-23
+
+### Ajouté — Sécurité
+- **Double authentification (2FA / TOTP)** : chaque membre peut activer un second facteur (RFC 6238) depuis « Mon compte ». Enrôlement par **QR code** (ou clé saisie manuellement) compatible avec les applications d'authentification standard (Google Authenticator, etc.).
+- **Codes de secours** : 8 codes à usage unique générés à l'activation (affichés une seule fois) pour se connecter en cas de perte du téléphone.
+- **Connexion en deux étapes** : après le mot de passe, un code TOTP (ou un code de secours) est demandé ; l'état intermédiaire est porté par un cookie pré-auth signé, sans session ouverte tant que le second facteur n'est pas validé.
+- **2FA obligatoire (option admin)** : nouvelle politique de sécurité imposant le second facteur ; les comptes sans 2FA sont dirigés vers un enrôlement forcé avant tout accès. La désactivation individuelle est alors verrouillée.
+
+### Ajouté — Journal d'audit
+- **Traçabilité des événements de sécurité** dans le journal d'activité : connexion, connexion via 2FA, connexion par code de secours, échec de connexion, activation et désactivation de la 2FA.
+
+### Technique
+- Crypto sans dépendance (`node:crypto`) : TOTP, base32 et codes de secours hachés (scrypt, usage unique) ; QR code généré côté serveur (`qrcode`).
+- Migration additive : nouvelles colonnes `profiles.totp_secret / totp_enabled / totp_backup` (aucune réinitialisation de données).
+
 ## [1.5.0] - 2026-07-22
 
 ### Ajouté — Espace membre
