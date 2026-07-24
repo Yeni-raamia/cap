@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
 import { createProfile, setMustChangePassword, setUserPassword } from "./repo";
 import { hashPassword } from "@/lib/auth/password";
+import { SECURITY_ACTIONS } from "@/lib/audit-labels";
 import { DEFAULT_SECURITY, type SecuritySettings } from "@/lib/domain";
 import type {
   ActivityEntry,
@@ -269,6 +270,15 @@ interface ActivityRow {
   created_at: string;
   actor_nom: string | null;
 }
+const mapActivity = (r: ActivityRow): ActivityEntry => ({
+  id: r.id,
+  actorId: r.actor_id,
+  actorNom: r.actor_nom ?? "Système",
+  action: r.action,
+  detail: r.detail,
+  createdAt: new Date(r.created_at),
+});
+
 export function listActivity(limit = 50): ActivityEntry[] {
   const rows = getDb()
     .prepare(
@@ -276,13 +286,43 @@ export function listActivity(limit = 50): ActivityEntry[] {
         "left join profiles p on p.id = a.actor_id order by a.created_at desc limit ?"
     )
     .all(limit) as ActivityRow[];
-  return rows.map((r) => ({
-    id: r.id,
-    actorNom: r.actor_nom ?? "Système",
-    action: r.action,
-    detail: r.detail,
-    createdAt: new Date(r.created_at),
-  }));
+  return rows.map(mapActivity);
+}
+
+/**
+ * Journal d'audit filtré : par type d'événement (`action`), par acteur
+ * (`actorId`), par périmètre sécurité (`securityOnly`) et/ou par recherche
+ * texte (`q`, sur le détail et le code d'action). Trié du plus récent au plus
+ * ancien, borné par `limit`.
+ */
+export function queryActivity(filters: {
+  action?: string;
+  actorId?: string;
+  securityOnly?: boolean;
+  q?: string;
+  limit?: number;
+} = {}): ActivityEntry[] {
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+  if (filters.action) { where.push("a.action = ?"); params.push(filters.action); }
+  if (filters.actorId) { where.push("a.actor_id = ?"); params.push(filters.actorId); }
+  if (filters.securityOnly && SECURITY_ACTIONS.length) {
+    where.push(`a.action in (${SECURITY_ACTIONS.map(() => "?").join(",")})`);
+    params.push(...SECURITY_ACTIONS);
+  }
+  if (filters.q?.trim()) {
+    const like = `%${filters.q.trim()}%`;
+    where.push("(a.detail like ? or a.action like ?)");
+    params.push(like, like);
+  }
+  const limit = Math.max(1, Math.min(10000, filters.limit ?? 100));
+  const sql =
+    "select a.*, p.full_name as actor_nom from activity_log a " +
+    "left join profiles p on p.id = a.actor_id" +
+    (where.length ? ` where ${where.join(" and ")}` : "") +
+    " order by a.created_at desc limit ?";
+  params.push(limit);
+  return (getDb().prepare(sql).all(...params) as ActivityRow[]).map(mapActivity);
 }
 
 /* ---------- Compteurs ---------- */
@@ -303,6 +343,5 @@ export function lastReminderRun(): ActivityEntry | null {
     .prepare("select a.*, p.full_name as actor_nom from activity_log a left join profiles p on p.id=a.actor_id where a.action='reminders_run' order by a.created_at desc limit 1")
     .all() as ActivityRow[];
   if (!list.length) return null;
-  const r = list[0];
-  return { id: r.id, actorNom: r.actor_nom ?? "Système", action: r.action, detail: r.detail, createdAt: new Date(r.created_at) };
+  return mapActivity(list[0]);
 }

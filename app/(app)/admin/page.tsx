@@ -31,56 +31,13 @@ import {
 import { ALL_PAGES, roleHasPage } from "@/lib/nav";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, TypeTag } from "@/components/atoms";
+import { AuditJournal } from "@/components/AuditJournal";
 import { TemplatesAdmin } from "@/components/TemplatesAdmin";
 
 const ROLES: Role[] = ["agent", "manager", "directeur", "admin", "dsi"];
 const roleBadge = (r: string) =>
   r === "directeur" ? "bg-emerald-100 text-emerald-700" : r === "admin" ? "bg-violet-100 text-violet-700" : r === "dsi" ? "bg-sky-100 text-sky-700" : r === "manager" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600";
 
-const ACTION_LABEL: Record<string, string> = {
-  item_create: "Suivi de mail créé",
-  item_relance: "Relance",
-  item_reponse: "Réponse reçue",
-  item_bloque: "Blocage",
-  item_cloture: "Clôture",
-  member_create: "Membre créé",
-  member_role: "Rôle modifié",
-  member_active: "Statut de compte",
-  member_poste: "Poste modifié",
-  member_password: "Mot de passe réinitialisé",
-  member_pages: "Vues accessibles",
-  member_readonly: "Privilège lecture/écriture",
-  member_approve: "Approbation de compte",
-  member_force_password: "Renouvellement mot de passe imposé",
-  security_settings: "Paramètres de sécurité",
-  blocage_demarche: "Démarche de déblocage",
-  blocage_appreciation: "Appréciation du motif",
-  reflist_add: "Liste — ajout",
-  reflist_delete: "Liste — suppression",
-  negligence_open: "Négligence ouverte",
-  negligence_update: "Négligence — évaluation",
-  negligence_status: "Négligence — statut",
-  negligence_decision: "Négligence — décision DG",
-  catalogue_add: "Catalogue — ajout",
-  catalogue_update: "Catalogue — édition",
-  catalogue_delete: "Catalogue — suppression",
-  settings_update: "Paramètres modifiés",
-  reminders_run: "Moteur de relance exécuté",
-  member_delete: "Compte supprimé",
-  account_update: "Profil mis à jour",
-  login: "Connexion",
-  login_2fa: "Connexion (2FA validée)",
-  login_backup_code: "Connexion (code de secours)",
-  login_failed: "Échec de connexion",
-  "2fa_enabled": "Double authentification activée",
-  "2fa_disabled": "Double authentification désactivée",
-  member_2fa_reset: "2FA réinitialisée (admin)",
-  template_create: "Modèle — ajout",
-  template_update: "Modèle — édition",
-  template_delete: "Modèle — suppression",
-  attachment_add: "Pièce jointe — ajout",
-  attachment_delete: "Pièce jointe — suppression",
-};
 const dt = (d: string | Date) =>
   new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
@@ -897,21 +854,7 @@ function JournalSection({ over }: { over: Overview }) {
       </Card>
 
       <Card className="p-4">
-        <div className="text-[13px] font-semibold text-slate-700 mb-3">Journal d&apos;activité</div>
-        {over.journal.length === 0 ? (
-          <div className="text-[13px] text-slate-400 text-center py-4">Aucune activité.</div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {over.journal.map((a) => (
-              <div key={a.id} className="flex items-center gap-3 py-2 text-[12px]">
-                <span className="text-slate-400 w-28 shrink-0">{dt(a.createdAt)}</span>
-                <span className="font-medium text-slate-700 w-44 shrink-0">{ACTION_LABEL[a.action] ?? a.action}</span>
-                <span className="text-slate-600 flex-1 min-w-0 truncate">{a.detail}</span>
-                <span className="text-slate-400 shrink-0">{a.actorNom}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        <AuditJournal members={over.members} />
       </Card>
     </div>
   );

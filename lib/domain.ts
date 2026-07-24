@@ -1075,6 +1075,7 @@ export interface AdminMember {
 
 export interface ActivityEntry {
   id: string;
+  actorId: string | null;
   actorNom: string;
   action: string;
   detail: string;
