@@ -16,6 +16,7 @@ import type {
   Notif,
   NotifKind,
   ParsedSubject,
+  Person,
   Priorite,
   Profile,
   Role,
@@ -620,6 +621,62 @@ export function applyAction(itemId: string, action: Action, cause: string | unde
     } else if (action === "cloture") {
       db.prepare("update items set statut='Clôturé', closed_at=?, date_maj=? where id=?").run(now, now, itemId);
       insEv.run(randomUUID(), itemId, "cloture", "Clôturé", meId, now);
+    }
+  });
+  tx();
+}
+
+/**
+ * Édition des métadonnées d'un suivi après création : objet, priorité, points
+ * clés et personnes. NB : on ne touche PAS à `date_maj` — corriger un libellé
+ * ne doit pas réinitialiser l'horloge SLA (relance/escalade). La modification
+ * est tracée dans la timeline (« Aucun mail sans trace »).
+ */
+export function updateItem(
+  itemId: string,
+  meId: string,
+  fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[] }
+): void {
+  const db = getDb();
+  const current = db.prepare("select objet, priorite from items where id = ?").get(itemId) as
+    | { objet: string; priorite: Priorite }
+    | undefined;
+  if (!current) return;
+
+  const changes: string[] = [];
+  const tx = db.transaction(() => {
+    if (fields.objet !== undefined) {
+      const objet = fields.objet.trim();
+      if (objet && objet !== current.objet) {
+        db.prepare("update items set objet = ? where id = ?").run(objet, itemId);
+        changes.push("objet");
+      }
+    }
+    if (fields.priorite !== undefined && fields.priorite !== current.priorite) {
+      db.prepare("update items set priorite = ? where id = ?").run(fields.priorite, itemId);
+      changes.push("priorité");
+    }
+    if (fields.pointsCles !== undefined) {
+      const pts = fields.pointsCles.map((x) => x.trim()).filter(Boolean);
+      db.prepare("update items set points_cles = ? where id = ?").run(
+        JSON.stringify(pts.length ? pts : ["—"]),
+        itemId
+      );
+      changes.push("points clés");
+    }
+    if (fields.personnes !== undefined) {
+      db.prepare("delete from item_people where item_id = ?").run(itemId);
+      const ins = db.prepare("insert into item_people (id, item_id, name, kind, service) values (?,?,?,?,?)");
+      for (const p of fields.personnes) {
+        if (!p.name?.trim()) continue;
+        ins.run(randomUUID(), itemId, p.name.trim(), p.kind, p.service?.trim() || null);
+      }
+      changes.push("personnes");
+    }
+    if (changes.length) {
+      db.prepare(
+        "insert into events (id, item_id, kind, label, author_id, created_at) values (?,?,?,?,?,?)"
+      ).run(randomUUID(), itemId, "note", `Modification : ${changes.join(", ")}`, meId, new Date().toISOString());
     }
   });
   tx();

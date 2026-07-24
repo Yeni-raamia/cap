@@ -44,6 +44,7 @@ import {
   type Item,
   type Notif,
   type ParsedSubject,
+  type Person,
   type Priorite,
   type Profile,
   type Project,
@@ -146,6 +147,10 @@ interface AppCtx {
   act: (item: Item, action: Action, cause?: string) => void;
   create: (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string) => void;
   setRelanceDate: (item: Item, date: string | null) => void;
+  updateItem: (
+    item: Item,
+    fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[] }
+  ) => Promise<boolean>;
   addBlocageAction: (item: Item, kind: string, concerne: string, note: string) => void;
   setAppreciation: (item: Item, appreciation: string | null) => void;
   updateRole: (userId: string, role: Role) => Promise<string | null>;
@@ -592,6 +597,47 @@ export function AppProvider({
         if (d.items) setItems(reviveItems(d.items));
       })
       .catch((e) => console.error("Planification échouée :", e));
+  };
+
+  const updateItem = async (
+    item: Item,
+    fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[] }
+  ): Promise<boolean> => {
+    if (demo) {
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.id !== item.id) return it;
+          const next = { ...it };
+          if (fields.objet !== undefined) next.objet = fields.objet.trim() || it.objet;
+          if (fields.priorite !== undefined) next.priorite = fields.priorite;
+          if (fields.pointsCles !== undefined) {
+            const pts = fields.pointsCles.map((p) => p.trim()).filter(Boolean);
+            next.pointsCles = pts.length ? pts : ["—"];
+          }
+          if (fields.personnes !== undefined) next.personnes = fields.personnes.filter((p) => p.name.trim());
+          return next;
+        })
+      );
+      return true;
+    }
+    try {
+      const res = await fetch("/api/items/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: item.id, ...fields }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        toast(d.error ?? "Modification échouée.", "error");
+        return false;
+      }
+      if (d.items) setItems(reviveItems(d.items));
+      return true;
+    } catch (e) {
+      console.error("Modification échouée :", e);
+      toast("Modification échouée.", "error");
+      return false;
+    }
   };
 
   const catalogueAction = async (action: CatalogueAction): Promise<string | null> => {
@@ -1106,6 +1152,7 @@ export function AppProvider({
     act,
     create,
     setRelanceDate,
+    updateItem,
     addBlocageAction,
     setAppreciation,
     updateRole,

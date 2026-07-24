@@ -10,6 +10,7 @@ export const ACTION_LABEL: Record<string, string> = {
   item_reponse: "Réponse reçue",
   item_bloque: "Blocage",
   item_cloture: "Clôture",
+  item_update: "Suivi modifié",
   member_create: "Membre créé",
   member_role: "Rôle modifié",
   member_active: "Statut de compte",

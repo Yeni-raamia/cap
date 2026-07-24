@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Circle,
   Inbox,
+  Pencil,
   RotateCcw,
   Send,
   ShieldAlert,
@@ -24,6 +25,7 @@ import {
 import { useApp } from "./app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "./atoms";
 import { Fil } from "./Fil";
+import { EditSuivi } from "./EditSuivi";
 import { Deblocage } from "./Deblocage";
 import { Discussion } from "./Discussion";
 import { TemplatePicker } from "./TemplatePicker";
@@ -43,6 +45,10 @@ const evMeta: Record<EventKind, { icon: ComponentType<{ size?: number; className
 export function Drawer() {
   const { open, items, now, closeItem, act, setRelanceDate, rs, me, profileById, refLists } = useApp();
   const [cause, setCause] = useState(refLists.causes[0] ?? "");
+  const [editing, setEditing] = useState(false);
+
+  // Sortir du mode édition quand on change de suivi (ou qu'on ferme).
+  useEffect(() => setEditing(false), [open?.id]);
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +88,16 @@ export function Drawer() {
             </div>
             <div className="text-[15px] font-semibold text-slate-800 leading-snug">{item.objet}</div>
           </div>
+          {canEdit && (
+            <button
+              onClick={() => setEditing((v) => !v)}
+              aria-label={editing ? "Fermer l'édition" : "Éditer le suivi"}
+              title={editing ? "Fermer l'édition" : "Éditer le suivi"}
+              className={`shrink-0 ${editing ? "text-emerald-600" : "text-slate-400 hover:text-slate-600"}`}
+            >
+              <Pencil size={16} />
+            </button>
+          )}
           <button
             onClick={closeItem}
             aria-label="Fermer"
@@ -118,34 +134,44 @@ export function Drawer() {
             </Card>
           </div>
 
-          <Card className="p-3">
-            <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
-              Personnes impliquées
-            </div>
-            <div className="space-y-1.5">
-              {item.personnes.map((p, i) => (
-                <div key={i} className="flex items-center gap-2 text-[12px]">
-                  <UserCircle2 size={14} className="text-slate-400" />
-                  <span className="text-slate-700">{p.name}</span>
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">
-                    {p.kind}
-                  </span>
+          {editing ? (
+            <EditSuivi item={item} onDone={() => setEditing(false)} />
+          ) : (
+            <>
+              <Card className="p-3">
+                <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
+                  Personnes impliquées
                 </div>
-              ))}
-            </div>
-          </Card>
+                <div className="space-y-1.5">
+                  {item.personnes.map((p, i) => (
+                    <div key={i} className="flex items-center gap-2 text-[12px]">
+                      <UserCircle2 size={14} className="text-slate-400" />
+                      <span className="text-slate-700">{p.name}</span>
+                      {p.service && <span className="text-[10px] text-slate-400">· {p.service}</span>}
+                      <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">
+                        {p.kind}
+                      </span>
+                    </div>
+                  ))}
+                  {item.personnes.length === 0 && (
+                    <div className="text-[11px] text-slate-400">Aucune personne renseignée.</div>
+                  )}
+                </div>
+              </Card>
 
-          <Card className="p-3">
-            <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">Points clés</div>
-            <ul className="space-y-1">
-              {item.pointsCles.map((k, i) => (
-                <li key={i} className="text-[12px] text-slate-700 flex gap-2">
-                  <span className="text-emerald-500 mt-0.5">▸</span>
-                  {k}
-                </li>
-              ))}
-            </ul>
-          </Card>
+              <Card className="p-3">
+                <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">Points clés</div>
+                <ul className="space-y-1">
+                  {item.pointsCles.map((k, i) => (
+                    <li key={i} className="text-[12px] text-slate-700 flex gap-2">
+                      <span className="text-emerald-500 mt-0.5">▸</span>
+                      {k}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            </>
+          )}
 
           {item.statut === "Bloqué" && (
             <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-[12px] text-rose-700 flex items-center gap-2">
