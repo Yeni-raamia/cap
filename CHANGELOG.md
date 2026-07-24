@@ -8,6 +8,21 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.8.0] - 2026-07-24
+
+### Ajouté — Suivis de mail
+- **Édition d'un suivi après création** : depuis le panneau de détail (ou la page du suivi), on peut corriger l'objet, la priorité, les points clés et les personnes (destinataire/copie/impliqué + service). La modification est tracée dans la timeline.
+- **Page de suivi partageable** (`/items/[id]`) : chaque suivi devient une page à part entière — lien favori/partageable, ouvrable depuis une notification — en complément du panneau latéral. Bouton « Copier le lien » et « Ouvrir en page » depuis le panneau.
+- **Recherche élargie** : la recherche de l'explorateur couvre désormais les destinataires et leurs services, les points clés et la cause de blocage, en plus de l'objet et de la référence.
+- **Nouveaux filtres** : « A une réponse / Sans réponse » et « Avec / Sans pièce jointe » (repérer les suivis sans preuve).
+
+### Corrigé
+- **Horloge SLA** : l'échéance de relance/escalade est désormais mesurée depuis la **dernière action sortante** (envoi initial ou dernière relance) et non depuis la dernière modification. Une note, un changement de statut ou une correction ne repousse donc plus l'échéance ; une réponse reçue suspend la relance. Des suivis qui paraissaient « à jour » à tort peuvent remonter en relance/escalade.
+
+### Technique
+- Extraction du corps du détail d'un suivi dans un composant partagé entre le panneau et la page (sans duplication).
+- Nouveau champ `Item.attachmentsCount` (comptage serveur) alimentant le filtre pièces jointes.
+
 ## [1.7.0] - 2026-07-24
 
 ### Ajouté — Sécurité des comptes
