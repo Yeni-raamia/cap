@@ -10,6 +10,7 @@ import {
   listMembers,
   logActivity,
   resetMemberPassword,
+  resetMemberTotp,
   setMemberActive,
   setMemberPages,
   setMemberPoste,
@@ -146,6 +147,21 @@ export async function POST(request: Request) {
       channel: ["in-app"],
     });
     logActivity(user.id, "member_force_password", nameOf(targetId));
+  } else if (action === "reset_2fa") {
+    const target = getProfileById(targetId);
+    if (!target) return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 });
+    if (!target.totpEnabled) {
+      return NextResponse.json({ error: "Ce compte n'a pas la double authentification active." }, { status: 400 });
+    }
+    resetMemberTotp(targetId);
+    insertNotification({
+      userId: targetId,
+      itemId: null,
+      kind: "projet",
+      message: "L'administrateur a réinitialisé votre double authentification. Vous pouvez la réactiver depuis « Mon compte ».",
+      channel: ["in-app"],
+    });
+    logActivity(user.id, "member_2fa_reset", nameOf(targetId));
   } else {
     return NextResponse.json({ error: "Action inconnue." }, { status: 400 });
   }

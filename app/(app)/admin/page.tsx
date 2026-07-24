@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Settings2,
   ShieldCheck,
+  ShieldOff,
   Trash2,
   UserPlus,
   Users2,
@@ -73,6 +74,7 @@ const ACTION_LABEL: Record<string, string> = {
   login_failed: "Échec de connexion",
   "2fa_enabled": "Double authentification activée",
   "2fa_disabled": "Double authentification désactivée",
+  member_2fa_reset: "2FA réinitialisée (admin)",
   template_create: "Modèle — ajout",
   template_update: "Modèle — édition",
   template_delete: "Modèle — suppression",
@@ -265,6 +267,11 @@ function MembresSection({
                     {u.id === meId && <span className="text-[11px] text-emerald-600 ml-1">· toi</span>}
                     {!u.active && <span className="text-[11px] text-rose-600 ml-1">· désactivé</span>}
                     {!u.approved && <span className="text-[10px] font-medium text-amber-700 bg-amber-100 rounded-full px-1.5 py-0.5 ml-1.5">En attente</span>}
+                    {u.totpEnabled && (
+                      <span title="Double authentification active" className="inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-700 bg-emerald-50 rounded-full px-1.5 py-0.5 ml-1.5">
+                        <ShieldCheck size={11} /> 2FA
+                      </span>
+                    )}
                   </div>
                   <div className="text-[11px] text-slate-400">{u.email}{u.poste ? ` · ${u.poste}` : ""}</div>
                 </div>
@@ -360,6 +367,25 @@ function MembresSection({
                       className="inline-flex items-center gap-1 text-[12px] text-amber-700 border border-amber-200 hover:bg-amber-50 rounded-lg px-2.5 py-1.5 disabled:opacity-50"
                     >
                       <RotateCcw size={13} /> {u.mustChangePassword ? "Renouvellement demandé" : "Forcer le renouvellement"}
+                    </button>
+                  </div>
+
+                  {/* Double authentification (2FA) */}
+                  <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                    <div>
+                      <div className="text-[12px] font-medium text-slate-700">Double authentification</div>
+                      <div className="text-[11px] text-slate-400">
+                        {u.totpEnabled
+                          ? "Active. À réinitialiser si le membre a perdu son téléphone et ses codes de secours."
+                          : "Non activée pour ce compte."}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { if (confirm(`Réinitialiser la double authentification de ${u.nom} ? Le compte se connectera ensuite avec le seul mot de passe, jusqu'à réactivation.`)) call({ action: "reset_2fa", id: u.id }); }}
+                      disabled={!u.totpEnabled}
+                      className="inline-flex items-center gap-1 text-[12px] text-rose-700 border border-rose-200 hover:bg-rose-50 rounded-lg px-2.5 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <ShieldOff size={13} /> Réinitialiser
                     </button>
                   </div>
 

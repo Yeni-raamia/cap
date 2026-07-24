@@ -1069,6 +1069,7 @@ export interface AdminMember {
   readonly: boolean;
   approved: boolean;
   mustChangePassword: boolean;
+  totpEnabled: boolean;
   passwordAgeDays: number | null;
 }
 

@@ -83,6 +83,7 @@ interface MemberRow {
   approved: number;
   must_change_password: number;
   password_changed_at: string | null;
+  totp_enabled: number;
 }
 const csv = (s: string | null | undefined) => (s ?? "").split(",").map((x) => x.trim()).filter(Boolean);
 function mapMember(r: MemberRow): AdminMember {
@@ -101,8 +102,17 @@ function mapMember(r: MemberRow): AdminMember {
     readonly: r.readonly === 1,
     approved: r.approved === 1,
     mustChangePassword: r.must_change_password === 1,
+    totpEnabled: r.totp_enabled === 1,
     passwordAgeDays,
   };
+}
+
+/** Réinitialise (désactive) la 2FA d'un membre : déblocage en cas de perte du
+ *  téléphone et des codes de secours. Efface secret et codes. */
+export function resetMemberTotp(id: string): void {
+  getDb()
+    .prepare("update profiles set totp_enabled = 0, totp_secret = null, totp_backup = null where id = ?")
+    .run(id);
 }
 
 export function listMembers(): AdminMember[] {
