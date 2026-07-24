@@ -577,6 +577,20 @@ export interface ReminderState {
   dueIn?: number;
 }
 
+/**
+ * Date de la dernière action « sortante » vers le destinataire : envoi initial
+ * ou dernière relance. C'est le point de départ de l'horloge SLA — de sorte
+ * qu'une note, un changement de statut ou une correction de libellé ne repousse
+ * PAS l'échéance de relance/escalade (« Rien ne dérive »).
+ */
+export function lastOutboundDate(item: Item): Date {
+  let d = item.dateCreation;
+  for (const e of item.timeline) {
+    if ((e.kind === "envoi" || e.kind === "relance") && e.date > d) d = e.date;
+  }
+  return d;
+}
+
 export function reminderState(
   item: Item,
   now: Date,
@@ -584,7 +598,11 @@ export function reminderState(
 ): ReminderState {
   if (item.statut === "Clôturé") return { level: "none", days: 0 };
   const sla = types[item.type]?.sla;
-  const d = daysBetween(item.dateMaj, now);
+  // Horloge mesurée depuis la dernière action sortante, pas depuis dateMaj.
+  const d = daysBetween(lastOutboundDate(item), now);
+  // Une réponse reçue (« En traitement ») suspend la relance : on n'attend plus
+  // le destinataire, la balle est dans notre camp.
+  if (item.statut === "En traitement") return { level: "ok", days: d };
   if (item.statut === "Bloqué") return { level: "bloque", days: d };
   if (!sla) return { level: "none", days: d };
   if (d >= sla.escalade) return { level: "escalade", days: d };
