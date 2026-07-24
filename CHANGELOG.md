@@ -8,6 +8,20 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.7.0] - 2026-07-24
+
+### Ajouté — Sécurité des comptes
+- **Sessions actives** : chaque membre voit, depuis « Mon compte », la liste de ses appareils connectés (navigateur, système, IP, dernière activité) et peut **révoquer une session à distance** ou **déconnecter tous les autres appareils** — utile en cas de vol, de perte ou de connexion sur un poste public.
+- **Réinitialisation de la 2FA par l'administrateur** : action de déblocage pour un membre ayant perdu son téléphone **et** ses codes de secours ; désactive la double authentification et notifie le membre. Un badge « 2FA » signale, dans la liste des membres, les comptes protégés.
+
+### Ajouté — Journal d'audit
+- **Journal d'audit enrichi** : filtrage par type d'événement, par membre et par recherche texte, périmètre **« Sécurité uniquement »**, et **export CSV** (compatible Excel FR). Les échecs de connexion sont mis en évidence.
+- Nouveaux événements tracés : révocation de session, déconnexion des autres appareils, réinitialisation de 2FA par l'admin.
+
+### Technique
+- Migration additive de la table `sessions` : métadonnées d'appareil (`user_agent`, `ip`, `last_seen_at`) et identifiant public de révocation (aucune réinitialisation de données).
+- Détection d'appareil (User-Agent) sans dépendance ; filtrage du journal d'audit côté serveur.
+
 ## [1.6.0] - 2026-07-23
 
 ### Ajouté — Sécurité
