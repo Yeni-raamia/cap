@@ -7,6 +7,7 @@ import { useApp } from "@/components/app-context";
 import { Avatar } from "@/components/atoms";
 import { PageHero } from "@/components/PageHero";
 import { TwoFactorSection } from "@/components/TwoFactorSection";
+import { SessionsSection } from "@/components/SessionsSection";
 
 /** Redimensionne une image (File) en carré ~256 px et renvoie une data URL JPEG. */
 function resizeToDataUrl(file: File, size = 256): Promise<string> {
@@ -245,6 +246,9 @@ export default function ComptePage() {
 
       {/* Double authentification (2FA) */}
       {!demo && <TwoFactorSection enabled={me.totpEnabled} />}
+
+      {/* Sessions actives */}
+      {!demo && <SessionsSection />}
     </div>
   );
 }

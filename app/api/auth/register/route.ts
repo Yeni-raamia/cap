@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   recordAttempt(`register:${ip}`, 60 * 60 * 1000);
 
   // Une session est ouverte pour permettre l'accès à la page tampon d'attente.
-  const token = createSession(user.id, sec.sessionDays);
+  const token = createSession(user.id, sec.sessionDays, { userAgent: request.headers.get("user-agent"), ip });
   const res = NextResponse.json({ user, pending: !approved });
   setSessionCookie(res, token);
   return res;

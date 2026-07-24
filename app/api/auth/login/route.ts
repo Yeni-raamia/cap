@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     return res;
   }
 
-  const token = createSession(row.id, sec.sessionDays);
+  const token = createSession(row.id, sec.sessionDays, { userAgent: request.headers.get("user-agent"), ip });
   logActivity(row.id, "login");
   const user = getProfileById(row.id);
   const res = NextResponse.json({ user, pending: !user?.approved, mustChangePassword: mustChange });

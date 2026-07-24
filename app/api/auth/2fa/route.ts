@@ -64,7 +64,7 @@ export async function POST(request: Request) {
 
   resetAttempts(key);
   const sec = getSecuritySettings();
-  const token = createSession(uid, sec.sessionDays);
+  const token = createSession(uid, sec.sessionDays, { userAgent: request.headers.get("user-agent"), ip });
   logActivity(uid, usedBackup ? "login_backup_code" : "login_2fa");
 
   const user = getProfileById(uid);

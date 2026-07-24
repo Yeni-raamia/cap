@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
 import { createProjectForItem } from "./projects";
 import { PROJECT_METIER } from "@/lib/domain";
+import { describeUserAgent } from "@/lib/auth/user-agent";
 import type {
   BlocageAction,
   Catalogue,
@@ -18,6 +19,7 @@ import type {
   Priorite,
   Profile,
   Role,
+  SessionInfo,
   Statut,
   TimelineEvent,
   Tone,
@@ -306,13 +308,20 @@ export function listAdmins(): Profile[] {
 /* ---------- Sessions ---------- */
 const SESSION_DAYS = 30;
 
-export function createSession(userId: string, days: number = SESSION_DAYS): string {
+export function createSession(
+  userId: string,
+  days: number = SESSION_DAYS,
+  meta: { userAgent?: string | null; ip?: string | null } = {}
+): string {
   // Jeton fort (≈ 288 bits) — rotation à chaque connexion.
   const token = randomUUID() + randomUUID().replace(/-/g, "");
   const expires = new Date(Date.now() + days * 864e5).toISOString();
   getDb()
-    .prepare("insert into sessions (token, user_id, expires_at) values (?,?,?)")
-    .run(token, userId, expires);
+    .prepare(
+      "insert into sessions (token, id, user_id, expires_at, created_at, last_seen_at, user_agent, ip) " +
+        "values (?,?,?,?,datetime('now'),datetime('now'),?,?)"
+    )
+    .run(token, randomUUID(), userId, expires, meta.userAgent ?? null, meta.ip ?? null);
   // Purge opportuniste des sessions expirées.
   getDb().prepare("delete from sessions where expires_at < ?").run(new Date().toISOString());
   return token;
@@ -320,8 +329,8 @@ export function createSession(userId: string, days: number = SESSION_DAYS): stri
 
 export function getSessionUser(token: string): Profile | null {
   const row = getDb()
-    .prepare("select user_id, expires_at from sessions where token = ?")
-    .get(token) as { user_id: string; expires_at: string } | undefined;
+    .prepare("select user_id, expires_at, last_seen_at from sessions where token = ?")
+    .get(token) as { user_id: string; expires_at: string; last_seen_at: string | null } | undefined;
   if (!row) return null;
   const now = Date.now();
   if (new Date(row.expires_at).getTime() < now) {
@@ -340,11 +349,58 @@ export function getSessionUser(token: string): Profile | null {
     const expires = new Date(now + SESSION_DAYS * 864e5).toISOString();
     getDb().prepare("update sessions set expires_at = ? where token = ?").run(expires, token);
   }
+  // Dernière activité : mise à jour throttlée (~toutes les 2 min) pour limiter les écritures.
+  const lastSeen = row.last_seen_at ? new Date(row.last_seen_at).getTime() : 0;
+  if (now - lastSeen > 120_000) {
+    getDb().prepare("update sessions set last_seen_at = datetime('now') where token = ?").run(token);
+  }
   return getProfileById(row.user_id);
 }
 
 export function deleteSession(token: string): void {
   getDb().prepare("delete from sessions where token = ?").run(token);
+}
+
+interface SessionRow {
+  id: string | null;
+  user_id: string;
+  created_at: string;
+  last_seen_at: string | null;
+  user_agent: string | null;
+  ip: string | null;
+}
+
+/** Sessions actives (non expirées) d'un compte, la plus récemment vue en tête.
+ *  `currentToken` permet de marquer la session courante. */
+export function listSessionsForUser(userId: string, currentToken?: string): SessionInfo[] {
+  const rows = getDb()
+    .prepare(
+      "select id, token, user_id, created_at, last_seen_at, user_agent, ip from sessions " +
+        "where user_id = ? and expires_at >= ? order by last_seen_at desc"
+    )
+    .all(userId, new Date().toISOString()) as (SessionRow & { token: string })[];
+  return rows.map((r) => ({
+    id: r.id ?? r.token,
+    current: !!currentToken && r.token === currentToken,
+    device: describeUserAgent(r.user_agent),
+    ip: r.ip,
+    createdAt: new Date(r.created_at),
+    lastSeenAt: new Date(r.last_seen_at ?? r.created_at),
+  }));
+}
+
+/** Révoque une session d'un compte par son handle public (scopé à l'utilisateur). */
+export function revokeSession(userId: string, sessionId: string): boolean {
+  const res = getDb().prepare("delete from sessions where user_id = ? and id = ?").run(userId, sessionId);
+  return res.changes > 0;
+}
+
+/** Révoque toutes les sessions du compte SAUF la session courante. */
+export function revokeOtherSessions(userId: string, currentToken: string): number {
+  const res = getDb()
+    .prepare("delete from sessions where user_id = ? and token <> ?")
+    .run(userId, currentToken);
+  return res.changes;
 }
 
 /* ---------- Objets de suivi ---------- */

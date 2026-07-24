@@ -301,6 +301,23 @@ function ensureColumns(db: Database.Database) {
   if (mcols.length > 0 && !mcols.includes("reply_to")) {
     db.exec("alter table messages add column reply_to text");
   }
+  // Sessions : métadonnées appareil (gestion des sessions actives).
+  const scols = (db.prepare("pragma table_info(sessions)").all() as { name: string }[]).map((c) => c.name);
+  if (!scols.includes("id")) {
+    db.exec("alter table sessions add column id text");
+    // Handle public de révocation, distinct du jeton secret.
+    db.exec("update sessions set id = lower(hex(randomblob(16))) where id is null");
+  }
+  if (!scols.includes("last_seen_at")) {
+    db.exec("alter table sessions add column last_seen_at text");
+    db.exec("update sessions set last_seen_at = created_at where last_seen_at is null");
+  }
+  if (!scols.includes("user_agent")) {
+    db.exec("alter table sessions add column user_agent text");
+  }
+  if (!scols.includes("ip")) {
+    db.exec("alter table sessions add column ip text");
+  }
   // Négligences : reconstruction si ancien schéma (item_id NOT NULL/UNIQUE, sans objet/service/concerne).
   const ncols = (db.prepare("pragma table_info(negligences)").all() as { name: string }[]).map((c) => c.name);
   if (ncols.length > 0 && !ncols.includes("objet")) {

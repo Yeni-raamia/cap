@@ -1073,6 +1073,16 @@ export interface AdminMember {
   passwordAgeDays: number | null;
 }
 
+/** Session active d'un compte (gestion des appareils connectés). */
+export interface SessionInfo {
+  id: string;
+  current: boolean;
+  device: string; // libellé lisible (navigateur + système)
+  ip: string | null;
+  createdAt: Date;
+  lastSeenAt: Date;
+}
+
 export interface ActivityEntry {
   id: string;
   actorId: string | null;
