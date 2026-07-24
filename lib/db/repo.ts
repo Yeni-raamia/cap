@@ -452,6 +452,10 @@ export function listItems(): Item[] {
   const events = db.prepare("select * from events").all() as EventRow[];
   const people = db.prepare("select * from item_people").all() as PersonRow[];
   const actions = db.prepare("select * from blocage_actions").all() as BlocageActionRow[];
+  const atts = db.prepare("select item_id, count(*) as n from attachments group by item_id").all() as {
+    item_id: string;
+    n: number;
+  }[];
 
   const evByItem = new Map<string, EventRow[]>();
   events.forEach((e) => evByItem.set(e.item_id, [...(evByItem.get(e.item_id) ?? []), e]));
@@ -459,9 +463,11 @@ export function listItems(): Item[] {
   people.forEach((p) => pByItem.set(p.item_id, [...(pByItem.get(p.item_id) ?? []), p]));
   const aByItem = new Map<string, BlocageActionRow[]>();
   actions.forEach((a) => aByItem.set(a.item_id, [...(aByItem.get(a.item_id) ?? []), a]));
+  const attByItem = new Map<string, number>();
+  atts.forEach((a) => attByItem.set(a.item_id, a.n));
 
   return items.map((r) =>
-    mapItem(r, evByItem.get(r.id) ?? [], pByItem.get(r.id) ?? [], aByItem.get(r.id) ?? [])
+    mapItem(r, evByItem.get(r.id) ?? [], pByItem.get(r.id) ?? [], aByItem.get(r.id) ?? [], attByItem.get(r.id) ?? 0)
   );
 }
 
@@ -472,10 +478,17 @@ export function getItem(id: string): Item | null {
   const events = db.prepare("select * from events where item_id = ?").all(id) as EventRow[];
   const people = db.prepare("select * from item_people where item_id = ?").all(id) as PersonRow[];
   const actions = db.prepare("select * from blocage_actions where item_id = ?").all(id) as BlocageActionRow[];
-  return mapItem(r, events, people, actions);
+  const att = db.prepare("select count(*) as n from attachments where item_id = ?").get(id) as { n: number };
+  return mapItem(r, events, people, actions, att.n);
 }
 
-function mapItem(r: ItemRow, events: EventRow[], people: PersonRow[], actions: BlocageActionRow[]): Item {
+function mapItem(
+  r: ItemRow,
+  events: EventRow[],
+  people: PersonRow[],
+  actions: BlocageActionRow[],
+  attachmentsCount = 0
+): Item {
   const timeline: TimelineEvent[] = events
     .map((e) => ({
       date: new Date(e.created_at),
@@ -515,6 +528,7 @@ function mapItem(r: ItemRow, events: EventRow[], people: PersonRow[], actions: B
     appreciation: r.appreciation ?? null,
     blocageActions,
     timeline,
+    attachmentsCount,
   };
 }
 

@@ -71,6 +71,8 @@ export interface Item {
   /** Démarches menées pour lever le blocage. */
   blocageActions: BlocageAction[];
   timeline: TimelineEvent[];
+  /** Nombre de pièces jointes / preuves (renseigné côté serveur). */
+  attachmentsCount?: number;
 }
 
 export interface Profile {

@@ -82,6 +82,8 @@ export function SuiviExplorer({
   const [fAgent, setFAgent] = useState("Tous");
   const [fEtat, setFEtat] = useState<ReminderLevel | "Tous">("Tous");
   const [fProjet, setFProjet] = useState<"Tous" | "avec" | "sans">("Tous");
+  const [fReponse, setFReponse] = useState<"Tous" | "avec" | "sans">("Tous");
+  const [fAttach, setFAttach] = useState<"Tous" | "avec" | "sans">("Tous");
   const [fPeriode, setFPeriode] = useState<Periode>("tout");
   const [fFrom, setFFrom] = useState("");
   const [fTo, setFTo] = useState("");
@@ -115,14 +117,32 @@ export function SuiviExplorer({
       if (fEtat !== "Tous" && rs(i).level !== fEtat) return false;
       if (fProjet === "avec" && !i.projectId) return false;
       if (fProjet === "sans" && i.projectId) return false;
+      const aRepondu = i.timeline.some((e) => e.kind === "reponse");
+      if (fReponse === "avec" && !aRepondu) return false;
+      if (fReponse === "sans" && aRepondu) return false;
+      const aPieces = (i.attachmentsCount ?? 0) > 0;
+      if (fAttach === "avec" && !aPieces) return false;
+      if (fAttach === "sans" && aPieces) return false;
       if (periodRange) {
         const t = i.dateCreation.getTime();
         if (t < periodRange[0] || t > periodRange[1]) return false;
       }
-      if (q && !`${i.objet} ${i.ref}`.toLowerCase().includes(q)) return false;
+      if (q) {
+        // Recherche élargie : objet, réf, destinataires + services, points clés, cause de blocage.
+        const hay = [
+          i.objet,
+          i.ref,
+          ...i.personnes.map((p) => `${p.name} ${p.service ?? ""}`),
+          ...i.pointsCles,
+          i.blocageCause ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
       return true;
     });
-  }, [items, includeClosed, fMetier, fType, fStatut, fPriorite, fAgent, fEtat, fProjet, periodRange, search, showResponsable, rs]);
+  }, [items, includeClosed, fMetier, fType, fStatut, fPriorite, fAgent, fEtat, fProjet, fReponse, fAttach, periodRange, search, showResponsable, rs]);
 
   const enRetard = filtered.filter((i) => rs(i).level === "escalade").length;
   const bloques = filtered.filter((i) => i.statut === "Bloqué").length;
@@ -164,6 +184,8 @@ export function SuiviExplorer({
     setFAgent("Tous");
     setFEtat("Tous");
     setFProjet("Tous");
+    setFReponse("Tous");
+    setFAttach("Tous");
     setFPeriode("tout");
     setFFrom("");
     setFTo("");
@@ -179,6 +201,8 @@ export function SuiviExplorer({
     (showResponsable && fAgent !== "Tous" ? 1 : 0) +
     (fEtat !== "Tous" ? 1 : 0) +
     (fProjet !== "Tous" ? 1 : 0) +
+    (fReponse !== "Tous" ? 1 : 0) +
+    (fAttach !== "Tous" ? 1 : 0) +
     (fPeriode !== "tout" ? 1 : 0) +
     (search.trim() ? 1 : 0) +
     (includeClosed ? 1 : 0);
@@ -238,7 +262,7 @@ export function SuiviExplorer({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher (objet, référence)…"
+            placeholder="Rechercher (objet, réf, destinataire, points clés…)"
             aria-label="Rechercher"
             className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 min-w-[12rem] flex-1"
           />
@@ -297,6 +321,26 @@ export function SuiviExplorer({
             <option value="Tous">Projet : tous</option>
             <option value="avec">Rattachés à un projet</option>
             <option value="sans">Sans projet</option>
+          </select>
+          <select
+            value={fReponse}
+            onChange={(e) => setFReponse(e.target.value as "Tous" | "avec" | "sans")}
+            aria-label="Filtrer par réponse reçue"
+            className={selectCls}
+          >
+            <option value="Tous">Réponse : toutes</option>
+            <option value="avec">A une réponse</option>
+            <option value="sans">Sans réponse</option>
+          </select>
+          <select
+            value={fAttach}
+            onChange={(e) => setFAttach(e.target.value as "Tous" | "avec" | "sans")}
+            aria-label="Filtrer par pièces jointes"
+            className={selectCls}
+          >
+            <option value="Tous">Pièces jointes : toutes</option>
+            <option value="avec">Avec pièce jointe</option>
+            <option value="sans">Sans pièce jointe</option>
           </select>
           <select
             value={fPeriode}
