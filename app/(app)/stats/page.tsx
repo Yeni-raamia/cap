@@ -148,7 +148,7 @@ export default function StatsPage() {
           Activité — suivis créés vs clôturés (6 derniers mois)
         </div>
         <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={activite} margin={{ top: 4, right: 8, left: -12, bottom: 0 }}>
+          <AreaChart data={activite} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
             <defs>
               <linearGradient id="gCrees" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={S.blue} stopOpacity={0.25} />
@@ -161,7 +161,7 @@ export default function StatsPage() {
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
             <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
-            <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+            <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={38} />
             <Tooltip {...tip} />
             <Legend wrapperStyle={legendStyle} iconType="plainline" />
             <Area type="monotone" dataKey="crees" name="Créés" stroke={S.blue} strokeWidth={2} fill="url(#gCrees)" dot={{ r: 3, fill: S.blue }} activeDot={{ r: 5 }} />
@@ -182,10 +182,10 @@ export default function StatsPage() {
           </div>
         </div>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={conformiteChart} margin={{ top: 4, right: 8, left: -12, bottom: 0 }} barGap={2}>
+          <BarChart data={conformiteChart} margin={{ top: 4, right: 8, left: 4, bottom: 0 }} barGap={2}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
             <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
-            <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+            <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={38} />
             <Tooltip {...tip} />
             <Legend wrapperStyle={legendStyle} />
             <Bar dataKey="negligences" name="Négligences" fill={S.blue} radius={[4, 4, 0, 0]} />
@@ -201,7 +201,7 @@ export default function StatsPage() {
             <BarChart data={parMetier}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
               <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
-              <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+              <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={38} />
               <Tooltip {...tip} cursor={{ fill: dark ? "#ffffff10" : "#00000008" }} />
               <Bar dataKey="v" name="Suivis" radius={[4, 4, 0, 0]} fill={S.aqua} />
             </BarChart>
@@ -216,7 +216,7 @@ export default function StatsPage() {
             <BarChart data={parAgent}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
               <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
-              <YAxis tick={tick} domain={[0, 100]} tickLine={false} axisLine={false} width={28} />
+              <YAxis tick={tick} domain={[0, 100]} tickLine={false} axisLine={false} width={38} />
               <Tooltip {...tip} cursor={{ fill: dark ? "#ffffff10" : "#00000008" }} />
               <Bar dataKey="taux" name="Taux de réponse" radius={[4, 4, 0, 0]}>
                 {parAgent.map((e, i) => (
@@ -243,7 +243,7 @@ export default function StatsPage() {
             <BarChart data={relances}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
               <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
-              <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+              <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={38} />
               <Tooltip {...tip} cursor={{ fill: dark ? "#ffffff10" : "#00000008" }} />
               <Bar dataKey="v" name="Relances" radius={[4, 4, 0, 0]} fill={S.blue} />
             </BarChart>
