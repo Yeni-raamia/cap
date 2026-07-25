@@ -28,6 +28,7 @@ export function NonConformitesReport({ ncs }: { ncs: NonConformite[] }) {
             <th style={th}>Objet</th>
             <th style={th}>Service concerné</th>
             <th style={th}>Personne / entité</th>
+            <th style={th}>Politique violée</th>
             <th style={th}>Gravité</th>
             <th style={th}>Risque</th>
             <th style={th}>Ouvert par</th>
@@ -43,6 +44,7 @@ export function NonConformitesReport({ ncs }: { ncs: NonConformite[] }) {
                 <td style={td}>{n.objet || it?.objet || "—"}</td>
                 <td style={td}>{n.service || "—"}</td>
                 <td style={td}>{n.concerne || "—"}</td>
+                <td style={td}>{n.policy || "—"}</td>
                 <td style={td}>{n.gravite}</td>
                 <td style={td}>{n.risque}</td>
                 <td style={td}>{owner}</td>
@@ -51,6 +53,43 @@ export function NonConformitesReport({ ncs }: { ncs: NonConformite[] }) {
           })}
         </tbody>
       </table>
+
+      {(() => {
+        const counts = new Map<string, number>();
+        ncs.forEach((n) => {
+          const p = n.policy?.trim();
+          if (p) counts.set(p, (counts.get(p) ?? 0) + 1);
+        });
+        const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+        if (ranked.length === 0) return null;
+        const withPolicy = ranked.reduce((s, [, c]) => s + c, 0);
+        return (
+          <div style={{ marginBottom: 16, pageBreakInside: "avoid" }}>
+            <div style={{ fontSize: 15, fontWeight: 700, margin: "6px 0 4px" }}>Répartition par politique violée</div>
+            <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>
+              Politiques / articles / contrôles les plus fréquemment enfreints ({withPolicy} fiche(s) renseignée(s)).
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={th}>Politique / article / contrôle</th>
+                  <th style={{ ...th, width: 90, textAlign: "right" }}>Occurrences</th>
+                  <th style={{ ...th, width: 70, textAlign: "right" }}>Part</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ranked.map(([p, c]) => (
+                  <tr key={p}>
+                    <td style={td}>{p}</td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 600 }}>{c}</td>
+                    <td style={{ ...td, textAlign: "right" }}>{Math.round((c / withPolicy) * 100)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })()}
 
       <div style={{ fontSize: 15, fontWeight: 700, margin: "6px 0 8px" }}>Décisions</div>
       <div style={{ fontSize: 11, color: "#64748b", marginBottom: 8 }}>

@@ -12,6 +12,7 @@ interface NcRow {
   objet: string;
   service: string;
   concerne: string;
+  policy: string;
   gravite: string;
   risque: string;
   impact: string;
@@ -31,6 +32,7 @@ function mapNc(r: NcRow, decisions: string[]): NonConformite {
     objet: r.objet,
     service: r.service,
     concerne: r.concerne,
+    policy: r.policy ?? "",
     gravite: r.gravite,
     risque: r.risque,
     impact: r.impact,
@@ -91,6 +93,7 @@ export function createNonConformiteRecord(input: {
   objet: string;
   service: string;
   concerne: string;
+  policy?: string;
   gravite: string;
   risque: string;
   impact: string;
@@ -100,7 +103,7 @@ export function createNonConformiteRecord(input: {
   const id = randomUUID();
   getDb()
     .prepare(
-      "insert into nonconformites (id, item_id, objet, service, concerne, gravite, risque, impact, description, created_by) values (?,?,?,?,?,?,?,?,?,?)"
+      "insert into nonconformites (id, item_id, objet, service, concerne, policy, gravite, risque, impact, description, created_by) values (?,?,?,?,?,?,?,?,?,?,?)"
     )
     .run(
       id,
@@ -108,6 +111,7 @@ export function createNonConformiteRecord(input: {
       input.objet,
       input.service,
       input.concerne,
+      input.policy ?? "",
       input.gravite,
       input.risque,
       input.impact,
@@ -123,6 +127,7 @@ export function updateNonConformite(
     objet?: string;
     service?: string;
     concerne?: string;
+    policy?: string;
     gravite?: string;
     risque?: string;
     impact?: string;
@@ -134,12 +139,13 @@ export function updateNonConformite(
   if (!cur) return;
   getDb()
     .prepare(
-      "update nonconformites set objet=?, service=?, concerne=?, gravite=?, risque=?, impact=?, description=?, status=?, updated_at=? where id=?"
+      "update nonconformites set objet=?, service=?, concerne=?, policy=?, gravite=?, risque=?, impact=?, description=?, status=?, updated_at=? where id=?"
     )
     .run(
       fields.objet ?? cur.objet,
       fields.service ?? cur.service,
       fields.concerne ?? cur.concerne,
+      fields.policy ?? cur.policy ?? "",
       fields.gravite ?? cur.gravite,
       fields.risque ?? cur.risque,
       fields.impact ?? cur.impact,

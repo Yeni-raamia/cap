@@ -626,6 +626,12 @@ function ListesSection({ onChanged, setErr }: { onChanged: () => void; setErr: (
         onAdd={(v) => run({ op: "add", listKey: "service", label: v })}
         onDelete={(v) => run({ op: "delete", listKey: "service", value: v })}
       />
+      <SimpleListCard
+        title="Politiques / articles (non-conformités)"
+        values={refLists.policies}
+        onAdd={(v) => run({ op: "add", listKey: "policy", label: v })}
+        onDelete={(v) => run({ op: "delete", listKey: "policy", value: v })}
+      />
     </div>
   );
 }

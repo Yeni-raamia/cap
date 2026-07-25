@@ -31,6 +31,7 @@ export async function POST(request: Request) {
     const objet = String(body?.objet || "").trim();
     const service = String(body?.service || "").trim();
     const concerne = String(body?.concerne || "").trim();
+    const policy = String(body?.policy || "").trim();
     const gravite = cleanGravite(body?.gravite);
     const risque = cleanRisque(body?.risque);
     const impact = String(body?.impact || "");
@@ -47,9 +48,9 @@ export async function POST(request: Request) {
     let ncId: string;
     if (targetItem) {
       ncId = ensureNonConformite(targetItem, user.id);
-      updateNonConformite(ncId, { objet: objet || getItem(targetItem)?.objet || "", service, concerne, gravite, risque, impact, description });
+      updateNonConformite(ncId, { objet: objet || getItem(targetItem)?.objet || "", service, concerne, policy, gravite, risque, impact, description });
     } else {
-      ncId = createNonConformiteRecord({ itemId: null, objet, service, concerne, gravite, risque, impact, description, createdBy: user.id });
+      ncId = createNonConformiteRecord({ itemId: null, objet, service, concerne, policy, gravite, risque, impact, description, createdBy: user.id });
     }
     logActivity(user.id, "nonconf_open", objet || getItem(targetItem ?? "")?.ref || "");
     return NextResponse.json({ nonconformites: listNonConformites(), items: listItems(), nonconformite: getNonConformite(ncId) });
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
       objet: typeof body?.objet === "string" ? body.objet : undefined,
       service: typeof body?.service === "string" ? body.service : undefined,
       concerne: typeof body?.concerne === "string" ? body.concerne : undefined,
+      policy: typeof body?.policy === "string" ? body.policy : undefined,
       gravite: NEGLIGENCE_GRAVITES.includes(body?.gravite) ? body.gravite : undefined,
       risque: NEGLIGENCE_RISQUES.includes(body?.risque) ? body.risque : undefined,
       impact: typeof body?.impact === "string" ? body.impact : undefined,

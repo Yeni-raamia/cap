@@ -24,7 +24,7 @@ export const ncStatusBadge: Record<string, string> = {
 };
 
 export default function NonConformitesPage() {
-  const { nonConformites, items, me, refLists, profileById, createNonConformite, setNonConformiteDecisions, readOnly } = useApp();
+  const { nonConformites, items, me, refLists, profileById, createNonConformite, setNonConformiteDecisions, refListAction, readOnly } = useApp();
   const [search, setSearch] = useState("");
   const [fGravite, setFGravite] = useState("Tous");
   const [fStatut, setFStatut] = useState("Tous");
@@ -49,6 +49,9 @@ export default function NonConformitesPage() {
   const [objet, setObjet] = useState("");
   const [service, setService] = useState("");
   const [concerne, setConcerne] = useState("");
+  const [policy, setPolicy] = useState("");
+  const [newPolicy, setNewPolicy] = useState("");
+  const [addingPolicy, setAddingPolicy] = useState(false);
   const [gravite, setGravite] = useState("Modérée");
   const [risque, setRisque] = useState("Moyen");
   const [impact, setImpact] = useState("");
@@ -90,10 +93,20 @@ export default function NonConformitesPage() {
   const create = async () => {
     setErr(null);
     if (!objet.trim() && !fItem) return setErr("Renseigne au moins l'objet de la non-conformité.");
-    const e = await createNonConformite({ itemId: fItem || null, objet: objet.trim(), service, concerne: concerne.trim(), gravite, risque, impact: impact.trim(), description: description.trim() });
+    const e = await createNonConformite({ itemId: fItem || null, objet: objet.trim(), service, concerne: concerne.trim(), policy, gravite, risque, impact: impact.trim(), description: description.trim() });
     if (e) return setErr(e);
     setShowNew(false);
-    setFItem(""); setObjet(""); setService(""); setConcerne(""); setGravite("Modérée"); setRisque("Moyen"); setImpact(""); setDescription("");
+    setFItem(""); setObjet(""); setService(""); setConcerne(""); setPolicy(""); setGravite("Modérée"); setRisque("Moyen"); setImpact(""); setDescription("");
+  };
+  const addPolicy = async () => {
+    const v = newPolicy.trim();
+    if (!v) return;
+    setErr(null);
+    const e = await refListAction({ op: "add", listKey: "policy", label: v });
+    if (e) return setErr(e);
+    setPolicy(v);
+    setNewPolicy("");
+    setAddingPolicy(false);
   };
   const toggle = (n: NonConformite, d: string) => {
     const next = n.decisions.includes(d) ? n.decisions.filter((x) => x !== d) : [...n.decisions, d];
@@ -151,6 +164,32 @@ export default function NonConformitesPage() {
               <label className="text-[12px] text-slate-500">Personne / entité concernée</label>
               <input value={concerne} onChange={(e) => setConcerne(e.target.value)} placeholder="Nom" className="w-full mt-1 text-[13px] border border-slate-200 rounded-lg px-2 py-2" />
             </div>
+            <div className="md:col-span-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[12px] text-slate-500">Politique / article / contrôle violé</label>
+                {!readOnly && (
+                  <button type="button" onClick={() => setAddingPolicy((v) => !v)} className="text-[11px] text-orange-700 hover:underline inline-flex items-center gap-0.5">
+                    <Plus size={11} /> Ajouter un article
+                  </button>
+                )}
+              </div>
+              <select value={policy} onChange={(e) => setPolicy(e.target.value)} className="w-full mt-1 text-[13px] border border-slate-200 rounded-lg px-2 py-2 bg-white">
+                <option value="">— aucune / non précisée —</option>
+                {refLists.policies.map((p) => (<option key={p} value={p}>{p}</option>))}
+              </select>
+              {addingPolicy && (
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <input
+                    value={newPolicy}
+                    onChange={(e) => setNewPolicy(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addPolicy(); } }}
+                    placeholder="Ex. ISO 27001 A.5.30 — Continuité TIC, ou CIS 8.2…"
+                    className="flex-1 text-[12px] border border-slate-200 rounded-lg px-2 py-1.5"
+                  />
+                  <button type="button" onClick={addPolicy} className="text-[12px] font-medium text-white bg-orange-600 rounded-lg px-2.5 py-1.5 hover:bg-orange-700">Ajouter</button>
+                </div>
+              )}
+            </div>
             <div>
               <label className="text-[12px] text-slate-500">Gravité</label>
               <select value={gravite} onChange={(e) => setGravite(e.target.value)} className="w-full mt-1 text-[13px] border border-slate-200 rounded-lg px-2 py-2 bg-white">
@@ -205,6 +244,7 @@ export default function NonConformitesPage() {
             <span className="w-28 shrink-0">Ouvert par</span>
             <span className="flex-1">Objet</span>
             <span className="w-40 shrink-0">Service / personne</span>
+            <span className="w-44 shrink-0 hidden lg:block">Politique violée</span>
             <span className="w-16 shrink-0">Gravité</span>
             <span className="w-24 shrink-0">Statut</span>
             <span className="w-20 text-right shrink-0">Actions</span>
@@ -229,6 +269,9 @@ export default function NonConformitesPage() {
                     </Link>
                     <span className="w-40 shrink-0 text-[12px] text-slate-600 truncate hidden md:block">
                       {n.service || "—"}{n.concerne ? ` · ${n.concerne}` : ""}
+                    </span>
+                    <span className="w-44 shrink-0 hidden lg:block" title={n.policy || undefined}>
+                      {n.policy ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 truncate inline-block max-w-full align-bottom">{n.policy}</span> : <span className="text-[11px] text-slate-300">—</span>}
                     </span>
                     <span className="w-16 shrink-0"><span className={`text-[10px] px-1.5 py-0.5 rounded ${ncGraviteBadge[n.gravite] ?? ""}`}>{n.gravite}</span></span>
                     <span className="w-24 shrink-0"><span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${ncStatusBadge[n.status] ?? "bg-slate-100 text-slate-600"}`}>{n.status}</span></span>

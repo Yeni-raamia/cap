@@ -159,6 +159,7 @@ create index if not exists idx_negdec_neg on negligence_decisions(negligence_id)
 create table if not exists nonconformites (
   id text primary key, item_id text,
   objet text not null default '', service text not null default '', concerne text not null default '',
+  policy text not null default '',
   gravite text not null default 'Modérée', risque text not null default 'Moyen',
   impact text not null default '', description text not null default '',
   status text not null default 'Ouverte', created_by text, decided_by text,
@@ -259,6 +260,8 @@ function seedRefLists(db: Database.Database) {
     DEFAULT_REF_LISTS.decisions.forEach((v, i) => ins.run(randomUUID(), "decision", v, v, null, i + 1));
   if (count("service") === 0)
     DEFAULT_REF_LISTS.services.forEach((v, i) => ins.run(randomUUID(), "service", v, v, null, i + 1));
+  if (count("policy") === 0)
+    DEFAULT_REF_LISTS.policies.forEach((v, i) => ins.run(randomUUID(), "policy", v, v, null, i + 1));
 }
 
 // Migrations légères pour les bases déjà créées (ajout de colonnes manquantes).
@@ -335,6 +338,11 @@ function ensureColumns(db: Database.Database) {
   if (!itcols.includes("due_duration_days")) {
     db.exec("alter table items add column due_duration_days integer");
     db.exec("alter table items add column marked_late integer not null default 0");
+  }
+  // Non-conformités : politique / article / contrôle violé.
+  const nccols = (db.prepare("pragma table_info(nonconformites)").all() as { name: string }[]).map((c) => c.name);
+  if (nccols.length > 0 && !nccols.includes("policy")) {
+    db.exec("alter table nonconformites add column policy text not null default ''");
   }
   // Sessions : métadonnées appareil (gestion des sessions actives).
   const scols = (db.prepare("pragma table_info(sessions)").all() as { name: string }[]).map((c) => c.name);

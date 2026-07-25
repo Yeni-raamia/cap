@@ -286,6 +286,7 @@ export interface RefLists {
   actions: RefAction[];
   decisions: string[];
   services: string[];
+  policies: string[];
 }
 
 /** Services de destinataire par défaut (éditables en admin). */
@@ -362,6 +363,7 @@ export interface NonConformite {
   objet: string; // description courte de la non-conformité
   service: string; // service concerné
   concerne: string; // personne / entité concernée
+  policy: string; // politique / article / contrôle violé (réf. cadre : ISO, CIS, NIST…)
   gravite: string;
   risque: string;
   impact: string;
@@ -375,6 +377,64 @@ export interface NonConformite {
   decidedAt: Date | null;
 }
 
+/**
+ * Catalogue par défaut des politiques / articles / contrôles susceptibles
+ * d'être violés — pré-rempli à partir d'ISO/IEC 27001:2022 (Annexe A), des
+ * CIS Controls v8 et du NIST CSF 2.0. Liste éditable (les agents peuvent
+ * ajouter leurs propres articles/contrôles depuis l'application).
+ */
+export const DEFAULT_POLICIES: string[] = [
+  // ISO/IEC 27001:2022 — Annexe A (contrôles courants)
+  "ISO 27001 A.5.1 — Politiques de sécurité de l'information",
+  "ISO 27001 A.5.7 — Renseignement sur les menaces",
+  "ISO 27001 A.5.10 — Utilisation acceptable des actifs",
+  "ISO 27001 A.5.12 — Classification de l'information",
+  "ISO 27001 A.5.14 — Transfert de l'information",
+  "ISO 27001 A.5.15 — Contrôle d'accès",
+  "ISO 27001 A.5.17 — Informations d'authentification",
+  "ISO 27001 A.5.23 — Sécurité des services cloud",
+  "ISO 27001 A.5.24 — Planification de la réponse aux incidents",
+  "ISO 27001 A.6.3 — Sensibilisation et formation",
+  "ISO 27001 A.7.7 — Bureau et écran vides",
+  "ISO 27001 A.8.1 — Terminaux des utilisateurs",
+  "ISO 27001 A.8.2 — Droits d'accès privilégiés",
+  "ISO 27001 A.8.3 — Restriction d'accès à l'information",
+  "ISO 27001 A.8.5 — Authentification sécurisée",
+  "ISO 27001 A.8.7 — Protection contre les logiciels malveillants",
+  "ISO 27001 A.8.8 — Gestion des vulnérabilités techniques",
+  "ISO 27001 A.8.12 — Prévention de la fuite de données",
+  "ISO 27001 A.8.13 — Sauvegarde des informations",
+  "ISO 27001 A.8.15 — Journalisation",
+  "ISO 27001 A.8.16 — Surveillance des activités",
+  "ISO 27001 A.8.24 — Utilisation de la cryptographie",
+  // CIS Controls v8
+  "CIS 1 — Inventaire des actifs matériels",
+  "CIS 2 — Inventaire des actifs logiciels",
+  "CIS 3 — Protection des données",
+  "CIS 4 — Configuration sécurisée",
+  "CIS 5 — Gestion des comptes",
+  "CIS 6 — Gestion du contrôle d'accès",
+  "CIS 7 — Gestion continue des vulnérabilités",
+  "CIS 8 — Gestion des journaux d'audit",
+  "CIS 9 — Protection de la messagerie et des navigateurs",
+  "CIS 10 — Défenses contre les logiciels malveillants",
+  "CIS 11 — Récupération des données",
+  "CIS 12 — Gestion de l'infrastructure réseau",
+  "CIS 13 — Surveillance et défense du réseau",
+  "CIS 14 — Sensibilisation à la sécurité",
+  "CIS 15 — Gestion des prestataires",
+  "CIS 16 — Sécurité des applications",
+  "CIS 17 — Gestion de la réponse aux incidents",
+  "CIS 18 — Tests d'intrusion",
+  // NIST Cybersecurity Framework 2.0 — fonctions
+  "NIST CSF GV — Gouverner",
+  "NIST CSF ID — Identifier",
+  "NIST CSF PR — Protéger",
+  "NIST CSF DE — Détecter",
+  "NIST CSF RS — Répondre",
+  "NIST CSF RC — Rétablir",
+];
+
 /** Listes de référence par défaut (seed + repli si la base est vide). */
 export const DEFAULT_REF_LISTS: RefLists = {
   appreciations: APPRECIATIONS,
@@ -382,6 +442,7 @@ export const DEFAULT_REF_LISTS: RefLists = {
   actions: BLOCAGE_ACTIONS,
   decisions: DEFAULT_DECISIONS,
   services: DEFAULT_SERVICES,
+  policies: DEFAULT_POLICIES,
 };
 
 /* ---------- Modèles de relance / réponses types ---------- */

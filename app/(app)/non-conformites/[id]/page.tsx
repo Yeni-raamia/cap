@@ -106,6 +106,16 @@ export default function NonConformiteDetailPage() {
             ) : <div className="text-[13px] text-slate-700 mt-1">{nc.concerne || "—"}</div>}
           </div>
         </div>
+        <div>
+          <label className="text-[12px] text-slate-500">Politique / article / contrôle violé</label>
+          {canEdit ? (
+            <select value={nc.policy} onChange={(e) => run(updateNonConformite(nc.id, { policy: e.target.value }))} className="w-full mt-1 text-[13px] border border-slate-200 rounded-lg px-2 py-2 bg-white">
+              <option value="">— aucune / non précisée —</option>
+              {nc.policy && !refLists.policies.includes(nc.policy) && <option value={nc.policy}>{nc.policy}</option>}
+              {refLists.policies.map((p) => (<option key={p} value={p}>{p}</option>))}
+            </select>
+          ) : <div className="text-[13px] text-slate-700 mt-1">{nc.policy || "—"}</div>}
+        </div>
         <div className="grid md:grid-cols-2 gap-3">
           <div>
             <label className="text-[12px] text-slate-500">Gravité</label>

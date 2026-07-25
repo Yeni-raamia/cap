@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
+import { denyReadOnly } from "@/lib/auth/guards";
 import { addRefItem, deleteRefItem, getRefLists, logActivity } from "@/lib/db/admin";
 import { ACTION_ICONS } from "@/lib/domain";
 
-const LISTS = ["appreciation", "cause", "action", "decision", "service"];
-const LABELS: Record<string, string> = { appreciation: "appréciation", cause: "cause", action: "action", decision: "décision", service: "service" };
+const LISTS = ["appreciation", "cause", "action", "decision", "service", "policy"];
+const LABELS: Record<string, string> = { appreciation: "appréciation", cause: "cause", action: "action", decision: "décision", service: "service", policy: "politique" };
 
 // slug pour le "kind" d'une action personnalisée
 const slug = (s: string) =>
@@ -18,15 +19,23 @@ const slug = (s: string) =>
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
-  if (!user || user.role !== "admin") {
-    return NextResponse.json({ error: "Réservé aux administrateurs." }, { status: 403 });
-  }
+  if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
   const op: string = body?.op;
   const listKey: string = body?.listKey;
   if (!LISTS.includes(listKey)) {
     return NextResponse.json({ error: "Liste inconnue." }, { status: 400 });
+  }
+
+  // Les agents peuvent enrichir le catalogue des politiques (ajout uniquement) ;
+  // toute autre modification de liste reste réservée aux administrateurs.
+  const agentPolicyAdd = op === "add" && listKey === "policy";
+  if (agentPolicyAdd) {
+    const ro = denyReadOnly(user);
+    if (ro) return ro;
+  } else if (user.role !== "admin") {
+    return NextResponse.json({ error: "Réservé aux administrateurs." }, { status: 403 });
   }
 
   if (op === "add") {

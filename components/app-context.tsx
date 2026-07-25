@@ -117,8 +117,8 @@ interface NegligenceForm {
   impact?: string;
   description?: string;
 }
-type NonConformiteForm = NegligenceForm;
-type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service";
+type NonConformiteForm = NegligenceForm & { policy?: string };
+type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service" | "policy";
 type RefListActionPayload =
   | { op: "add"; listKey: RefListKey; label: string; icon?: string }
   | { op: "delete"; listKey: RefListKey; value: string };
@@ -953,6 +953,7 @@ export function AppProvider({
           objet: form.objet ?? "",
           service: form.service ?? "",
           concerne: form.concerne ?? "",
+          policy: form.policy ?? "",
           gravite: form.gravite ?? "Modérée",
           risque: form.risque ?? "Moyen",
           impact: form.impact ?? "",

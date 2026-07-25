@@ -31,6 +31,7 @@ export function NonConformitePrint({ nc }: { nc: NonConformite }) {
         <tbody>
           <tr><td style={{ padding: "4px 8px", fontWeight: 600, width: 180 }}>Service concerné</td><td style={{ padding: "4px 8px" }}>{nc.service || "—"}</td></tr>
           <tr><td style={{ padding: "4px 8px", fontWeight: 600 }}>Personne / entité</td><td style={{ padding: "4px 8px" }}>{nc.concerne || "—"}</td></tr>
+          <tr><td style={{ padding: "4px 8px", fontWeight: 600 }}>Politique / article violé</td><td style={{ padding: "4px 8px" }}>{nc.policy || "—"}</td></tr>
           <tr><td style={{ padding: "4px 8px", fontWeight: 600 }}>Statut</td><td style={{ padding: "4px 8px" }}>{nc.status}</td></tr>
           <tr><td style={{ padding: "4px 8px", fontWeight: 600 }}>Gravité</td><td style={{ padding: "4px 8px" }}>{nc.gravite}</td></tr>
           <tr><td style={{ padding: "4px 8px", fontWeight: 600 }}>Risque institution</td><td style={{ padding: "4px 8px" }}>{nc.risque}</td></tr>
