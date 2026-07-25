@@ -8,7 +8,9 @@
     "start": "next start",
     "start:lan": "next start -H 0.0.0.0 -p 3000",
     "reminders": "node scripts/run-reminders.mjs",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -32,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }
