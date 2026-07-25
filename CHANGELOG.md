@@ -8,6 +8,11 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.17.0] - 2026-07-25
+
+### Ajouté — Suivis de mail
+- **Import d'e-mail (.eml) comme réponse sur un suivi**. Depuis le cockpit (ou ⌘K), déposer un e-mail exporté au format `.eml` : Cap l'analyse (aperçu de l'expéditeur, date, objet, points clés, pièces jointes), détecte automatiquement le suivi concerné via la référence contenue dans l'objet (ou laisse choisir manuellement), puis l'enregistre comme réponse — le suivi repasse « En traitement », un événement est ajouté au fil, et l'e-mail original est attaché comme preuve. S'appuie sur un parseur RFC822/MIME sans dépendance (en-têtes dépliés + mots encodés RFC 2047, multipart, base64/quoted-printable, pièces jointes, repli HTML→texte). RBAC (propriétaire, directeur ou admin), format `.msg` non pris en charge (message explicite), événement d'audit dédié (`email_import`).
+
 ## [1.16.0] - 2026-07-25
 
 ### Ajouté — Sécurité
