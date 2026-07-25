@@ -8,6 +8,13 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.12.0] - 2026-07-25
+
+### Ajouté — Suivis de mail
+- **Envoi réel des relances par e-mail** : la relance ne se limite plus au copier-coller, elle part vraiment au destinataire avec le modèle choisi. Un e-mail de destinataire se renseigne à la création et en édition du suivi ; l'encart « Modèles de relance » propose un bouton **« Envoyer la relance »**. Le message part d'une adresse Cap avec **réponse dirigée vers l'agent responsable** (reply-to), et l'envoi compte comme une relance (statut Relancé, +1, tracé en timeline). Événement d'audit dédié.
+
+  Prérequis pour l'envoi effectif : `RESEND_API_KEY` configuré côté serveur et « e-mail activé » en administration — sinon un message d'erreur explicite invite à la configuration.
+
 ## [1.11.1] - 2026-07-25
 
 ### Amélioré — Tableau de bord des statistiques
