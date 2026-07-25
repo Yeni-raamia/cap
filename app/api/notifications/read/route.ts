@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { listNotificationsFor, markAllReadFor } from "@/lib/db/repo";
+import { listNotificationsFor, markAllReadFor, markNotificationRead } from "@/lib/db/repo";
 
-export async function POST() {
+/** Marque comme lu(e) : une notification précise si `id` est fourni, sinon toutes. */
+export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
-  markAllReadFor(user.id);
+
+  const { id } = await request.json().catch(() => ({}));
+  if (typeof id === "string" && id) markNotificationRead(user.id, id);
+  else markAllReadFor(user.id);
+
   return NextResponse.json({ notifications: listNotificationsFor(user.id) });
 }

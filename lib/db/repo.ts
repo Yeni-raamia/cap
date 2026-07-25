@@ -823,6 +823,11 @@ export function markAllReadFor(userId: string): void {
   getDb().prepare("update notifications set read = 1 where user_id = ? and read = 0").run(userId);
 }
 
+/** Marque une notification précise comme lue (= archivée) pour ce compte. */
+export function markNotificationRead(userId: string, id: string): void {
+  getDb().prepare("update notifications set read = 1 where user_id = ? and id = ?").run(userId, id);
+}
+
 /* ---------- Catalogue (métiers / types) — éditable en administration ---------- */
 interface MetierRow {
   code: string;

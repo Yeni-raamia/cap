@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowUp, Bell, CalendarCheck, CalendarClock, CheckCheck, CheckSquare, FolderKanban, Mail, MessageSquare, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { Archive, ArrowUp, Bell, CalendarCheck, CalendarClock, CheckCheck, CheckSquare, FolderKanban, Mail, MessageSquare, RotateCcw } from "lucide-react";
 import { fmt, type Item, type NotifKind } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
@@ -26,14 +27,29 @@ const notifTone: Record<NotifKind, string> = {
 };
 
 export default function RappelsPage() {
-  const { demo, items, me, emailEnabled: emailOn, rs, profileById, notifications, markNotificationsRead } =
-    useApp();
+  const {
+    demo, items, me, emailEnabled: emailOn, rs, profileById, notifications,
+    markNotificationsRead, markNotificationRead, openItem,
+  } = useApp();
+  const [notifTab, setNotifTab] = useState<"actives" | "archivees">("actives");
 
   const dues = items.filter((i) => rs(i).level === "relance");
   const escal = items.filter((i) => rs(i).level === "escalade");
   const bloques = items.filter((i) => i.statut === "Bloqué").length;
   const isDir = me.role === "directeur" || me.role === "admin";
-  const unread = notifications.filter((n) => !n.read).length;
+
+  const active = notifications.filter((n) => !n.read);
+  const archived = notifications.filter((n) => n.read);
+  const shown = notifTab === "actives" ? active : archived;
+
+  // Ouvrir le suivi lié (si présent) et archiver la notification active.
+  const onNotifClick = (itemId: string | null, id: string, read: boolean) => {
+    if (itemId) {
+      const it = items.find((x) => x.id === itemId);
+      if (it) openItem(it);
+    }
+    if (!read) markNotificationRead(id);
+  };
 
   const Row = ({ i, tone }: { i: Item; tone: "rose" | "amber" }) => {
     const state = rs(i);
@@ -78,50 +94,75 @@ export default function RappelsPage() {
 
       {!demo && (
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <Bell size={15} className="text-slate-500" />
             <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">
               Mes notifications
             </h2>
-            {unread > 0 && (
-              <span className="text-[11px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
-                {unread}
-              </span>
-            )}
-            {unread > 0 && (
+            {/* Onglets Actives / Archivées */}
+            <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-[12px] bg-white ml-1">
+              <button
+                onClick={() => setNotifTab("actives")}
+                className={`px-2.5 py-1 rounded-md font-medium ${notifTab === "actives" ? "bg-emerald-600 text-white" : "text-slate-500 hover:text-slate-700"}`}
+              >
+                Actives{active.length ? ` (${active.length})` : ""}
+              </button>
+              <button
+                onClick={() => setNotifTab("archivees")}
+                className={`px-2.5 py-1 rounded-md font-medium ${notifTab === "archivees" ? "bg-slate-700 text-white" : "text-slate-500 hover:text-slate-700"}`}
+              >
+                Archivées{archived.length ? ` (${archived.length})` : ""}
+              </button>
+            </div>
+            {notifTab === "actives" && active.length > 0 && (
               <button
                 onClick={markNotificationsRead}
                 className="ml-auto inline-flex items-center gap-1 text-[12px] text-emerald-700 font-medium hover:underline"
               >
                 <CheckCheck size={14} />
-                Tout marquer comme lu
+                Tout archiver
               </button>
             )}
           </div>
           <Card>
-            {notifications.length === 0 ? (
+            {shown.length === 0 ? (
               <div className="p-6 text-center text-[13px] text-slate-400">
-                Aucune notification pour l&apos;instant.
+                {notifTab === "actives" ? "Aucune notification active. Tout est traité 🎉" : "Aucune notification archivée."}
               </div>
             ) : (
-              notifications.map((n) => {
+              shown.map((n) => {
                 const Icon = notifIcon[n.kind];
                 return (
-                  <div
+                  <button
                     key={n.id}
-                    className={`flex items-center gap-3 px-4 py-3 border-b border-slate-100 last:border-0 ${
-                      n.read ? "opacity-60" : ""
+                    onClick={() => onNotifClick(n.itemId, n.id, n.read)}
+                    className={`w-full text-left flex items-center gap-3 px-4 py-3 border-b border-slate-100 last:border-0 hover:bg-slate-50 ${
+                      n.read ? "opacity-70" : ""
                     }`}
                   >
-                    <div className={`h-8 w-8 rounded-lg grid place-items-center ${notifTone[n.kind]}`}>
+                    <div className={`h-8 w-8 rounded-lg grid place-items-center shrink-0 ${notifTone[n.kind]}`}>
                       <Icon size={16} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-[13px] text-slate-800">{n.message}</div>
                       <div className="text-[11px] text-slate-400">{fmt(n.createdAt)}</div>
                     </div>
-                    {!n.read && <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0" />}
-                  </div>
+                    {!n.read && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markNotificationRead(n.id);
+                        }}
+                        title="Archiver"
+                        aria-label="Archiver cette notification"
+                        className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+                      >
+                        <Archive size={14} />
+                      </span>
+                    )}
+                  </button>
                 );
               })
             )}

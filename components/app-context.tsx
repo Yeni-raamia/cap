@@ -169,6 +169,7 @@ interface AppCtx {
   setNegligenceDecisions: (id: string, decisions: string[]) => Promise<string | null>;
   notifications: Notif[];
   markNotificationsRead: () => void;
+  markNotificationRead: (id: string) => void;
   alerts: number;
   signOut: () => void;
   // Messagerie
@@ -886,7 +887,10 @@ export function AppProvider({
   };
 
   const markNotificationsRead = () => {
-    if (demo) return;
+    if (demo) {
+      setNotifications((prev) => prev.map((n) => (n.read ? n : { ...n, read: true })));
+      return;
+    }
     if (!notifications.some((n) => !n.read)) return;
     fetch("/api/notifications/read", { method: "POST" })
       .then((r) => r.json())
@@ -894,6 +898,26 @@ export function AppProvider({
         if (d.notifications) setNotifications(reviveNotifs(d.notifications));
       })
       .catch((e) => console.error("Lecture des notifications échouée :", e));
+  };
+
+  /** Marque une notification précise comme lue (archivée). */
+  const markNotificationRead = (id: string) => {
+    if (demo) {
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      return;
+    }
+    // Optimiste : on masque immédiatement, puis on synchronise avec le serveur.
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    fetch("/api/notifications/read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.notifications) setNotifications(reviveNotifs(d.notifications));
+      })
+      .catch((e) => console.error("Archivage de la notification échoué :", e));
   };
 
   const signOut = () => {
@@ -1205,6 +1229,7 @@ export function AppProvider({
     setNegligenceDecisions,
     notifications,
     markNotificationsRead,
+    markNotificationRead,
     alerts,
     signOut,
     conversations,
