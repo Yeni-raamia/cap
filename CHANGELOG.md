@@ -8,6 +8,15 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.9.0] - 2026-07-25
+
+### Ajouté — Suivis de mail
+- **Actions groupées** : dans la vue liste de l'explorateur, sélection multiple (case par ligne + tout sélectionner) et barre d'actions pour **relancer**, **marquer « réponse reçue »** ou **clôturer** un lot en une fois, et **exporter la sélection** en CSV. Le contrôle des droits se fait suivi par suivi ; les suivis non éditables sont ignorés et comptés.
+
+### Fiabilité
+- **Référence de suivi anti-collision** : la référence est désormais attribuée côté serveur au moment de la création. Deux créations simultanées ne peuvent plus produire la même référence (le calcul côté client n'est plus qu'un aperçu). Les suivis CASE conservent le numéro TheHive saisi.
+- **Filet de sécurité du moteur de relance** : s'il n'a pas tourné depuis plus de 3 h (cron externe ou automatique), un accès à l'application le déclenche en tâche de fond — throttlé et sans bloquer l'affichage. Un oubli de cron ne gèle donc plus relances, escalades et digests. Le moteur restant idempotent par jour, aucune notification n'est dupliquée.
+
 ## [1.8.0] - 2026-07-24
 
 ### Ajouté — Suivis de mail
