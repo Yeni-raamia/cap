@@ -26,14 +26,17 @@ import {
 import {
   SortableContext,
   arrayMove,
+  rectSortingStrategy,
   sortableKeyboardCoordinates,
   useSortable,
-  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { isLateByDuration, NEGLIGENCE_GRAVITES, STATUTS, type NonConformite, type Negligence, type Statut } from "@/lib/domain";
 import { computeBreakdowns, computeProjectStats } from "@/lib/stats";
-import { BarChart3, GripVertical, Plus, RotateCcw, Settings2, X } from "lucide-react";
+import { BarChart3, Columns2, GripVertical, Plus, RectangleHorizontal, RotateCcw, Settings2, X } from "lucide-react";
+
+type BlockSize = "full" | "half";
+type LayoutItem = { id: string; size: BlockSize };
 import { useApp } from "@/components/app-context";
 import { PageHero } from "@/components/PageHero";
 import { RapportPdf } from "@/components/RapportPdf";
@@ -45,13 +48,17 @@ const box = "bg-white border border-slate-200 rounded-xl p-4";
  *  qu'en mode personnalisation. */
 function SortableBlock({
   id,
+  size,
   customize,
   onRemove,
+  onToggleSize,
   children,
 }: {
   id: string;
+  size: BlockSize;
   customize: boolean;
   onRemove: () => void;
+  onToggleSize: () => void;
   children: ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
@@ -63,15 +70,16 @@ function SortableBlock({
     zIndex: isDragging ? 20 : undefined,
   };
   // En mode personnalisation, TOUT le bloc est saisissable (plus intuitif qu'une
-  // petite poignée). Le clic sur « retirer » stoppe la propagation pour ne pas
+  // petite poignée). Le clic sur les boutons stoppe la propagation pour ne pas
   // déclencher un glissé.
   const dragProps = customize ? { ...attributes, ...listeners } : {};
+  const stop = (e: React.PointerEvent) => e.stopPropagation();
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...dragProps}
-      className={`relative ${
+      className={`relative ${size === "full" ? "md:col-span-2" : "md:col-span-1"} ${
         customize
           ? "cursor-grab active:cursor-grabbing touch-none rounded-xl ring-1 ring-dashed ring-slate-300 dark:ring-slate-600 hover:ring-emerald-400"
           : ""
@@ -87,7 +95,16 @@ function SortableBlock({
             <GripVertical size={14} />
           </span>
           <button
-            onPointerDown={(e) => e.stopPropagation()}
+            onPointerDown={stop}
+            onClick={onToggleSize}
+            aria-label={size === "full" ? "Passer en demi-largeur" : "Passer en pleine largeur"}
+            title={size === "full" ? "Demi-largeur (2 par ligne)" : "Pleine largeur"}
+            className="hidden md:inline-flex items-center justify-center h-7 w-7 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-emerald-600 shadow-sm"
+          >
+            {size === "full" ? <Columns2 size={14} /> : <RectangleHorizontal size={14} />}
+          </button>
+          <button
+            onPointerDown={stop}
             onClick={onRemove}
             aria-label="Retirer le bloc"
             title="Retirer ce bloc"
@@ -605,30 +622,42 @@ export default function StatsPage() {
     },
   ];
 
-  const DEFAULT_ORDER = blocks.map((b) => b.id);
+  const HALF = new Set(["volume-metier", "taux-reponse", "relances", "statuts", "criticite", "appreciation", "projets", "causes"]);
+  const defaultSizeOf = (id: string): BlockSize => (HALF.has(id) ? "half" : "full");
+  const DEFAULT_LAYOUT: LayoutItem[] = blocks.map((b) => ({ id: b.id, size: defaultSizeOf(b.id) }));
   const byId = new Map(blocks.map((b) => [b.id, b]));
   const storageKey = `cap:stats-layout:${me.id}`;
 
-  const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
+  const [layout, setLayout] = useState<LayoutItem[]>(DEFAULT_LAYOUT);
   const [customize, setCustomize] = useState(false);
 
-  // Hydratation de la disposition sauvegardée (client uniquement).
+  // Hydratation (client). Accepte l'ancien format (liste d'ids) et le nouveau.
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        const known = new Set(DEFAULT_ORDER);
-        const ids = (JSON.parse(saved) as string[]).filter((id) => known.has(id));
-        if (ids.length) setOrder(ids);
+        const known = new Set(blocks.map((b) => b.id));
+        const parsed = JSON.parse(saved);
+        let items: LayoutItem[] = [];
+        if (Array.isArray(parsed) && parsed.length) {
+          if (typeof parsed[0] === "string") {
+            items = (parsed as string[]).filter((id) => known.has(id)).map((id) => ({ id, size: defaultSizeOf(id) }));
+          } else {
+            items = (parsed as LayoutItem[])
+              .filter((x) => x && known.has(x.id))
+              .map((x) => ({ id: x.id, size: x.size === "half" ? "half" : "full" }));
+          }
+        }
+        if (items.length) setLayout(items);
       }
     } catch {
-      /* localStorage indisponible : on garde la disposition par défaut */
+      /* localStorage indisponible : disposition par défaut */
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
 
-  const persist = (next: string[]) => {
-    setOrder(next);
+  const persist = (next: LayoutItem[]) => {
+    setLayout(next);
     try {
       localStorage.setItem(storageKey, JSON.stringify(next));
     } catch {
@@ -643,14 +672,18 @@ export default function StatsPage() {
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (over && active.id !== over.id) {
-      const oldI = order.indexOf(String(active.id));
-      const newI = order.indexOf(String(over.id));
-      if (oldI >= 0 && newI >= 0) persist(arrayMove(order, oldI, newI));
+      const oldI = layout.findIndex((l) => l.id === active.id);
+      const newI = layout.findIndex((l) => l.id === over.id);
+      if (oldI >= 0 && newI >= 0) persist(arrayMove(layout, oldI, newI));
     }
   };
+  const toggleSize = (id: string) =>
+    persist(layout.map((l) => (l.id === id ? { ...l, size: l.size === "full" ? "half" : "full" } : l)));
+  const addBlock = (id: string) => persist([...layout, { id, size: defaultSizeOf(id) }]);
+  const removeBlock = (id: string) => persist(layout.filter((l) => l.id !== id));
 
-  const visible = order.map((id) => byId.get(id)).filter(Boolean) as { id: string; title: string; node: ReactNode }[];
-  const available = blocks.filter((b) => !order.includes(b.id));
+  const ids = layout.map((l) => l.id);
+  const available = blocks.filter((b) => !ids.includes(b.id));
 
   return (
     <div className="space-y-6 animate-float">
@@ -658,14 +691,14 @@ export default function StatsPage() {
         kicker="Pilotage"
         icon={BarChart3}
         title="Statistiques"
-        subtitle="Le registre, en vivant. Compose ton tableau de bord : réorganise, retire ou ajoute des blocs."
+        subtitle="Le registre, en vivant. Compose ton tableau de bord : réorganise, redimensionne, retire ou ajoute des blocs."
         right={
           <div className="flex items-center gap-2 flex-wrap">
             {customize && (
               <>
                 <select
                   value=""
-                  onChange={(e) => e.target.value && persist([...order, e.target.value])}
+                  onChange={(e) => e.target.value && addBlock(e.target.value)}
                   aria-label="Ajouter un bloc"
                   className="text-[12px] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
                   disabled={available.length === 0}
@@ -676,7 +709,7 @@ export default function StatsPage() {
                   ))}
                 </select>
                 <button
-                  onClick={() => persist(DEFAULT_ORDER)}
+                  onClick={() => persist(DEFAULT_LAYOUT)}
                   className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   <RotateCcw size={13} /> Réinitialiser
@@ -701,23 +734,34 @@ export default function StatsPage() {
 
       {customize && (
         <div className="text-[12px] text-slate-500 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
-          Glisse les blocs par la poignée pour les réorganiser, retire-les avec la croix, ou ajoute-en via le menu. Ta disposition est enregistrée sur cet appareil.
+          Glisse un bloc (n&apos;importe où dessus) pour le déplacer. L&apos;icône <Columns2 size={12} className="inline align-text-bottom" /> le passe en demi-largeur (deux par ligne), la croix le retire. Menu pour en (r)ajouter. Disposition enregistrée sur cet appareil.
         </div>
       )}
 
-      {visible.length === 0 ? (
+      {layout.length === 0 ? (
         <div className={`${box} text-center text-[13px] text-slate-400 py-10`}>
           Aucun bloc affiché. Ajoute-en via « Personnaliser ».
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext items={order} strategy={verticalListSortingStrategy}>
-            <div className="space-y-6">
-              {visible.map((b) => (
-                <SortableBlock key={b.id} id={b.id} customize={customize} onRemove={() => persist(order.filter((x) => x !== b.id))}>
-                  {b.node}
-                </SortableBlock>
-              ))}
+          <SortableContext items={ids} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+              {layout.map((l) => {
+                const b = byId.get(l.id);
+                if (!b) return null;
+                return (
+                  <SortableBlock
+                    key={l.id}
+                    id={l.id}
+                    size={l.size}
+                    customize={customize}
+                    onRemove={() => removeBlock(l.id)}
+                    onToggleSize={() => toggleSize(l.id)}
+                  >
+                    {b.node}
+                  </SortableBlock>
+                );
+              })}
             </div>
           </SortableContext>
         </DndContext>
