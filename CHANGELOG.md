@@ -8,6 +8,11 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.19.0] - 2026-07-25
+
+### Ajouté — Suivis de mail
+- **Création d'un suivi depuis un e-mail `.eml` non rattaché**. La modale d'import propose désormais deux modes : « réponse sur un suivi » (existant) et « nouveau suivi ». Pour un e-mail sans référence reconnue, un suivi est créé, pré-rempli depuis l'e-mail (objet, destinataire et adresse, points clés issus du corps ; métier/type auto-détectés si l'objet est déjà normalisé, sinon au choix ; priorité au choix), avec référence attribuée automatiquement côté serveur et l'e-mail original attaché comme preuve. Métier CASE exclu (numéro TheHive requis), refus en lecture seule.
+
 ## [1.18.1] - 2026-07-25
 
 ### Ajouté — Statistiques
