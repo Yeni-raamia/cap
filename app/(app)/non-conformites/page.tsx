@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { FileWarning, Filter, Gavel, Plus, X } from "lucide-react";
+import { FileText, FileWarning, Filter, Gavel, Plus, Printer, X } from "lucide-react";
 import { NEGLIGENCE_GRAVITES, NEGLIGENCE_RISQUES, NEGLIGENCE_STATUTS, type NonConformite } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { PageHero } from "@/components/PageHero";
 import { Avatar, Card, MetierChip, Token } from "@/components/atoms";
+import { NonConformitePrint } from "@/components/NonConformitePrint";
+import { NonConformitesReport } from "@/components/NonConformitesReport";
 
 export const ncGraviteBadge: Record<string, string> = {
   Faible: "bg-slate-100 text-slate-600",
@@ -27,7 +29,20 @@ export default function NonConformitesPage() {
   const [fGravite, setFGravite] = useState("Tous");
   const [fStatut, setFStatut] = useState("Tous");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [printNc, setPrintNc] = useState<NonConformite | null>(null);
+  const [reportOn, setReportOn] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!printNc) return;
+    const t = setTimeout(() => { window.print(); setPrintNc(null); }, 150);
+    return () => clearTimeout(t);
+  }, [printNc]);
+  useEffect(() => {
+    if (!reportOn) return;
+    const t = setTimeout(() => { window.print(); setReportOn(false); }, 200);
+    return () => clearTimeout(t);
+  }, [reportOn]);
 
   const [showNew, setShowNew] = useState(false);
   const [fItem, setFItem] = useState("");
@@ -93,13 +108,18 @@ export default function NonConformitesPage() {
         title="Non-conformités"
         subtitle="Écarts à la politique de sécurité. Même logique que les négligences : évaluation, transmission et décision."
         right={
-          readOnly ? (
-            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Lecture seule</span>
-          ) : (
-            <button onClick={() => setShowNew((v) => !v)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-orange-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-              <Plus size={16} /> Nouvelle non-conformité
+          <>
+            <button onClick={() => setReportOn(true)} disabled={filtered.length === 0} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors">
+              <FileText size={15} /> Rapport (toutes) PDF
             </button>
-          )
+            {readOnly ? (
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Lecture seule</span>
+            ) : (
+              <button onClick={() => setShowNew((v) => !v)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-orange-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={16} /> Nouvelle non-conformité
+              </button>
+            )}
+          </>
         }
       />
 
@@ -187,7 +207,7 @@ export default function NonConformitesPage() {
             <span className="w-40 shrink-0">Service / personne</span>
             <span className="w-16 shrink-0">Gravité</span>
             <span className="w-24 shrink-0">Statut</span>
-            <span className="w-12 text-right shrink-0">DG</span>
+            <span className="w-20 text-right shrink-0">Actions</span>
           </div>
           <div className="divide-y divide-slate-100">
             {filtered.map((n) => {
@@ -212,12 +232,13 @@ export default function NonConformitesPage() {
                     </span>
                     <span className="w-16 shrink-0"><span className={`text-[10px] px-1.5 py-0.5 rounded ${ncGraviteBadge[n.gravite] ?? ""}`}>{n.gravite}</span></span>
                     <span className="w-24 shrink-0"><span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${ncStatusBadge[n.status] ?? "bg-slate-100 text-slate-600"}`}>{n.status}</span></span>
-                    <div className="w-12 shrink-0 flex items-center justify-end">
+                    <div className="w-20 shrink-0 flex items-center justify-end gap-1">
                       {canDecide && (
                         <button onClick={() => setExpanded(expanded === n.id ? null : n.id)} title="Décisions" className={`inline-flex items-center gap-1 text-[11px] rounded px-1.5 py-1 border ${n.decisions.length ? "border-emerald-200 text-emerald-700 bg-emerald-50" : "border-slate-200 text-slate-500"}`}>
                           <Gavel size={13} />{n.decisions.length || ""}
                         </button>
                       )}
+                      <button onClick={() => setPrintNc(n)} title="Imprimer cette fiche" className="text-slate-400 hover:text-slate-700 border border-slate-200 rounded px-1.5 py-1"><Printer size={13} /></button>
                     </div>
                   </div>
                   {canDecide && expanded === n.id && (
@@ -242,6 +263,9 @@ export default function NonConformitesPage() {
           </div>
         </Card>
       )}
+
+      {printNc && <NonConformitePrint nc={printNc} />}
+      {reportOn && <NonConformitesReport ncs={filtered} />}
     </div>
   );
 }

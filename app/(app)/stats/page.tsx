@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { isLateByDuration, STATUTS, type Statut } from "@/lib/domain";
+import { isLateByDuration, NEGLIGENCE_GRAVITES, STATUTS, type NonConformite, type Negligence, type Statut } from "@/lib/domain";
 import { computeBreakdowns, computeProjectStats } from "@/lib/stats";
 import { BarChart3 } from "lucide-react";
 import { useApp } from "@/components/app-context";
@@ -21,7 +21,7 @@ import { ExportSuivis } from "@/components/ExportSuivis";
 const box = "bg-white border border-slate-200 rounded-xl p-4";
 
 export default function StatsPage() {
-  const { items, profiles, catalogue, now, projects, theme } = useApp();
+  const { items, profiles, catalogue, now, projects, theme, negligences, nonConformites } = useApp();
   const dark = theme === "dark";
   const grid = dark ? "#1e293b" : "#eef2f6";
   const tick = { fontSize: 11, fill: dark ? "#94a3b8" : "#64748b" };
@@ -61,6 +61,36 @@ export default function StatsPage() {
   const markedLate = items.filter((i) => i.markedLate && i.statut !== "Clôturé").length;
   const withDuration = items.filter((i) => i.dueDurationDays != null && i.statut !== "Clôturé").length;
 
+  // Conformité : synthèse des négligences et non-conformités.
+  const conformiteSummary = (list: (Negligence | NonConformite)[]) => ({
+    total: list.length,
+    byGravite: NEGLIGENCE_GRAVITES.map((g) => ({ g, n: list.filter((x) => x.gravite === g).length })),
+    enAttente: list.filter((x) => x.status !== "Décision rendue" && x.status !== "Classée").length,
+    decidees: list.filter((x) => x.status === "Décision rendue").length,
+  });
+  const negSum = conformiteSummary(negligences);
+  const ncSum = conformiteSummary(nonConformites);
+  const conformiteBox = (title: string, sum: ReturnType<typeof conformiteSummary>, accent: string) => (
+    <div className={box}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">{title}</div>
+        <div className={`text-xl font-semibold ${accent}`}>{sum.total}</div>
+      </div>
+      <div className="space-y-1">
+        {sum.byGravite.map(({ g, n }) => (
+          <div key={g} className="flex items-center justify-between text-[12px]">
+            <span className="text-slate-500">{g}</span>
+            <span className="font-mono text-slate-700 dark:text-slate-200">{n}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-3 mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[12px]">
+        <span className="text-amber-600">{sum.enAttente} en attente</span>
+        <span className="text-emerald-600">{sum.decidees} décidée(s)</span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6 animate-float">
       <PageHero
@@ -92,6 +122,17 @@ export default function StatsPage() {
         <div className={box}>
           <div className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{withDuration}</div>
           <div className="text-[12px] text-slate-500">Suivis avec durée cible</div>
+        </div>
+      </div>
+
+      {/* Conformité : négligences & non-conformités */}
+      <div>
+        <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 mb-2">
+          Conformité — négligences & non-conformités
+        </div>
+        <div className="grid md:grid-cols-2 gap-4">
+          {conformiteBox("Négligences", negSum, "text-rose-600")}
+          {conformiteBox("Non-conformités", ncSum, "text-orange-600")}
         </div>
       </div>
 

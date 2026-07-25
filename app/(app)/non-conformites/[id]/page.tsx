@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ExternalLink, FileWarning, Gavel, Send } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileWarning, Gavel, Printer, Send } from "lucide-react";
 import { fmt, NEGLIGENCE_GRAVITES, NEGLIGENCE_RISQUES, NEGLIGENCE_STATUTS } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
+import { NonConformitePrint } from "@/components/NonConformitePrint";
 import { ncGraviteBadge, ncStatusBadge } from "../page";
 
 export default function NonConformiteDetailPage() {
@@ -46,7 +47,12 @@ export default function NonConformiteDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link href="/non-conformites" className="inline-flex items-center gap-1 text-[13px] text-emerald-700 hover:underline"><ArrowLeft size={15} /> Non-conformités</Link>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <Link href="/non-conformites" className="inline-flex items-center gap-1 text-[13px] text-emerald-700 hover:underline"><ArrowLeft size={15} /> Non-conformités</Link>
+        <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-white bg-slate-800 rounded-lg px-3 py-1.5 hover:bg-slate-700">
+          <Printer size={14} /> Imprimer (PDF)
+        </button>
+      </div>
 
       {err && <div className="text-[12px] text-rose-600">{err}</div>}
       {demo && <div className="text-[12px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">Mode démo : les modifications ne sont pas persistées.</div>}
@@ -166,6 +172,8 @@ export default function NonConformiteDetailPage() {
           <div className="text-[11px] text-slate-400 mt-3">Décision rendue par {profileById(nc.decidedBy).nom} · {fmt(nc.decidedAt)}</div>
         )}
       </Card>
+
+      <NonConformitePrint nc={nc} />
     </div>
   );
 }
