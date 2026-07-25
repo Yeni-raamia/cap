@@ -55,30 +55,39 @@ function SortableBlock({
   children: ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  // Translate seul (pas de scale) — évite la déformation du bloc pendant le glissé.
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition,
-    opacity: isDragging ? 0.55 : 1,
+    opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 20 : undefined,
   };
+  // En mode personnalisation, TOUT le bloc est saisissable (plus intuitif qu'une
+  // petite poignée). Le clic sur « retirer » stoppe la propagation pour ne pas
+  // déclencher un glissé.
+  const dragProps = customize ? { ...attributes, ...listeners } : {};
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative ${customize ? "rounded-xl ring-1 ring-dashed ring-slate-300 dark:ring-slate-600" : ""}`}
+      {...dragProps}
+      className={`relative ${
+        customize
+          ? "cursor-grab active:cursor-grabbing touch-none rounded-xl ring-1 ring-dashed ring-slate-300 dark:ring-slate-600 hover:ring-emerald-400"
+          : ""
+      } ${isDragging ? "shadow-xl" : ""}`}
     >
       {customize && (
         <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
-          <button
-            {...attributes}
-            {...listeners}
-            aria-label="Déplacer le bloc"
-            title="Glisser pour déplacer"
-            className="cursor-grab active:cursor-grabbing touch-none inline-flex items-center justify-center h-7 w-7 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 shadow-sm"
+          <span
+            aria-hidden
+            title="Glisser le bloc pour le déplacer"
+            className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 shadow-sm"
           >
             <GripVertical size={14} />
-          </button>
+          </span>
           <button
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={onRemove}
             aria-label="Retirer le bloc"
             title="Retirer ce bloc"
