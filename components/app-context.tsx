@@ -149,6 +149,7 @@ interface AppCtx {
   showImport: boolean;
   setShowImport: (v: boolean) => void;
   importEmailResponse: (itemId: string, file: File) => Promise<boolean>;
+  createItemFromEmail: (file: File, opts: { metier: string; type: string; prio: string; objet: string; dest: string }) => Promise<boolean>;
   act: (item: Item, action: Action, cause?: string) => void;
   bulkAct: (ids: string[], action: Action) => Promise<{ applied: number; skipped: number } | null>;
   setItemLate: (item: Item, late: boolean) => Promise<boolean>;
@@ -590,6 +591,33 @@ export function AppProvider({
         console.error("Action échouée :", e);
         toast("Action échouée.", "error");
       });
+  };
+
+  const createItemFromEmail = async (
+    file: File,
+    opts: { metier: string; type: string; prio: string; objet: string; dest: string }
+  ): Promise<boolean> => {
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("metier", opts.metier);
+      form.append("type", opts.type);
+      form.append("prio", opts.prio);
+      form.append("objet", opts.objet);
+      form.append("dest", opts.dest);
+      const r = await fetch("/api/email/create", { method: "POST", body: form });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        toast(d.error || "Création impossible.", "error");
+        return false;
+      }
+      if (d.items) setItems(reviveItems(d.items));
+      toast("Suivi créé depuis l'e-mail.", "success");
+      return true;
+    } catch {
+      toast("Création impossible.", "error");
+      return false;
+    }
   };
 
   const importEmailResponse = async (itemId: string, file: File): Promise<boolean> => {
@@ -1378,6 +1406,7 @@ export function AppProvider({
     showImport,
     setShowImport,
     importEmailResponse,
+    createItemFromEmail,
     act,
     create,
     setRelanceDate,
