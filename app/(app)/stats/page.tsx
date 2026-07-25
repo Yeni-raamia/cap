@@ -16,12 +16,14 @@ import {
 } from "recharts";
 import {
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   closestCenter,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -66,8 +68,7 @@ function SortableBlock({
   const style: React.CSSProperties = {
     transform: CSS.Translate.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 20 : undefined,
+    opacity: isDragging ? 0.4 : 1,
   };
   // En mode personnalisation, TOUT le bloc est saisissable (plus intuitif qu'une
   // petite poignée). Le clic sur les boutons stoppe la propagation pour ne pas
@@ -83,7 +84,7 @@ function SortableBlock({
         customize
           ? "cursor-grab active:cursor-grabbing touch-none rounded-xl ring-1 ring-dashed ring-slate-300 dark:ring-slate-600 hover:ring-emerald-400"
           : ""
-      } ${isDragging ? "shadow-xl" : ""}`}
+      } ${isDragging ? "ring-2 ring-emerald-400 ring-dashed" : ""}`}
     >
       {customize && (
         <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
@@ -622,14 +623,16 @@ export default function StatsPage() {
     },
   ];
 
-  const HALF = new Set(["volume-metier", "taux-reponse", "relances", "statuts", "criticite", "appreciation", "projets", "causes"]);
-  const defaultSizeOf = (id: string): BlockSize => (HALF.has(id) ? "half" : "full");
+  // Par défaut, un bloc par ligne (pleine largeur). L'utilisateur choisit
+  // ensuite quels blocs passer en demi-largeur (deux par ligne).
+  const defaultSizeOf = (_id: string): BlockSize => "full";
   const DEFAULT_LAYOUT: LayoutItem[] = blocks.map((b) => ({ id: b.id, size: defaultSizeOf(b.id) }));
   const byId = new Map(blocks.map((b) => [b.id, b]));
   const storageKey = `cap:stats-layout:${me.id}`;
 
   const [layout, setLayout] = useState<LayoutItem[]>(DEFAULT_LAYOUT);
   const [customize, setCustomize] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   // Hydratation (client). Accepte l'ancien format (liste d'ids) et le nouveau.
   useEffect(() => {
@@ -669,7 +672,9 @@ export default function StatsPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+  const onDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
   const onDragEnd = (e: DragEndEvent) => {
+    setActiveId(null);
     const { active, over } = e;
     if (over && active.id !== over.id) {
       const oldI = layout.findIndex((l) => l.id === active.id);
@@ -743,7 +748,13 @@ export default function StatsPage() {
           Aucun bloc affiché. Ajoute-en via « Personnaliser ».
         </div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onDragCancel={() => setActiveId(null)}
+        >
           <SortableContext items={ids} strategy={rectSortingStrategy}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               {layout.map((l) => {
@@ -764,6 +775,15 @@ export default function StatsPage() {
               })}
             </div>
           </SortableContext>
+          {/* Aperçu flottant pendant le glissé — rend le déplacement bien visible. */}
+          <DragOverlay>
+            {activeId ? (
+              <div className="rounded-xl border-2 border-emerald-400 bg-white dark:bg-slate-900 shadow-2xl px-4 py-3 flex items-center gap-2 text-[13px] font-semibold text-slate-700 dark:text-slate-100 cursor-grabbing">
+                <GripVertical size={15} className="text-emerald-500" />
+                {byId.get(activeId)?.title ?? "Bloc"}
+              </div>
+            ) : null}
+          </DragOverlay>
         </DndContext>
       )}
     </div>
