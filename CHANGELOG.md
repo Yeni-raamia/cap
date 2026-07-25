@@ -6,6 +6,13 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+_Rien pour l'instant._
+
+## [1.18.0] - 2026-07-25
+
+### Ajouté — Conformité
+- **Politique / article / contrôle violé sur les non-conformités**. Nouveau champ sur les fiches, alimenté par une liste déroulante pré-remplie à partir d'**ISO/IEC 27001:2022** (Annexe A), des **CIS Controls v8** et du **NIST CSF 2.0** (avec les numéros d'article/contrôle). La liste est **éditable** : les agents peuvent ajouter un article/contrôle depuis le formulaire (ajout autorisé hors lecture seule ; suppression réservée aux administrateurs), et elle est gérable depuis Administration → Listes. La page de résumé et le rapport PDF affichent une **colonne « Politique violée »**, et le rapport inclut une **répartition par politique la plus fréquemment enfreinte**. Migration additive + seed.
+
 ### Modifié
 - **Documentation** : README mis à jour au périmètre actuel (2FA, journal d'audit, sessions & alerte de connexion, non-conformités, modèles & envoi réel des relances, import d'e-mail `.eml`, durée de traitement, plan de l'année, gamification, tableau de bord réorganisable, sauvegarde/restauration & planifiée, tests Vitest). Ajout d'une section Tests et Sauvegarde, lien vers le guide d'hébergement LAN.
 - **CI** : la chaîne d'intégration exécute désormais les tests (`npm test`) en plus du lint et du build.
