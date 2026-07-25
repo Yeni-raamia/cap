@@ -145,6 +145,7 @@ interface AppCtx {
   showNew: boolean;
   setShowNew: (v: boolean) => void;
   act: (item: Item, action: Action, cause?: string) => void;
+  bulkAct: (ids: string[], action: Action) => Promise<{ applied: number; skipped: number } | null>;
   create: (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string) => void;
   setRelanceDate: (item: Item, date: string | null) => void;
   updateItem: (
@@ -561,6 +562,39 @@ export function AppProvider({
         console.error("Action échouée :", e);
         toast("Action échouée.", "error");
       });
+  };
+
+  const bulkAct = async (ids: string[], action: Action): Promise<{ applied: number; skipped: number } | null> => {
+    if (ids.length === 0) return { applied: 0, skipped: 0 };
+    if (demo) {
+      setItems((prev) => {
+        let next = prev;
+        for (const id of ids) {
+          const it = next.find((x) => x.id === id);
+          if (it) next = mockApply(next, it, action, undefined, meId);
+        }
+        return next;
+      });
+      return { applied: ids.length, skipped: 0 };
+    }
+    try {
+      const res = await fetch("/api/items/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, action }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        toast(d.error ?? "Action groupée échouée.", "error");
+        return null;
+      }
+      if (d.items) setItems(reviveItems(d.items));
+      return { applied: d.applied ?? 0, skipped: d.skipped ?? 0 };
+    } catch (e) {
+      console.error("Action groupée échouée :", e);
+      toast("Action groupée échouée.", "error");
+      return null;
+    }
   };
 
   const create = (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string) => {
@@ -1153,6 +1187,7 @@ export function AppProvider({
     create,
     setRelanceDate,
     updateItem,
+    bulkAct,
     addBlocageAction,
     setAppreciation,
     updateRole,

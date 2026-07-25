@@ -5,17 +5,21 @@ import {
   ArrowDown,
   ArrowUp,
   CalendarRange,
+  CheckCircle2,
+  FileSpreadsheet,
   Filter,
   Inbox,
   LayoutGrid,
   LayoutList,
+  RotateCcw,
   Rows3,
   ShieldAlert,
   Table2,
   TrendingUp,
   X,
 } from "lucide-react";
-import { fmt, STATUTS, type Item, type ReminderLevel, type Statut } from "@/lib/domain";
+import { daysBetween, fmt, STATUTS, type Item, type ReminderLevel, type Statut } from "@/lib/domain";
+import { downloadCsv } from "@/lib/export";
 import { useApp } from "./app-context";
 import { Avatar, Card, KPI, MetierChip, Priority, Token, TypeTag } from "./atoms";
 import { ItemCard } from "./ItemCard";
@@ -70,9 +74,11 @@ export function SuiviExplorer({
   showKpis?: boolean;
   defaultView?: ViewMode;
 }) {
-  const { openItem, profiles, profileById, catalogue, rs } = useApp();
+  const { openItem, profiles, profileById, catalogue, rs, now, bulkAct, toast } = useApp();
 
   const [view, setView] = useState<ViewMode>(defaultView);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busyBulk, setBusyBulk] = useState(false);
   const [groupBy, setGroupBy] = useState<GroupBy>(showResponsable ? "agent" : "metier");
 
   const [fMetier, setFMetier] = useState("Tous");
@@ -225,6 +231,59 @@ export function SuiviExplorer({
     }
   };
 
+  /* ----- Sélection multiple (vue liste) ----- */
+  const visibleSelected = sorted.filter((i) => selected.has(i.id));
+  const toggleSel = (id: string) =>
+    setSelected((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const toggleAllSel = () =>
+    setSelected((prev) => {
+      const all = sorted.length > 0 && sorted.every((i) => prev.has(i.id));
+      const n = new Set(prev);
+      sorted.forEach((i) => (all ? n.delete(i.id) : n.add(i.id)));
+      return n;
+    });
+  const clearSel = () => setSelected(new Set());
+
+  const runBulk = async (action: "relance" | "reponse" | "cloture") => {
+    const ids = visibleSelected.map((i) => i.id);
+    if (ids.length === 0) return;
+    setBusyBulk(true);
+    const res = await bulkAct(ids, action);
+    setBusyBulk(false);
+    if (res) {
+      const verbe =
+        action === "relance" ? "relancé(s)" : action === "reponse" ? "marqué(s) « répondu »" : "clôturé(s)";
+      toast(
+        `${res.applied} suivi(s) ${verbe}${res.skipped ? ` · ${res.skipped} ignoré(s) (droits)` : ""}`,
+        "success"
+      );
+      clearSel();
+    }
+  };
+
+  const dateFr = (d: Date) => new Date(d).toLocaleDateString("fr-FR");
+  const exportSelected = () => {
+    const header = [
+      "Référence", "Métier", "Type", "Objet", "Responsable", "Statut", "Priorité",
+      "Destinataire", "Service", "Relances", "Jours d'attente", "Réponse reçue", "Créé le",
+    ];
+    const rows = visibleSelected.map((i) => {
+      const dest = i.personnes.find((p) => p.kind === "destinataire") ?? i.personnes[0];
+      return [
+        i.ref, catalogue.metiers[i.metier]?.label ?? i.metier, i.type, i.objet,
+        profileById(i.ownerId).nom, i.statut, i.priorite, dest?.name ?? "", dest?.service ?? "",
+        i.relancesCount, rs(i).days, i.timeline.some((e) => e.kind === "reponse") ? "Oui" : "Non",
+        dateFr(i.dateCreation),
+      ];
+    });
+    downloadCsv(`cap-selection-${dateFr(now).replace(/\//g, "-")}.csv`, [header, ...rows]);
+  };
+
   return (
     <div className="space-y-4">
       {/* Sélecteur de vue */}
@@ -233,7 +292,10 @@ export function SuiviExplorer({
           {VIEWS.map((v) => (
             <button
               key={v.id}
-              onClick={() => setView(v.id)}
+              onClick={() => {
+                setView(v.id);
+                if (v.id !== "liste") clearSel();
+              }}
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md font-medium transition ${
                 view === v.id ? "bg-emerald-600 text-white" : "text-slate-500 hover:text-slate-700"
               }`}
@@ -406,6 +468,46 @@ export function SuiviExplorer({
         </div>
       </Card>
 
+      {view === "liste" && visibleSelected.length > 0 && (
+        <Card className="p-2.5 flex items-center gap-2 flex-wrap border-emerald-200 bg-emerald-50/50">
+          <span className="text-[12px] font-medium text-slate-700">
+            {visibleSelected.length} suivi(s) sélectionné(s)
+          </span>
+          <div className="flex items-center gap-1.5 flex-wrap ml-auto">
+            <button
+              onClick={() => runBulk("relance")}
+              disabled={busyBulk}
+              className="inline-flex items-center gap-1 text-[12px] font-medium bg-amber-50 text-amber-700 border border-amber-200 rounded-lg px-2.5 py-1.5 hover:bg-amber-100 disabled:opacity-50"
+            >
+              <RotateCcw size={13} /> Relancer
+            </button>
+            <button
+              onClick={() => runBulk("reponse")}
+              disabled={busyBulk}
+              className="inline-flex items-center gap-1 text-[12px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg px-2.5 py-1.5 hover:bg-emerald-100 disabled:opacity-50"
+            >
+              <Inbox size={13} /> Réponse reçue
+            </button>
+            <button
+              onClick={() => runBulk("cloture")}
+              disabled={busyBulk}
+              className="inline-flex items-center gap-1 text-[12px] font-medium bg-slate-800 text-white rounded-lg px-2.5 py-1.5 hover:bg-slate-700 disabled:opacity-50"
+            >
+              <CheckCircle2 size={13} /> Clôturer
+            </button>
+            <button
+              onClick={exportSelected}
+              className="inline-flex items-center gap-1 text-[12px] font-medium text-slate-700 border border-slate-200 rounded-lg px-2.5 py-1.5 hover:bg-slate-50"
+            >
+              <FileSpreadsheet size={13} className="text-emerald-600" /> Exporter
+            </button>
+            <button onClick={clearSel} className="text-[12px] text-slate-500 hover:text-slate-700 px-1.5">
+              Désélectionner
+            </button>
+          </div>
+        </Card>
+      )}
+
       {filtered.length === 0 ? (
         <Card className="p-10 text-center text-[13px] text-slate-400">
           Aucun suivi de mail ne correspond à ces filtres.
@@ -420,6 +522,9 @@ export function SuiviExplorer({
           profileById={profileById}
           rs={rs}
           showResponsable={showResponsable}
+          selected={selected}
+          onToggle={toggleSel}
+          onToggleAll={toggleAllSel}
         />
       ) : view === "cartes" ? (
         <div className="grid md:grid-cols-2 gap-3">
@@ -448,6 +553,9 @@ function ListeView({
   profileById,
   rs,
   showResponsable,
+  selected,
+  onToggle,
+  onToggleAll,
 }: {
   rows: Item[];
   sortKey: SortKey;
@@ -457,7 +565,11 @@ function ListeView({
   profileById: ReturnType<typeof useApp>["profileById"];
   rs: ReturnType<typeof useApp>["rs"];
   showResponsable: boolean;
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+  onToggleAll: () => void;
 }) {
+  const allSelected = rows.length > 0 && rows.every((i) => selected.has(i.id));
   const Th = ({ k, label }: { k: SortKey; label: string }) => (
     <button
       onClick={() => onSort(k)}
@@ -470,6 +582,13 @@ function ListeView({
   return (
     <Card>
       <div className="hidden md:flex items-center gap-3 px-4 py-2 border-b border-slate-100 bg-slate-50/60">
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={onToggleAll}
+          aria-label="Tout sélectionner"
+          className="h-3.5 w-3.5 accent-emerald-600 shrink-0"
+        />
         {showResponsable && (
           <div className="w-36 shrink-0">
             <Th k="responsable" label="Responsable" />
@@ -493,28 +612,38 @@ function ListeView({
           const state = rs(i);
           const owner = profileById(i.ownerId);
           return (
-            <button
+            <div
               key={i.id}
-              onClick={() => onOpen(i)}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 text-left"
+              className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 ${
+                selected.has(i.id) ? "bg-emerald-50/50" : ""
+              }`}
             >
-              {showResponsable && (
-                <div className="flex items-center gap-2 w-36 shrink-0">
-                  <Avatar init={owner.init} size="h-7 w-7" />
-                  <span className="text-[12px] text-slate-600 truncate">{owner.nom}</span>
+              <input
+                type="checkbox"
+                checked={selected.has(i.id)}
+                onChange={() => onToggle(i.id)}
+                aria-label={`Sélectionner ${i.ref}`}
+                className="h-3.5 w-3.5 accent-emerald-600 shrink-0"
+              />
+              <button onClick={() => onOpen(i)} className="flex-1 min-w-0 flex items-center gap-3 text-left">
+                {showResponsable && (
+                  <div className="flex items-center gap-2 w-36 shrink-0">
+                    <Avatar init={owner.init} size="h-7 w-7" />
+                    <span className="text-[12px] text-slate-600 truncate">{owner.nom}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 w-28 shrink-0">
+                  <MetierChip code={i.metier} />
+                  <TypeTag t={i.type} />
                 </div>
-              )}
-              <div className="flex items-center gap-2 w-28 shrink-0">
-                <MetierChip code={i.metier} />
-                <TypeTag t={i.type} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] text-slate-800 truncate">{i.objet}</div>
-                <Token>{i.ref}</Token>
-              </div>
-              <div className="w-24 text-right text-[12px] text-slate-500 hidden md:block">{i.statut}</div>
-              <div className="w-24 text-right">{etatBadge(state.level, state.days)}</div>
-            </button>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[13px] text-slate-800 truncate">{i.objet}</div>
+                  <Token>{i.ref}</Token>
+                </div>
+                <div className="w-24 text-right text-[12px] text-slate-500 hidden md:block">{i.statut}</div>
+                <div className="w-24 text-right">{etatBadge(state.level, state.days)}</div>
+              </button>
+            </div>
           );
         })}
       </div>
