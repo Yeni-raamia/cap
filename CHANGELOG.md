@@ -8,6 +8,11 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.18.1] - 2026-07-25
+
+### Ajouté — Statistiques
+- **Bloc « Politiques violées »** dans le tableau de bord Statistiques : classement des non-conformités par politique / article / contrôle violé (barres décroissantes, top 10 + compteur des fiches renseignées). Réorganisable, redimensionnable et masquable comme les autres blocs. À ajouter via « Personnaliser la disposition → + Ajouter un bloc » sur un tableau de bord déjà personnalisé.
+
 ## [1.18.0] - 2026-07-25
 
 ### Ajouté — Conformité
