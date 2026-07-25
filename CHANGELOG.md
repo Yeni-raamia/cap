@@ -8,6 +8,11 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.15.0] - 2026-07-25
+
+### Ajouté — Administration
+- **Sauvegarde planifiée automatique** (onglet Administration › Sauvegarde). Cap crée périodiquement une sauvegarde sur le serveur (dossier `data/backups`) selon une fréquence configurable (quotidienne ou hebdomadaire), déclenchée en tâche de fond à l'usage de l'application — aucune tâche planifiée externe requise. Rétention paramétrable (les plus anciennes sont purgées), bouton « sauvegarder maintenant sur le serveur », et liste des sauvegardes serveur avec téléchargement / restauration / suppression. Garde anti-parcours de répertoire, noms anti-collision, et événements d'audit dédiés (`backup_auto` / `backup_settings` / `backup_delete`).
+
 ## [1.14.0] - 2026-07-25
 
 ### Ajouté — Administration
