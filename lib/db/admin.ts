@@ -7,7 +7,7 @@ import { getDb } from "./index";
 import { createProfile, setMustChangePassword, setUserPassword } from "./repo";
 import { hashPassword } from "@/lib/auth/password";
 import { SECURITY_ACTIONS } from "@/lib/audit-labels";
-import { DEFAULT_SECURITY, type SecuritySettings } from "@/lib/domain";
+import { DEFAULT_BACKUP, DEFAULT_SECURITY, type BackupSettings, type SecuritySettings } from "@/lib/domain";
 import type {
   ActivityEntry,
   AdminCounts,
@@ -37,6 +37,25 @@ export function getSettings(): AppSettings {
     emailEnabled: (getSetting("email_enabled") ?? "1") === "1",
     digestHour: getSetting("digest_hour") || "08:00",
   };
+}
+
+/* ---------- Paramètres de sauvegarde planifiée ---------- */
+export function getBackupSettings(): BackupSettings {
+  const d = DEFAULT_BACKUP;
+  const freq = getSetting("backup_freq");
+  const ret = Number(getSetting("backup_retention"));
+  return {
+    autoEnabled: (getSetting("backup_auto") ?? (d.autoEnabled ? "1" : "0")) === "1",
+    frequency: freq === "weekly" ? "weekly" : "daily",
+    retention: Number.isFinite(ret) && ret > 0 ? Math.min(90, Math.floor(ret)) : d.retention,
+    lastRunAt: getSetting("backup_last_run"),
+  };
+}
+export function setBackupSettings(p: Partial<BackupSettings>): void {
+  if (p.autoEnabled !== undefined) setSetting("backup_auto", p.autoEnabled ? "1" : "0");
+  if (p.frequency !== undefined) setSetting("backup_freq", p.frequency === "weekly" ? "weekly" : "daily");
+  if (p.retention !== undefined) setSetting("backup_retention", String(Math.max(1, Math.min(90, Math.floor(p.retention)))));
+  if (p.lastRunAt !== undefined && p.lastRunAt !== null) setSetting("backup_last_run", p.lastRunAt);
 }
 
 /* ---------- Paramètres de sécurité (configurables) ---------- */

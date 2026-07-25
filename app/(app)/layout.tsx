@@ -12,6 +12,7 @@ import { listNonConformites } from "@/lib/db/nonconformites";
 import { listConversationsFor } from "@/lib/db/messaging";
 import { getRefLists, getSecuritySettings, getSettings } from "@/lib/db/admin";
 import { maybeRunRemindersInBackground } from "@/lib/reminders/auto";
+import { maybeRunBackupInBackground } from "@/lib/backup/auto";
 
 export default async function AppGroupLayout({ children }: { children: ReactNode }) {
   // Mode démo : pas d'authentification, l'app s'amorce côté client.
@@ -30,6 +31,8 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   // Filet de sécurité : si aucun cron n'a fait tourner le moteur de relance
   // récemment, on le déclenche en tâche de fond (throttlé, sans bloquer le rendu).
   maybeRunRemindersInBackground();
+  // Sauvegarde planifiée (si activée en administration) — sans bloquer le rendu.
+  maybeRunBackupInBackground();
 
   const items = listItems();
   const profiles = listProfiles();

@@ -1174,6 +1174,30 @@ export interface AppSettings {
   digestHour: string; // "08:00"
 }
 
+/* ---------- Sauvegarde planifiée ---------- */
+export type BackupFrequency = "daily" | "weekly";
+
+export interface BackupSettings {
+  autoEnabled: boolean;
+  frequency: BackupFrequency;
+  retention: number; // nombre de sauvegardes conservées sur le serveur
+  lastRunAt: string | null; // ISO de la dernière sauvegarde serveur (auto ou manuelle)
+}
+
+export const DEFAULT_BACKUP: BackupSettings = {
+  autoEnabled: false,
+  frequency: "daily",
+  retention: 7,
+  lastRunAt: null,
+};
+
+/** Un fichier de sauvegarde présent sur le serveur. */
+export interface ServerBackupFile {
+  name: string;
+  size: number;
+  createdAt: Date;
+}
+
 /* ---------- Messagerie interne ---------- */
 export type ConvKind = "group" | "direct" | "item" | "negligence" | "project";
 

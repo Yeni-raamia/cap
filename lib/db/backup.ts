@@ -4,9 +4,10 @@
  * ================================================================== */
 import Database from "better-sqlite3";
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import type { ServerBackupFile } from "@/lib/domain";
 import { closeDb, getDb, getDbPath } from "./index";
 
 /** Début de l'en-tête magique SQLite (15 octets ASCII ; le 16e octet est un NUL). */
@@ -112,4 +113,97 @@ async function withRetry(fn: () => void, tries = 6, delayMs = 80): Promise<void>
       await new Promise((r) => setTimeout(r, delayMs));
     }
   }
+}
+
+/* ==================================================================
+ *  Sauvegardes stockées sur le serveur (planifiées / manuelles)
+ * ================================================================== */
+
+/** Répertoire des sauvegardes serveur (à côté du fichier de base). */
+export function backupDir(): string {
+  return join(dirname(getDbPath()), "backups");
+}
+
+/**
+ * Nom de fichier de sauvegarde sûr : basename simple, préfixe `cap-`,
+ * extension `.sqlite`, aucune remontée de chemin. Empêche tout parcours
+ * de répertoire lors des lectures/suppressions/restaurations par nom.
+ */
+export function isSafeBackupName(name: string): boolean {
+  if (typeof name !== "string") return false;
+  if (name.includes("/") || name.includes("\\") || name.includes("..")) return false;
+  return /^cap-[\w.-]+\.sqlite$/.test(name);
+}
+
+/** Résout un nom de sauvegarde vers un chemin confiné au répertoire des sauvegardes. */
+function resolveBackup(name: string): string | null {
+  if (!isSafeBackupName(name)) return null;
+  const dir = backupDir();
+  const p = resolve(dir, name);
+  // Garde-fou : le chemin résolu doit rester dans le répertoire des sauvegardes.
+  if (p !== join(dir, name)) return null;
+  return p;
+}
+
+/** Crée une sauvegarde sur le serveur, applique la rétention, et la renvoie. */
+export async function runServerBackup(retention: number): Promise<ServerBackupFile> {
+  const dir = backupDir();
+  mkdirSync(dir, { recursive: true });
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-"); // AAAA-MM-JJ-HH-MM-SS
+  const name = `cap-auto-${stamp}-${randomUUID().slice(0, 4)}.sqlite`; // suffixe anti-collision
+  const path = join(dir, name);
+  await getDb().backup(path);
+  pruneBackups(retention);
+  const st = statSync(path);
+  return { name, size: st.size, createdAt: st.mtime };
+}
+
+/** Liste les sauvegardes présentes sur le serveur (plus récentes d'abord). */
+export function listServerBackups(): ServerBackupFile[] {
+  const dir = backupDir();
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((n) => isSafeBackupName(n))
+    .map((name) => {
+      const st = statSync(join(dir, name));
+      return { name, size: st.size, createdAt: st.mtime };
+    })
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+/** Conserve les `retention` sauvegardes les plus récentes, supprime les autres. */
+export function pruneBackups(retention: number): void {
+  const keep = Math.max(1, Math.floor(retention));
+  const files = listServerBackups();
+  for (const f of files.slice(keep)) {
+    try {
+      rmSync(join(backupDir(), f.name), { force: true });
+    } catch {
+      /* non bloquant */
+    }
+  }
+}
+
+/** Lit une sauvegarde serveur par nom (null si nom invalide ou absente). */
+export function readServerBackup(name: string): Buffer | null {
+  const p = resolveBackup(name);
+  if (!p || !existsSync(p)) return null;
+  return readFileSync(p);
+}
+
+/** Supprime une sauvegarde serveur par nom. */
+export function deleteServerBackup(name: string): boolean {
+  const p = resolveBackup(name);
+  if (!p || !existsSync(p)) return false;
+  rmSync(p, { force: true });
+  return true;
+}
+
+/** Restaure la base à partir d'une sauvegarde serveur. */
+export async function restoreServerBackup(
+  name: string
+): Promise<{ ok: boolean; error?: string; safetyBackup?: string }> {
+  const buf = readServerBackup(name);
+  if (!buf) return { ok: false, error: "Sauvegarde introuvable." };
+  return restoreFromBuffer(buf);
 }
