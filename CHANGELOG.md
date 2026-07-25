@@ -8,6 +8,11 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.10.1] - 2026-07-25
+
+### Corrigé
+- **Graphes des statistiques** : les libellés de l'axe vertical à deux chiffres étaient tronqués (« 24 » affiché « 4 ») sur les nouveaux graphes d'activité et de conformité. Largeur d'axe corrigée.
+
 ## [1.10.0] - 2026-07-25
 
 ### Ajouté — Conformité
