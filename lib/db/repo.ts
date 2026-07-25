@@ -5,7 +5,7 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
 import { createProjectForItem } from "./projects";
-import { PROJECT_METIER } from "@/lib/domain";
+import { buildRef, PROJECT_METIER } from "@/lib/domain";
 import { describeUserAgent } from "@/lib/auth/user-agent";
 import type {
   BlocageAction,
@@ -556,6 +556,26 @@ export function setRelanceDate(itemId: string, dateISO: string | null): void {
   getDb().prepare("update items set date_relance_prevue = ? where id = ?").run(dateISO, itemId);
 }
 
+/**
+ * Prochaine référence pour un métier, attribuée CÔTÉ SERVEUR (anti-collision).
+ * SQLite sérialise les écritures : lire max(numéro)+1 ici est fiable même en
+ * création simultanée, contrairement au calcul côté client sur un instantané.
+ * Une garde d'unicité couvre d'éventuels doublons hérités.
+ */
+function nextItemRef(db: ReturnType<typeof getDb>, metier: string): string {
+  const rows = db.prepare("select ref from items where metier_code = ?").all(metier) as { ref: string }[];
+  let max = 0;
+  for (const { ref } of rows) {
+    const m = ref.match(/(\d+)\s*$/);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  const exists = db.prepare("select 1 from items where ref = ?");
+  let num = max + 1;
+  let ref = buildRef(metier, num);
+  while (exists.get(ref)) ref = buildRef(metier, ++num);
+  return ref;
+}
+
 export function createItem(input: {
   parsed: ParsedSubject;
   prio: Priorite;
@@ -573,12 +593,15 @@ export function createItem(input: {
     .filter(Boolean);
 
   const tx = db.transaction(() => {
+    // CASE : le numéro (TheHive) est fourni par l'utilisateur ; sinon, numéro
+    // auto attribué côté serveur pour éviter toute collision de référence.
+    const ref = input.parsed.metier === "CASE" ? input.parsed.ref : nextItemRef(db, input.parsed.metier);
     db.prepare(
       "insert into items (id, ref, metier_code, type_code, objet, priorite, statut, owner_id, points_cles, date_creation, date_maj) " +
         "values (?,?,?,?,?,?,?,?,?,?,?)"
     ).run(
       id,
-      input.parsed.ref,
+      ref,
       input.parsed.metier,
       input.parsed.type,
       input.parsed.objet,

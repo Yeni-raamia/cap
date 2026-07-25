@@ -10,6 +10,7 @@ import { listObjectives } from "@/lib/db/objectives";
 import { listNegligences } from "@/lib/db/negligences";
 import { listConversationsFor } from "@/lib/db/messaging";
 import { getRefLists, getSecuritySettings, getSettings } from "@/lib/db/admin";
+import { maybeRunRemindersInBackground } from "@/lib/reminders/auto";
 
 export default async function AppGroupLayout({ children }: { children: ReactNode }) {
   // Mode démo : pas d'authentification, l'app s'amorce côté client.
@@ -24,6 +25,10 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   if (user.mustChangePassword) redirect("/change-password"); // renouvellement du mot de passe imposé
   // 2FA imposée par la politique : enrôlement obligatoire avant tout accès.
   if (getSecuritySettings().twofaRequired && !user.totpEnabled) redirect("/enroll-2fa");
+
+  // Filet de sécurité : si aucun cron n'a fait tourner le moteur de relance
+  // récemment, on le déclenche en tâche de fond (throttlé, sans bloquer le rendu).
+  maybeRunRemindersInBackground();
 
   const items = listItems();
   const profiles = listProfiles();
