@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -13,9 +14,26 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { isLateByDuration, NEGLIGENCE_GRAVITES, STATUTS, type NonConformite, type Negligence, type Statut } from "@/lib/domain";
 import { computeBreakdowns, computeProjectStats } from "@/lib/stats";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, GripVertical, Plus, RotateCcw, Settings2, X } from "lucide-react";
 import { useApp } from "@/components/app-context";
 import { PageHero } from "@/components/PageHero";
 import { RapportPdf } from "@/components/RapportPdf";
@@ -23,8 +41,60 @@ import { ExportSuivis } from "@/components/ExportSuivis";
 
 const box = "bg-white border border-slate-200 rounded-xl p-4";
 
+/** Bloc déplaçable du tableau de bord. La poignée et le retrait n'apparaissent
+ *  qu'en mode personnalisation. */
+function SortableBlock({
+  id,
+  customize,
+  onRemove,
+  children,
+}: {
+  id: string;
+  customize: boolean;
+  onRemove: () => void;
+  children: ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.55 : 1,
+    zIndex: isDragging ? 20 : undefined,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative ${customize ? "rounded-xl ring-1 ring-dashed ring-slate-300 dark:ring-slate-600" : ""}`}
+    >
+      {customize && (
+        <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
+          <button
+            {...attributes}
+            {...listeners}
+            aria-label="Déplacer le bloc"
+            title="Glisser pour déplacer"
+            className="cursor-grab active:cursor-grabbing touch-none inline-flex items-center justify-center h-7 w-7 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-700 shadow-sm"
+          >
+            <GripVertical size={14} />
+          </button>
+          <button
+            onClick={onRemove}
+            aria-label="Retirer le bloc"
+            title="Retirer ce bloc"
+            className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-rose-600 shadow-sm"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
 export default function StatsPage() {
-  const { items, profiles, catalogue, now, projects, theme, negligences, nonConformites } = useApp();
+  const { items, profiles, catalogue, now, projects, theme, negligences, nonConformites, me } = useApp();
   const dark = theme === "dark";
   const grid = dark ? "#1e293b" : "#eef2f6";
   const tick = { fontSize: 11, fill: dark ? "#94a3b8" : "#64748b" };
@@ -37,8 +107,7 @@ export default function StatsPage() {
     },
     labelStyle: { color: dark ? "#e2e8f0" : "#0f172a" },
   };
-  // Palette catégorielle validée (dataviz) — 3 slots sûrs sur toutes paires,
-  // steps clairs/sombres. + palette de statut réservée (jamais une série).
+  // Palette catégorielle validée (dataviz) + palette de statut réservée.
   const S = dark
     ? { blue: "#3987e5", orange: "#d95926", aqua: "#199e70" }
     : { blue: "#2a78d6", orange: "#eb6834", aqua: "#1baf7a" };
@@ -66,17 +135,13 @@ export default function StatsPage() {
     v: items.filter((i) => i.ownerId === u.id).reduce((s, i) => s + i.relancesCount, 0),
   }));
 
-  // Retard sur durée de traitement acceptable (échéance perso).
   const lateByDuration = items.filter((i) => isLateByDuration(i, now)).length;
   const markedLate = items.filter((i) => i.markedLate && i.statut !== "Clôturé").length;
   const withDuration = items.filter((i) => i.dueDurationDays != null && i.statut !== "Clôturé").length;
 
-  // Conformité : synthèse des négligences et non-conformités.
   const conformiteSummary = (list: (Negligence | NonConformite)[]) => ({
     total: list.length,
-    byGravite: NEGLIGENCE_GRAVITES.map((g) => ({ g, n: list.filter((x) => x.gravite === g).length })),
     enAttente: list.filter((x) => x.status !== "Décision rendue" && x.status !== "Classée").length,
-    decidees: list.filter((x) => x.status === "Décision rendue").length,
   });
   const negSum = conformiteSummary(negligences);
   const ncSum = conformiteSummary(nonConformites);
@@ -102,102 +167,111 @@ export default function StatsPage() {
     return buckets;
   })();
 
-  // Conformité par gravité : négligences vs non-conformités.
   const conformiteChart = NEGLIGENCE_GRAVITES.map((g) => ({
     name: g,
     negligences: negligences.filter((x) => x.gravite === g).length,
     nonConformites: nonConformites.filter((x) => x.gravite === g).length,
   }));
-  return (
-    <div className="space-y-6 animate-float">
-      <PageHero
-        kicker="Pilotage"
-        icon={BarChart3}
-        title="Statistiques"
-        subtitle="Le registre, en vivant. Ce qui avance, ce qui répond, qui fait bouger les lignes."
-        right={<RapportPdf />}
-      />
 
-      {/* Exports Excel/CSV */}
-      <div className={`${box} flex items-center justify-between gap-3 flex-wrap`}>
-        <div className="text-[12.5px] text-slate-600 dark:text-slate-300">
-          <span className="font-semibold text-slate-800 dark:text-slate-100">Exports</span> — données brutes pour Excel / reporting.
-        </div>
-        <ExportSuivis />
-      </div>
-
-      {/* Retard sur durée de traitement acceptable */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <div className={box}>
-          <div className="text-2xl font-semibold text-orange-600">{lateByDuration}</div>
-          <div className="text-[12px] text-slate-500">En retard (durée dépassée)</div>
-        </div>
-        <div className={box}>
-          <div className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{markedLate}</div>
-          <div className="text-[12px] text-slate-500">Marqués « en retard »</div>
-        </div>
-        <div className={box}>
-          <div className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{withDuration}</div>
-          <div className="text-[12px] text-slate-500">Suivis avec durée cible</div>
-        </div>
-      </div>
-
-      {/* Activité dans le temps : créés vs clôturés (6 derniers mois) */}
-      <div className={box}>
-        <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 mb-3">
-          Activité — suivis créés vs clôturés (6 derniers mois)
-        </div>
-        <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={activite} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
-            <defs>
-              <linearGradient id="gCrees" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={S.blue} stopOpacity={0.25} />
-                <stop offset="100%" stopColor={S.blue} stopOpacity={0.02} />
-              </linearGradient>
-              <linearGradient id="gClotures" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={S.aqua} stopOpacity={0.25} />
-                <stop offset="100%" stopColor={S.aqua} stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
-            <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
-            <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={38} />
-            <Tooltip {...tip} />
-            <Legend wrapperStyle={legendStyle} iconType="plainline" />
-            <Area type="monotone" dataKey="crees" name="Créés" stroke={S.blue} strokeWidth={2} fill="url(#gCrees)" dot={{ r: 3, fill: S.blue }} activeDot={{ r: 5 }} />
-            <Area type="monotone" dataKey="clotures" name="Clôturés" stroke={S.aqua} strokeWidth={2} fill="url(#gClotures)" dot={{ r: 3, fill: S.aqua }} activeDot={{ r: 5 }} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Conformité : négligences & non-conformités par gravité */}
-      <div className={box}>
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">
-            Conformité — par gravité
+  /* ---------- Registre des blocs du tableau de bord ---------- */
+  const blocks: { id: string; title: string; node: ReactNode }[] = [
+    {
+      id: "exports",
+      title: "Exports",
+      node: (
+        <div className={`${box} flex items-center justify-between gap-3 flex-wrap`}>
+          <div className="text-[12.5px] text-slate-600 dark:text-slate-300">
+            <span className="font-semibold text-slate-800 dark:text-slate-100">Exports</span> — données brutes pour Excel / reporting.
           </div>
-          <div className="flex items-center gap-4 text-[12px]">
-            <span className="text-slate-500">Négligences : <b className="text-slate-800 dark:text-slate-100">{negSum.total}</b> · {negSum.enAttente} en attente</span>
-            <span className="text-slate-500">Non-conformités : <b className="text-slate-800 dark:text-slate-100">{ncSum.total}</b> · {ncSum.enAttente} en attente</span>
+          <ExportSuivis />
+        </div>
+      ),
+    },
+    {
+      id: "duree",
+      title: "Retard sur durée de traitement",
+      node: (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className={box}>
+            <div className="text-2xl font-semibold text-orange-600">{lateByDuration}</div>
+            <div className="text-[12px] text-slate-500">En retard (durée dépassée)</div>
+          </div>
+          <div className={box}>
+            <div className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{markedLate}</div>
+            <div className="text-[12px] text-slate-500">Marqués « en retard »</div>
+          </div>
+          <div className={box}>
+            <div className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{withDuration}</div>
+            <div className="text-[12px] text-slate-500">Suivis avec durée cible</div>
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={conformiteChart} margin={{ top: 4, right: 8, left: 4, bottom: 0 }} barGap={2}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
-            <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
-            <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={38} />
-            <Tooltip {...tip} />
-            <Legend wrapperStyle={legendStyle} />
-            <Bar dataKey="negligences" name="Négligences" fill={S.blue} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="nonConformites" name="Non-conformités" fill={S.orange} radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
+      ),
+    },
+    {
+      id: "activite",
+      title: "Activité — créés vs clôturés",
+      node: (
+        <div className={box}>
+          <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 mb-3">
+            Activité — suivis créés vs clôturés (6 derniers mois)
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={activite} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
+              <defs>
+                <linearGradient id="gCrees" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={S.blue} stopOpacity={0.25} />
+                  <stop offset="100%" stopColor={S.blue} stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="gClotures" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={S.aqua} stopOpacity={0.25} />
+                  <stop offset="100%" stopColor={S.aqua} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
+              <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
+              <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={38} />
+              <Tooltip {...tip} />
+              <Legend wrapperStyle={legendStyle} iconType="plainline" />
+              <Area type="monotone" dataKey="crees" name="Créés" stroke={S.blue} strokeWidth={2} fill="url(#gCrees)" dot={{ r: 3, fill: S.blue }} activeDot={{ r: 5 }} />
+              <Area type="monotone" dataKey="clotures" name="Clôturés" stroke={S.aqua} strokeWidth={2} fill="url(#gClotures)" dot={{ r: 3, fill: S.aqua }} activeDot={{ r: 5 }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      ),
+    },
+    {
+      id: "conformite",
+      title: "Conformité par gravité",
+      node: (
+        <div className={box}>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Conformité — par gravité</div>
+            <div className="flex items-center gap-4 text-[12px]">
+              <span className="text-slate-500">Négligences : <b className="text-slate-800 dark:text-slate-100">{negSum.total}</b> · {negSum.enAttente} en attente</span>
+              <span className="text-slate-500">Non-conformités : <b className="text-slate-800 dark:text-slate-100">{ncSum.total}</b> · {ncSum.enAttente} en attente</span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={conformiteChart} margin={{ top: 4, right: 8, left: 4, bottom: 0 }} barGap={2}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
+              <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
+              <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={38} />
+              <Tooltip {...tip} />
+              <Legend wrapperStyle={legendStyle} />
+              <Bar dataKey="negligences" name="Négligences" fill={S.blue} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="nonConformites" name="Non-conformités" fill={S.orange} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ),
+    },
+    {
+      id: "volume-metier",
+      title: "Volume par métier",
+      node: (
         <div className={box}>
           <div className="text-[13px] font-semibold text-slate-700 mb-3">Volume par métier</div>
-          <ResponsiveContainer width="100%" height={180}>
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={parMetier}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
               <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
@@ -207,12 +281,15 @@ export default function StatsPage() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-
+      ),
+    },
+    {
+      id: "taux-reponse",
+      title: "Taux de réponse par agent",
+      node: (
         <div className={box}>
-          <div className="text-[13px] font-semibold text-slate-700 mb-3">
-            Taux de réponse par agent (%)
-          </div>
-          <ResponsiveContainer width="100%" height={180}>
+          <div className="text-[13px] font-semibold text-slate-700 mb-3">Taux de réponse par agent (%)</div>
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={parAgent}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
               <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
@@ -220,10 +297,7 @@ export default function StatsPage() {
               <Tooltip {...tip} cursor={{ fill: dark ? "#ffffff10" : "#00000008" }} />
               <Bar dataKey="taux" name="Taux de réponse" radius={[4, 4, 0, 0]}>
                 {parAgent.map((e, i) => (
-                  <Cell
-                    key={i}
-                    fill={e.taux >= 60 ? STATUS.good : e.taux >= 30 ? STATUS.warning : STATUS.critical}
-                  />
+                  <Cell key={i} fill={e.taux >= 60 ? STATUS.good : e.taux >= 30 ? STATUS.warning : STATUS.critical} />
                 ))}
               </Bar>
             </BarChart>
@@ -234,12 +308,15 @@ export default function StatsPage() {
             <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: STATUS.critical }} /> &lt; 30 %</span>
           </div>
         </div>
-
+      ),
+    },
+    {
+      id: "relances",
+      title: "Relances par agent",
+      node: (
         <div className={box}>
-          <div className="text-[13px] font-semibold text-slate-700 mb-3">
-            Relances effectuées par agent
-          </div>
-          <ResponsiveContainer width="100%" height={180}>
+          <div className="text-[13px] font-semibold text-slate-700 mb-3">Relances effectuées par agent</div>
+          <ResponsiveContainer width="100%" height={200}>
             <BarChart data={relances}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
               <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
@@ -249,12 +326,15 @@ export default function StatsPage() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-
+      ),
+    },
+    {
+      id: "statuts",
+      title: "Répartition des statuts",
+      node: (
         <div className={box}>
-          <div className="text-[13px] font-semibold text-slate-700 mb-3">
-            Répartition des statuts
-          </div>
-          <div className="space-y-2 mt-4">
+          <div className="text-[13px] font-semibold text-slate-700 mb-3">Répartition des statuts</div>
+          <div className="space-y-2 mt-2">
             {(Object.keys(STATUTS) as Statut[]).map((s) => {
               const n = items.filter((i) => i.statut === s).length;
               const pct = items.length ? Math.round((n / items.length) * 100) : 0;
@@ -270,129 +350,130 @@ export default function StatsPage() {
             })}
           </div>
         </div>
-      </div>
-
-      {/* ---------- Statistiques détaillées (imputabilité) ---------- */}
-      <div>
-        <h2 className="text-[15px] font-semibold text-slate-800">Détail par partie prenante</h2>
-        <p className="text-[13px] text-slate-500">
-          Qui envoie, qui reçoit, qui bloque — pour que toutes les parties soient rendues
-          responsables.
-        </p>
-      </div>
-
-      {/* Par émetteur (agent) */}
-      <div className={box}>
-        <div className="text-[13px] font-semibold text-slate-700 mb-3">
-          État par émetteur (agent responsable)
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[12px]">
-            <thead>
-              <tr className="text-left text-slate-500 border-b border-slate-200">
-                <th className="py-1.5 pr-3">Agent</th>
-                <th className="py-1.5 pr-3">Suivis de mail</th>
-                <th className="py-1.5 pr-3">Relances</th>
-                <th className="py-1.5 pr-3">Réponses</th>
-                <th className="py-1.5 pr-3">Retards</th>
-                <th className="py-1.5 pr-3">Bloqués</th>
-                <th className="py-1.5 pr-3">Clôtures</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bd.parAgent.map((a) => (
-                <tr key={a.id} className="border-b border-slate-100">
-                  <td className="py-1.5 pr-3 text-slate-800">{a.nom}</td>
-                  <td className="py-1.5 pr-3">{a.suivis}</td>
-                  <td className="py-1.5 pr-3">{a.relances}</td>
-                  <td className="py-1.5 pr-3">{a.reponses}</td>
-                  <td className={`py-1.5 pr-3 ${a.retards ? "text-rose-600 font-medium" : "text-slate-400"}`}>{a.retards}</td>
-                  <td className={`py-1.5 pr-3 ${a.bloques ? "text-rose-600 font-medium" : "text-slate-400"}`}>{a.bloques}</td>
-                  <td className="py-1.5 pr-3 text-emerald-700">{a.clotures}</td>
+      ),
+    },
+    {
+      id: "par-emetteur",
+      title: "État par émetteur (agent)",
+      node: (
+        <div className={box}>
+          <div className="text-[13px] font-semibold text-slate-700 mb-3">État par émetteur (agent responsable)</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="text-left text-slate-500 border-b border-slate-200">
+                  <th className="py-1.5 pr-3">Agent</th>
+                  <th className="py-1.5 pr-3">Suivis de mail</th>
+                  <th className="py-1.5 pr-3">Relances</th>
+                  <th className="py-1.5 pr-3">Réponses</th>
+                  <th className="py-1.5 pr-3">Retards</th>
+                  <th className="py-1.5 pr-3">Bloqués</th>
+                  <th className="py-1.5 pr-3">Clôtures</th>
                 </tr>
-              ))}
-              {bd.parAgent.length === 0 && (
-                <tr><td className="py-3 text-slate-400" colSpan={7}>Aucune donnée.</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {bd.parAgent.map((a) => (
+                  <tr key={a.id} className="border-b border-slate-100">
+                    <td className="py-1.5 pr-3 text-slate-800">{a.nom}</td>
+                    <td className="py-1.5 pr-3">{a.suivis}</td>
+                    <td className="py-1.5 pr-3">{a.relances}</td>
+                    <td className="py-1.5 pr-3">{a.reponses}</td>
+                    <td className={`py-1.5 pr-3 ${a.retards ? "text-rose-600 font-medium" : "text-slate-400"}`}>{a.retards}</td>
+                    <td className={`py-1.5 pr-3 ${a.bloques ? "text-rose-600 font-medium" : "text-slate-400"}`}>{a.bloques}</td>
+                    <td className="py-1.5 pr-3 text-emerald-700">{a.clotures}</td>
+                  </tr>
+                ))}
+                {bd.parAgent.length === 0 && (
+                  <tr><td className="py-3 text-slate-400" colSpan={7}>Aucune donnée.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-
-      {/* Par service destinataire */}
-      <div className={box}>
-        <div className="text-[13px] font-semibold text-slate-700 mb-1">État par service destinataire</div>
-        <p className="text-[11px] text-slate-400 mb-3">Réseau, systèmes, prestataire… — où se concentrent les blocages.</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[12px]">
-            <thead>
-              <tr className="text-left text-slate-500 border-b border-slate-200">
-                <th className="py-1.5 pr-3">Service</th>
-                <th className="py-1.5 pr-3">Mails</th>
-                <th className="py-1.5 pr-3">Relances</th>
-                <th className="py-1.5 pr-3">Réponses</th>
-                <th className="py-1.5 pr-3">Retards</th>
-                <th className="py-1.5 pr-3">Bloqués</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bd.parService.map((d) => (
-                <tr key={d.name} className="border-b border-slate-100">
-                  <td className="py-1.5 pr-3 text-slate-800">{d.name}</td>
-                  <td className="py-1.5 pr-3">{d.suivis}</td>
-                  <td className="py-1.5 pr-3">{d.relances}</td>
-                  <td className="py-1.5 pr-3">{d.reponses}</td>
-                  <td className={`py-1.5 pr-3 ${d.retards ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.retards}</td>
-                  <td className={`py-1.5 pr-3 ${d.bloques ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.bloques}</td>
+      ),
+    },
+    {
+      id: "par-service",
+      title: "État par service destinataire",
+      node: (
+        <div className={box}>
+          <div className="text-[13px] font-semibold text-slate-700 mb-1">État par service destinataire</div>
+          <p className="text-[11px] text-slate-400 mb-3">Réseau, systèmes, prestataire… — où se concentrent les blocages.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="text-left text-slate-500 border-b border-slate-200">
+                  <th className="py-1.5 pr-3">Service</th>
+                  <th className="py-1.5 pr-3">Mails</th>
+                  <th className="py-1.5 pr-3">Relances</th>
+                  <th className="py-1.5 pr-3">Réponses</th>
+                  <th className="py-1.5 pr-3">Retards</th>
+                  <th className="py-1.5 pr-3">Bloqués</th>
                 </tr>
-              ))}
-              {bd.parService.length === 0 && (
-                <tr><td className="py-3 text-slate-400" colSpan={6}>Aucun service renseigné.</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {bd.parService.map((d) => (
+                  <tr key={d.name} className="border-b border-slate-100">
+                    <td className="py-1.5 pr-3 text-slate-800">{d.name}</td>
+                    <td className="py-1.5 pr-3">{d.suivis}</td>
+                    <td className="py-1.5 pr-3">{d.relances}</td>
+                    <td className="py-1.5 pr-3">{d.reponses}</td>
+                    <td className={`py-1.5 pr-3 ${d.retards ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.retards}</td>
+                    <td className={`py-1.5 pr-3 ${d.bloques ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.bloques}</td>
+                  </tr>
+                ))}
+                {bd.parService.length === 0 && (
+                  <tr><td className="py-3 text-slate-400" colSpan={6}>Aucun service renseigné.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-
-      {/* Par destinataire */}
-      <div className={box}>
-        <div className="text-[13px] font-semibold text-slate-700 mb-1">État par destinataire (nom)</div>
-        <p className="text-[11px] text-slate-400 mb-3">
-          Trié par blocages et retards — met en évidence les tiers dont on attend une action.
-        </p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-[12px]">
-            <thead>
-              <tr className="text-left text-slate-500 border-b border-slate-200">
-                <th className="py-1.5 pr-3">Destinataire</th>
-                <th className="py-1.5 pr-3">Mails reçus</th>
-                <th className="py-1.5 pr-3">Relances</th>
-                <th className="py-1.5 pr-3">Réponses</th>
-                <th className="py-1.5 pr-3">Retards</th>
-                <th className="py-1.5 pr-3">Bloqués</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bd.parDestinataire.map((d) => (
-                <tr key={d.name} className="border-b border-slate-100">
-                  <td className="py-1.5 pr-3 text-slate-800">{d.name}</td>
-                  <td className="py-1.5 pr-3">{d.suivis}</td>
-                  <td className="py-1.5 pr-3">{d.relances}</td>
-                  <td className="py-1.5 pr-3">{d.reponses}</td>
-                  <td className={`py-1.5 pr-3 ${d.retards ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.retards}</td>
-                  <td className={`py-1.5 pr-3 ${d.bloques ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.bloques}</td>
+      ),
+    },
+    {
+      id: "par-destinataire",
+      title: "État par destinataire",
+      node: (
+        <div className={box}>
+          <div className="text-[13px] font-semibold text-slate-700 mb-1">État par destinataire (nom)</div>
+          <p className="text-[11px] text-slate-400 mb-3">Trié par blocages et retards — met en évidence les tiers dont on attend une action.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="text-left text-slate-500 border-b border-slate-200">
+                  <th className="py-1.5 pr-3">Destinataire</th>
+                  <th className="py-1.5 pr-3">Mails reçus</th>
+                  <th className="py-1.5 pr-3">Relances</th>
+                  <th className="py-1.5 pr-3">Réponses</th>
+                  <th className="py-1.5 pr-3">Retards</th>
+                  <th className="py-1.5 pr-3">Bloqués</th>
                 </tr>
-              ))}
-              {bd.parDestinataire.length === 0 && (
-                <tr><td className="py-3 text-slate-400" colSpan={6}>Aucun destinataire renseigné.</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {bd.parDestinataire.map((d) => (
+                  <tr key={d.name} className="border-b border-slate-100">
+                    <td className="py-1.5 pr-3 text-slate-800">{d.name}</td>
+                    <td className="py-1.5 pr-3">{d.suivis}</td>
+                    <td className="py-1.5 pr-3">{d.relances}</td>
+                    <td className="py-1.5 pr-3">{d.reponses}</td>
+                    <td className={`py-1.5 pr-3 ${d.retards ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.retards}</td>
+                    <td className={`py-1.5 pr-3 ${d.bloques ? "text-rose-600 font-medium" : "text-slate-400"}`}>{d.bloques}</td>
+                  </tr>
+                ))}
+                {bd.parDestinataire.length === 0 && (
+                  <tr><td className="py-3 text-slate-400" colSpan={6}>Aucun destinataire renseigné.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* Par criticité */}
+      ),
+    },
+    {
+      id: "criticite",
+      title: "Par criticité",
+      node: (
         <div className={box}>
           <div className="text-[13px] font-semibold text-slate-700 mb-3">Par criticité</div>
           <table className="w-full text-[12px]">
@@ -418,12 +499,14 @@ export default function StatsPage() {
             </tbody>
           </table>
         </div>
-
-        {/* Par appréciation du motif */}
+      ),
+    },
+    {
+      id: "appreciation",
+      title: "Par appréciation du motif",
+      node: (
         <div className={box}>
-          <div className="text-[13px] font-semibold text-slate-700 mb-3">
-            Par appréciation du motif (suivis de mail à risque)
-          </div>
+          <div className="text-[13px] font-semibold text-slate-700 mb-3">Par appréciation du motif (suivis de mail à risque)</div>
           {bd.parAppreciation.length === 0 ? (
             <div className="text-[13px] text-slate-400 text-center py-6">Aucun suivi de mail à risque.</div>
           ) : (
@@ -440,11 +523,15 @@ export default function StatsPage() {
             </div>
           )}
         </div>
-
-        {/* Projets */}
+      ),
+    },
+    {
+      id: "projets",
+      title: "Projets",
+      node: (
         <div className={box}>
           <div className="text-[13px] font-semibold text-slate-700 mb-3">Projets</div>
-          <div className="grid grid-cols-2 gap-2 mb-3 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 text-center">
             <div className="rounded-lg bg-slate-50 p-2">
               <div className="text-xl font-semibold text-slate-800">{ps.total}</div>
               <div className="text-[11px] text-slate-500">Projets</div>
@@ -481,8 +568,12 @@ export default function StatsPage() {
             <div className="text-[11px] text-rose-600 mt-2">{ps.tachesEnRetard} tâche(s) en retard sur l&apos;ensemble des projets.</div>
           )}
         </div>
-
-        {/* Causes de blocage */}
+      ),
+    },
+    {
+      id: "causes",
+      title: "Causes de blocage",
+      node: (
         <div className={box}>
           <div className="text-[13px] font-semibold text-slate-700 mb-3">Causes de blocage</div>
           {bd.causes.length === 0 ? (
@@ -501,7 +592,127 @@ export default function StatsPage() {
             </div>
           )}
         </div>
-      </div>
+      ),
+    },
+  ];
+
+  const DEFAULT_ORDER = blocks.map((b) => b.id);
+  const byId = new Map(blocks.map((b) => [b.id, b]));
+  const storageKey = `cap:stats-layout:${me.id}`;
+
+  const [order, setOrder] = useState<string[]>(DEFAULT_ORDER);
+  const [customize, setCustomize] = useState(false);
+
+  // Hydratation de la disposition sauvegardée (client uniquement).
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const known = new Set(DEFAULT_ORDER);
+        const ids = (JSON.parse(saved) as string[]).filter((id) => known.has(id));
+        if (ids.length) setOrder(ids);
+      }
+    } catch {
+      /* localStorage indisponible : on garde la disposition par défaut */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
+
+  const persist = (next: string[]) => {
+    setOrder(next);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (over && active.id !== over.id) {
+      const oldI = order.indexOf(String(active.id));
+      const newI = order.indexOf(String(over.id));
+      if (oldI >= 0 && newI >= 0) persist(arrayMove(order, oldI, newI));
+    }
+  };
+
+  const visible = order.map((id) => byId.get(id)).filter(Boolean) as { id: string; title: string; node: ReactNode }[];
+  const available = blocks.filter((b) => !order.includes(b.id));
+
+  return (
+    <div className="space-y-6 animate-float">
+      <PageHero
+        kicker="Pilotage"
+        icon={BarChart3}
+        title="Statistiques"
+        subtitle="Le registre, en vivant. Compose ton tableau de bord : réorganise, retire ou ajoute des blocs."
+        right={
+          <div className="flex items-center gap-2 flex-wrap">
+            {customize && (
+              <>
+                <select
+                  value=""
+                  onChange={(e) => e.target.value && persist([...order, e.target.value])}
+                  aria-label="Ajouter un bloc"
+                  className="text-[12px] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+                  disabled={available.length === 0}
+                >
+                  <option value="">{available.length ? "+ Ajouter un bloc" : "Tous les blocs affichés"}</option>
+                  {available.map((b) => (
+                    <option key={b.id} value={b.id}>{b.title}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => persist(DEFAULT_ORDER)}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  <RotateCcw size={13} /> Réinitialiser
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setCustomize((v) => !v)}
+              className={`inline-flex items-center gap-1.5 text-[12px] font-medium rounded-lg px-2.5 py-2 border ${
+                customize
+                  ? "bg-emerald-600 text-white border-emerald-600"
+                  : "text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+              }`}
+            >
+              {customize ? <Plus size={14} className="rotate-45" /> : <Settings2 size={14} />}
+              {customize ? "Terminer" : "Personnaliser"}
+            </button>
+            <RapportPdf />
+          </div>
+        }
+      />
+
+      {customize && (
+        <div className="text-[12px] text-slate-500 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
+          Glisse les blocs par la poignée pour les réorganiser, retire-les avec la croix, ou ajoute-en via le menu. Ta disposition est enregistrée sur cet appareil.
+        </div>
+      )}
+
+      {visible.length === 0 ? (
+        <div className={`${box} text-center text-[13px] text-slate-400 py-10`}>
+          Aucun bloc affiché. Ajoute-en via « Personnaliser ».
+        </div>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <SortableContext items={order} strategy={verticalListSortingStrategy}>
+            <div className="space-y-6">
+              {visible.map((b) => (
+                <SortableBlock key={b.id} id={b.id} customize={customize} onRemove={() => persist(order.filter((x) => x !== b.id))}>
+                  {b.node}
+                </SortableBlock>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
     </div>
   );
 }
