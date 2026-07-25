@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Check, Copy, FileText } from "lucide-react";
 import { applyTemplate, daysBetween, TEMPLATE_CATEGORIES, type Item } from "@/lib/domain";
+import { copyText } from "@/lib/clipboard";
 import { useApp } from "./app-context";
 import { Card } from "./atoms";
 
@@ -35,12 +36,11 @@ export function TemplatePicker({ item }: { item: Item }) {
   const body = applyTemplate(tpl.body, vars);
 
   const copy = async (text: string, which: "subject" | "body" | "all") => {
-    try {
-      await navigator.clipboard.writeText(text);
+    if (await copyText(text)) {
       setCopied(which);
       toast("Copié dans le presse-papiers.", "success");
       setTimeout(() => setCopied(null), 1500);
-    } catch {
+    } else {
       toast("Impossible de copier.", "error");
     }
   };

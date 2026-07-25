@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Loader2, ShieldCheck, ShieldOff, ShieldQuestion } from "lucide-react";
+import { copyText } from "@/lib/clipboard";
 
 /**
  * Section « Double authentification (2FA / TOTP) » de l'espace membre.
@@ -91,7 +92,9 @@ export function TwoFactorSection({ enabled }: { enabled: boolean }) {
     }
   };
 
-  const copy = (text: string) => navigator.clipboard?.writeText(text).catch(() => {});
+  const copy = (text: string) => {
+    void copyText(text);
+  };
   // Clé groupée par 4 pour une saisie manuelle plus lisible.
   const groupedSecret = setupData ? setupData.secret.replace(/(.{4})/g, "$1 ").trim() : "";
 

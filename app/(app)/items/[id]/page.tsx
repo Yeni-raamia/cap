@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Check, Link2, Pencil } from "lucide-react";
+import { copyText } from "@/lib/clipboard";
 import { useApp } from "@/components/app-context";
 import { Card, MetierChip, Token, TypeTag } from "@/components/atoms";
 import { SuiviDetail } from "@/components/SuiviDetail";
@@ -34,13 +35,12 @@ export default function ItemPage() {
 
   const copyLink = () => {
     if (typeof window === "undefined") return;
-    navigator.clipboard?.writeText(window.location.href).then(
-      () => {
+    copyText(window.location.href).then((ok) => {
+      if (ok) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1600);
-      },
-      () => {}
-    );
+      }
+    });
   };
 
   return (

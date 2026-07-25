@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
+import { copyText } from "@/lib/clipboard";
 
 /**
  * Enrôlement 2FA imposé : affiché en plein écran quand la politique de
@@ -17,7 +18,9 @@ export function Enroll2faScreen({ name, secret, qr }: { name: string; secret: st
   const [loading, setLoading] = useState(false);
 
   const groupedSecret = secret.replace(/(.{4})/g, "$1 ").trim();
-  const copy = (t: string) => navigator.clipboard?.writeText(t).catch(() => {});
+  const copy = (t: string) => {
+    void copyText(t);
+  };
 
   const enable = async (e: React.FormEvent) => {
     e.preventDefault();

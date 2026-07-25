@@ -13,6 +13,7 @@ import {
   type Priorite,
 } from "@/lib/domain";
 import { APP_MOTTO } from "@/lib/config";
+import { copyText } from "@/lib/clipboard";
 import { useApp } from "./app-context";
 import { MetierChip, Token, TypeTag } from "./atoms";
 
@@ -83,12 +84,9 @@ export function NewSuiviModal() {
 
   const copySubject = async () => {
     if (!subjectLine) return;
-    try {
-      await navigator.clipboard.writeText(subjectLine);
+    if (await copyText(subjectLine)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
-    } catch {
-      // Presse-papiers indisponible : on ignore silencieusement.
     }
   };
 
