@@ -8,6 +8,11 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.11.0] - 2026-07-25
+
+### Ajouté — Statistiques
+- **Tableau de bord personnalisable** : la page Statistiques devient composable. En mode « Personnaliser », chaque bloc peut être **déplacé** par glisser-déposer (n'importe où sur le bloc), **redimensionné** en pleine ou demi-largeur (deux blocs par ligne), **retiré**, ou **(r)ajouté** depuis un menu. La disposition est enregistrée par utilisateur dans le navigateur (localStorage) et se réinitialise en un clic.
+
 ## [1.10.1] - 2026-07-25
 
 ### Corrigé
