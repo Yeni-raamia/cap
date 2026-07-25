@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     fields.personnes = body.personnes
       .filter((p: Person) => p && typeof p.name === "string" && KINDS.includes(p.kind))
       .slice(0, 40)
-      .map((p: Person) => ({ name: p.name, kind: p.kind, service: p.service ?? null }));
+      .map((p: Person) => ({ name: p.name, kind: p.kind, service: p.service ?? null, email: p.email ?? null }));
   }
 
   if (Object.keys(fields).length === 0) {

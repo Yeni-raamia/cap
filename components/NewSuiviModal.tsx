@@ -28,6 +28,7 @@ export function NewSuiviModal() {
   const [prio, setPrio] = useState<Priorite>("Moyenne");
   const [destService, setDestService] = useState("");
   const [dest, setDest] = useState("");
+  const [destEmail, setDestEmail] = useState("");
   const [points, setPoints] = useState("");
   const [nonConformite, setNonConformite] = useState(false);
   const [dueDuration, setDuration] = useState("");
@@ -75,6 +76,7 @@ export function NewSuiviModal() {
     setPrio("Moyenne");
     setDestService("");
     setDest("");
+    setDestEmail("");
     setPoints("");
     setNonConformite(false);
     setDuration("");
@@ -103,7 +105,7 @@ export function NewSuiviModal() {
     }
     if (!parsed) return;
     const dur = dueDuration.trim() ? Number(dueDuration) : null;
-    create(parsed, prio, dest, destService, points, nonConformite, dur && dur > 0 ? dur : null);
+    create(parsed, prio, dest, destService, points, nonConformite, dur && dur > 0 ? dur : null, destEmail.trim());
     reset();
   };
 
@@ -344,6 +346,19 @@ Coller un e-mail
             value={dest}
             onChange={(e) => setDest(e.target.value)}
             placeholder="Nom de la personne à qui le mail est adressé"
+            className={inputCls}
+          />
+        </div>
+        <div className="mt-3">
+          <label className="text-[12px] font-medium text-slate-600" htmlFor="destEmail">
+            E-mail du destinataire <span className="text-slate-400">(pour envoyer les relances)</span>
+          </label>
+          <input
+            id="destEmail"
+            type="email"
+            value={destEmail}
+            onChange={(e) => setDestEmail(e.target.value)}
+            placeholder="prenom.nom@exemple.fr"
             className={inputCls}
           />
         </div>

@@ -149,7 +149,8 @@ interface AppCtx {
   act: (item: Item, action: Action, cause?: string) => void;
   bulkAct: (ids: string[], action: Action) => Promise<{ applied: number; skipped: number } | null>;
   setItemLate: (item: Item, late: boolean) => Promise<boolean>;
-  create: (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite?: boolean, dueDurationDays?: number | null) => void;
+  sendRelanceEmail: (item: Item, templateId: string) => Promise<boolean>;
+  create: (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite?: boolean, dueDurationDays?: number | null, destEmail?: string) => void;
   setRelanceDate: (item: Item, date: string | null) => void;
   updateItem: (
     item: Item,
@@ -644,7 +645,34 @@ export function AppProvider({
     }
   };
 
-  const create = (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite = false, dueDurationDays: number | null = null) => {
+  /** Envoi réel d'une relance au destinataire par e-mail (modèle appliqué). */
+  const sendRelanceEmail = async (item: Item, templateId: string): Promise<boolean> => {
+    if (demo) {
+      toast("Envoi d'e-mail indisponible en mode démo.", "info");
+      return false;
+    }
+    try {
+      const res = await fetch("/api/items/relance-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: item.id, templateId }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        toast(d.error ?? "Envoi échoué.", "error");
+        return false;
+      }
+      if (d.items) setItems(reviveItems(d.items));
+      toast(`Relance envoyée à ${d.to}.`, "success");
+      return true;
+    } catch (e) {
+      console.error("Envoi de relance échoué :", e);
+      toast("Envoi échoué.", "error");
+      return false;
+    }
+  };
+
+  const create = (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite = false, dueDurationDays: number | null = null, destEmail = "") => {
     setShowNew(false);
     if (demo) {
       setItems((prev) => mockCreate(prev, parsed, prio, dest, destService, points, meId));
@@ -653,7 +681,7 @@ export function AppProvider({
     fetch("/api/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ parsed, prio, dest, destService, points, nonConformite, dueDurationDays }),
+      body: JSON.stringify({ parsed, prio, dest, destService, points, nonConformite, dueDurationDays, destEmail }),
     })
       .then((r) => r.json())
       .then((d) => {
@@ -1328,6 +1356,7 @@ export function AppProvider({
     updateItem,
     bulkAct,
     setItemLate,
+    sendRelanceEmail,
     addBlocageAction,
     setAppreciation,
     updateRole,

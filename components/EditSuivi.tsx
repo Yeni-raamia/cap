@@ -17,13 +17,13 @@ export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) 
   const [points, setPoints] = useState(item.pointsCles.filter((p) => p !== "—").join("\n"));
   const [dueDuration, setDuration] = useState(item.dueDurationDays != null ? String(item.dueDurationDays) : "");
   const [personnes, setPersonnes] = useState(
-    item.personnes.map((p) => ({ name: p.name, kind: p.kind, service: p.service ?? "" }))
+    item.personnes.map((p) => ({ name: p.name, kind: p.kind, service: p.service ?? "", email: p.email ?? "" }))
   );
   const [saving, setSaving] = useState(false);
 
-  const setPerson = (i: number, patch: Partial<{ name: string; kind: PersonKind; service: string }>) =>
+  const setPerson = (i: number, patch: Partial<{ name: string; kind: PersonKind; service: string; email: string }>) =>
     setPersonnes((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
-  const addPerson = () => setPersonnes((prev) => [...prev, { name: "", kind: "destinataire", service: "" }]);
+  const addPerson = () => setPersonnes((prev) => [...prev, { name: "", kind: "destinataire", service: "", email: "" }]);
   const removePerson = (i: number) => setPersonnes((prev) => prev.filter((_, idx) => idx !== i));
 
   const save = async () => {
@@ -36,7 +36,7 @@ export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) 
       dueDurationDays: dueDuration.trim() ? Number(dueDuration) : null,
       personnes: personnes
         .filter((p) => p.name.trim())
-        .map((p) => ({ name: p.name.trim(), kind: p.kind, service: p.service.trim() || null })),
+        .map((p) => ({ name: p.name.trim(), kind: p.kind, service: p.service.trim() || null, email: p.email.trim() || null })),
     });
     setSaving(false);
     if (ok) onDone();
@@ -101,36 +101,45 @@ export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) 
         </div>
         <div className="space-y-1.5">
           {personnes.map((p, i) => (
-            <div key={i} className="flex items-center gap-1.5">
+            <div key={i} className="border border-slate-200 rounded-lg p-1.5 space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <input
+                  value={p.name}
+                  onChange={(e) => setPerson(i, { name: e.target.value })}
+                  placeholder="Nom"
+                  className={`${inputCls} flex-1`}
+                />
+                <select
+                  value={p.kind}
+                  onChange={(e) => setPerson(i, { kind: e.target.value as PersonKind })}
+                  className="text-[12px] border border-slate-200 rounded-lg px-1.5 py-1.5 outline-none focus:border-emerald-400"
+                  aria-label="Rôle"
+                >
+                  {KINDS.map((k) => (
+                    <option key={k} value={k}>{k}</option>
+                  ))}
+                </select>
+                <input
+                  value={p.service}
+                  onChange={(e) => setPerson(i, { service: e.target.value })}
+                  placeholder="Service"
+                  className={`${inputCls} w-24`}
+                />
+                <button
+                  onClick={() => removePerson(i)}
+                  aria-label="Retirer cette personne"
+                  className="text-slate-400 hover:text-rose-600 shrink-0 px-1"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
               <input
-                value={p.name}
-                onChange={(e) => setPerson(i, { name: e.target.value })}
-                placeholder="Nom"
-                className={`${inputCls} flex-1`}
+                type="email"
+                value={p.email}
+                onChange={(e) => setPerson(i, { email: e.target.value })}
+                placeholder={p.kind === "destinataire" ? "E-mail (pour envoyer les relances)" : "E-mail"}
+                className={inputCls}
               />
-              <select
-                value={p.kind}
-                onChange={(e) => setPerson(i, { kind: e.target.value as PersonKind })}
-                className="text-[12px] border border-slate-200 rounded-lg px-1.5 py-1.5 outline-none focus:border-emerald-400"
-                aria-label="Rôle"
-              >
-                {KINDS.map((k) => (
-                  <option key={k} value={k}>{k}</option>
-                ))}
-              </select>
-              <input
-                value={p.service}
-                onChange={(e) => setPerson(i, { service: e.target.value })}
-                placeholder="Service"
-                className={`${inputCls} w-24`}
-              />
-              <button
-                onClick={() => removePerson(i)}
-                aria-label="Retirer cette personne"
-                className="text-slate-400 hover:text-rose-600 shrink-0 px-1"
-              >
-                <Trash2 size={14} />
-              </button>
             </div>
           ))}
           {personnes.length === 0 && <div className="text-[11px] text-slate-400">Aucune personne. Ajoutez-en une.</div>}

@@ -297,6 +297,9 @@ function ensureColumns(db: Database.Database) {
   if (!ipcols.includes("service")) {
     db.exec("alter table item_people add column service text");
   }
+  if (!ipcols.includes("email")) {
+    db.exec("alter table item_people add column email text");
+  }
   const ntcols = (db.prepare("pragma table_info(notifications)").all() as { name: string }[]).map((c) => c.name);
   if (!ntcols.includes("conversation_id")) {
     db.exec("alter table notifications add column conversation_id text");

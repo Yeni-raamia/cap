@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Copy, FileText } from "lucide-react";
+import { Check, Copy, FileText, Loader2, Send } from "lucide-react";
 import { applyTemplate, daysBetween, TEMPLATE_CATEGORIES, type Item } from "@/lib/domain";
 import { copyText } from "@/lib/clipboard";
 import { useApp } from "./app-context";
@@ -9,14 +9,18 @@ import { Card } from "./atoms";
 
 const catLabel = (v: string) => TEMPLATE_CATEGORIES.find((c) => c.value === v)?.label ?? v;
 
-/** Encart de modèles de relance dans le détail d'un suivi : aperçu + copie. */
+/** Encart de modèles de relance dans le détail d'un suivi : aperçu, copie, envoi. */
 export function TemplatePicker({ item }: { item: Item }) {
-  const { templates, me, now, toast } = useApp();
+  const { templates, me, now, toast, emailEnabled, sendRelanceEmail } = useApp();
   const [selId, setSelId] = useState<string>(templates[0]?.id ?? "");
   const [copied, setCopied] = useState<"subject" | "body" | "all" | null>(null);
+  const [sending, setSending] = useState(false);
+
+  const dest = item.personnes.find((p) => p.kind === "destinataire") ?? item.personnes[0];
+  const destEmail = dest?.email?.trim() || "";
+  const canEdit = me.role === "agent" ? item.ownerId === me.id : true;
 
   const vars = useMemo(() => {
-    const dest = item.personnes.find((p) => p.kind === "destinataire") ?? item.personnes[0];
     return {
       ref: item.ref,
       objet: item.objet,
@@ -27,7 +31,7 @@ export function TemplatePicker({ item }: { item: Item }) {
       priorite: item.priorite,
       moi: me.nom,
     } as Record<string, string>;
-  }, [item, now, me]);
+  }, [item, now, me, dest?.name, dest?.service]);
 
   if (templates.length === 0) return null;
 
@@ -43,6 +47,12 @@ export function TemplatePicker({ item }: { item: Item }) {
     } else {
       toast("Impossible de copier.", "error");
     }
+  };
+
+  const send = async () => {
+    setSending(true);
+    await sendRelanceEmail(item, tpl.id);
+    setSending(false);
   };
 
   return (
@@ -94,6 +104,27 @@ export function TemplatePicker({ item }: { item: Item }) {
           {copied === "all" ? <Check size={13} /> : <Copy size={13} />} Objet + corps
         </button>
       </div>
+
+      {emailEnabled && (
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+          {destEmail ? (
+            <button
+              onClick={send}
+              disabled={sending || !canEdit}
+              title={canEdit ? undefined : "Droits insuffisants sur ce suivi."}
+              className="w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold bg-emerald-600 text-white rounded-lg py-2 hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {sending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+              {sending ? "Envoi…" : `Envoyer la relance à ${destEmail}`}
+            </button>
+          ) : (
+            <div className="text-[11px] text-slate-400">
+              Renseigne l&apos;e-mail du destinataire (bouton ✏️ « Éditer le suivi ») pour envoyer la relance
+              directement au destinataire.
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }

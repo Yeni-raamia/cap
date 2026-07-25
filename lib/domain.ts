@@ -38,6 +38,8 @@ export interface Person {
   kind: PersonKind;
   /** Service du destinataire (Réseau, Systèmes, Prestataire…). */
   service?: string | null;
+  /** Adresse e-mail (permet l'envoi réel des relances au destinataire). */
+  email?: string | null;
 }
 
 export interface TimelineEvent {

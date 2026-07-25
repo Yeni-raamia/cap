@@ -152,7 +152,8 @@ export function SuiviDetail({
                   <UserCircle2 size={14} className="text-slate-400" />
                   <span className="text-slate-700">{p.name}</span>
                   {p.service && <span className="text-[10px] text-slate-400">· {p.service}</span>}
-                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{p.kind}</span>
+                  {p.email && <span className="text-[10px] text-slate-400 truncate">· {p.email}</span>}
+                  <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 shrink-0">{p.kind}</span>
                 </div>
               ))}
               {item.personnes.length === 0 && (

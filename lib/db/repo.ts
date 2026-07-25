@@ -446,6 +446,7 @@ interface PersonRow {
   name: string;
   kind: "destinataire" | "copie" | "impliqué";
   service: string | null;
+  email: string | null;
 }
 
 export function listItems(): Item[] {
@@ -519,7 +520,7 @@ function mapItem(
     ownerId: r.owner_id,
     statut: r.statut,
     priorite: r.priorite,
-    personnes: people.map((p) => ({ name: p.name, kind: p.kind, service: p.service ?? null })),
+    personnes: people.map((p) => ({ name: p.name, kind: p.kind, service: p.service ?? null, email: p.email ?? null })),
     pointsCles: JSON.parse(r.points_cles || "[]"),
     blocageCause: r.blocage_cause,
     relancesCount: r.relances_count,
@@ -585,6 +586,7 @@ export function createItem(input: {
   prio: Priorite;
   dest: string;
   destService?: string | null;
+  destEmail?: string | null;
   pointsRaw: string;
   ownerId: string;
   dueDurationDays?: number | null;
@@ -619,12 +621,13 @@ export function createItem(input: {
       input.dueDurationDays ?? null
     );
     if (input.dest.trim()) {
-      db.prepare("insert into item_people (id, item_id, name, kind, service) values (?,?,?,?,?)").run(
+      db.prepare("insert into item_people (id, item_id, name, kind, service, email) values (?,?,?,?,?,?)").run(
         randomUUID(),
         id,
         input.dest.trim(),
         "destinataire",
-        input.destService?.trim() || null
+        input.destService?.trim() || null,
+        input.destEmail?.trim() || null
       );
     }
     const insEv = db.prepare(
@@ -714,10 +717,10 @@ export function updateItem(
     }
     if (fields.personnes !== undefined) {
       db.prepare("delete from item_people where item_id = ?").run(itemId);
-      const ins = db.prepare("insert into item_people (id, item_id, name, kind, service) values (?,?,?,?,?)");
+      const ins = db.prepare("insert into item_people (id, item_id, name, kind, service, email) values (?,?,?,?,?,?)");
       for (const p of fields.personnes) {
         if (!p.name?.trim()) continue;
-        ins.run(randomUUID(), itemId, p.name.trim(), p.kind, p.service?.trim() || null);
+        ins.run(randomUUID(), itemId, p.name.trim(), p.kind, p.service?.trim() || null, p.email?.trim() || null);
       }
       changes.push("personnes");
     }
@@ -741,6 +744,27 @@ export function setItemMarkedLate(itemId: string, meId: string, late: boolean): 
     late ? "Marqué « En retard »" : "Retard levé",
     meId,
     new Date().toISOString()
+  );
+}
+
+/** Enregistre une relance ENVOYÉE PAR E-MAIL au destinataire : statut Relancé,
+ *  incrément du compteur, et trace explicite en timeline. */
+export function recordRelanceEmail(itemId: string, meId: string, toEmail: string): void {
+  const db = getDb();
+  const cur = db.prepare("select relances_count from items where id = ?").get(itemId) as
+    | { relances_count: number }
+    | undefined;
+  if (!cur) return;
+  const now = new Date().toISOString();
+  const count = cur.relances_count + 1;
+  db.prepare("update items set statut='Relancé', relances_count=?, date_maj=? where id=?").run(count, now, itemId);
+  db.prepare("insert into events (id, item_id, kind, label, author_id, created_at) values (?,?,?,?,?,?)").run(
+    randomUUID(),
+    itemId,
+    "relance",
+    `Relance ${count} envoyée par e-mail à ${toEmail}`,
+    meId,
+    now
   );
 }
 

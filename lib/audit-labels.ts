@@ -7,6 +7,7 @@
 export const ACTION_LABEL: Record<string, string> = {
   item_create: "Suivi de mail créé",
   item_relance: "Relance",
+  item_relance_email: "Relance envoyée par e-mail",
   item_reponse: "Réponse reçue",
   item_bloque: "Blocage",
   item_cloture: "Clôture",
