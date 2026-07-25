@@ -8,6 +8,25 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.10.0] - 2026-07-25
+
+### Ajouté — Conformité
+- **Module Non-conformité à la politique de sécurité** : nouveau registre calqué sur les négligences (page dédiée, évaluation gravité/risque/impact, transmission et décisions). Une case dans le formulaire de nouveau suivi ouvre automatiquement une fiche, pré-remplie depuis le destinataire.
+- **Rapports imprimables (PDF)** des non-conformités : rapport consolidé « toutes » et fiche individuelle.
+- **Statistiques enrichies** : nouvelle section Conformité (négligences & non-conformités par gravité).
+
+### Ajouté — Suivis de mail
+- **Durée de traitement acceptable (jours)** sur un suivi, en plus du SLA du type. Au dépassement : notification au responsable, mise en surbrillance, et actions (relancer, basculer en négligence ou en non-conformité, marquer « en retard »). Prise en compte dans les statistiques.
+
+### Ajouté — Statistiques
+- **Graphes enrichis** : nouveau graphe d'activité (créés vs clôturés sur 6 mois) et conformité par gravité ; palette harmonisée et accessible (colorblind-safe, clair/sombre).
+
+### Ajouté — Notifications
+- **Notifications archivées à la lecture** : une notification lue quitte la liste active et reste consultable dans un onglet « Archivées ». La page Rappels passe à deux onglets ; une notification cliquée ouvre le suivi lié et s'archive.
+
+### Corrigé
+- **Bouton « copier » en réseau (HTTP/LAN)** : la copie (objet de suivi, modèles, clé 2FA, lien de suivi) fonctionne désormais hors contexte sécurisé grâce à un repli universel.
+
 ## [1.9.0] - 2026-07-25
 
 ### Ajouté — Suivis de mail
