@@ -1,10 +1,13 @@
 "use client";
 
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -34,6 +37,13 @@ export default function StatsPage() {
     },
     labelStyle: { color: dark ? "#e2e8f0" : "#0f172a" },
   };
+  // Palette catégorielle validée (dataviz) — 3 slots sûrs sur toutes paires,
+  // steps clairs/sombres. + palette de statut réservée (jamais une série).
+  const S = dark
+    ? { blue: "#3987e5", orange: "#d95926", aqua: "#199e70" }
+    : { blue: "#2a78d6", orange: "#eb6834", aqua: "#1baf7a" };
+  const STATUS = { good: "#0ca30c", warning: "#fab219", critical: "#d03b3b" };
+  const legendStyle = { fontSize: 11, color: dark ? "#c3c2b7" : "#52514e" };
   const agents = profiles.filter((u) => u.role === "agent");
   const bd = computeBreakdowns(items, profiles, now, catalogue.types);
   const maxCause = Math.max(1, ...bd.causes.map((c) => c.n));
@@ -70,27 +80,34 @@ export default function StatsPage() {
   });
   const negSum = conformiteSummary(negligences);
   const ncSum = conformiteSummary(nonConformites);
-  const conformiteBox = (title: string, sum: ReturnType<typeof conformiteSummary>, accent: string) => (
-    <div className={box}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">{title}</div>
-        <div className={`text-xl font-semibold ${accent}`}>{sum.total}</div>
-      </div>
-      <div className="space-y-1">
-        {sum.byGravite.map(({ g, n }) => (
-          <div key={g} className="flex items-center justify-between text-[12px]">
-            <span className="text-slate-500">{g}</span>
-            <span className="font-mono text-slate-700 dark:text-slate-200">{n}</span>
-          </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-3 mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-[12px]">
-        <span className="text-amber-600">{sum.enAttente} en attente</span>
-        <span className="text-emerald-600">{sum.decidees} décidée(s)</span>
-      </div>
-    </div>
-  );
 
+  // Activité mensuelle : suivis créés vs clôturés (6 derniers mois).
+  const activite = (() => {
+    const keyOf = (dt: Date) => `${dt.getFullYear()}-${dt.getMonth()}`;
+    const buckets: { key: string; name: string; crees: number; clotures: number }[] = [];
+    for (let k = 5; k >= 0; k--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
+      buckets.push({ key: keyOf(d), name: d.toLocaleDateString("fr-FR", { month: "short" }), crees: 0, clotures: 0 });
+    }
+    const idx = new Map(buckets.map((b, i) => [b.key, i]));
+    for (const it of items) {
+      const ci = idx.get(keyOf(it.dateCreation));
+      if (ci !== undefined) buckets[ci].crees++;
+      for (const e of it.timeline) {
+        if (e.kind !== "cloture") continue;
+        const ei = idx.get(keyOf(e.date));
+        if (ei !== undefined) buckets[ei].clotures++;
+      }
+    }
+    return buckets;
+  })();
+
+  // Conformité par gravité : négligences vs non-conformités.
+  const conformiteChart = NEGLIGENCE_GRAVITES.map((g) => ({
+    name: g,
+    negligences: negligences.filter((x) => x.gravite === g).length,
+    nonConformites: nonConformites.filter((x) => x.gravite === g).length,
+  }));
   return (
     <div className="space-y-6 animate-float">
       <PageHero
@@ -125,15 +142,56 @@ export default function StatsPage() {
         </div>
       </div>
 
-      {/* Conformité : négligences & non-conformités */}
-      <div>
-        <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 mb-2">
-          Conformité — négligences & non-conformités
+      {/* Activité dans le temps : créés vs clôturés (6 derniers mois) */}
+      <div className={box}>
+        <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-200 mb-3">
+          Activité — suivis créés vs clôturés (6 derniers mois)
         </div>
-        <div className="grid md:grid-cols-2 gap-4">
-          {conformiteBox("Négligences", negSum, "text-rose-600")}
-          {conformiteBox("Non-conformités", ncSum, "text-orange-600")}
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={activite} margin={{ top: 4, right: 8, left: -12, bottom: 0 }}>
+            <defs>
+              <linearGradient id="gCrees" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={S.blue} stopOpacity={0.25} />
+                <stop offset="100%" stopColor={S.blue} stopOpacity={0.02} />
+              </linearGradient>
+              <linearGradient id="gClotures" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={S.aqua} stopOpacity={0.25} />
+                <stop offset="100%" stopColor={S.aqua} stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
+            <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
+            <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+            <Tooltip {...tip} />
+            <Legend wrapperStyle={legendStyle} iconType="plainline" />
+            <Area type="monotone" dataKey="crees" name="Créés" stroke={S.blue} strokeWidth={2} fill="url(#gCrees)" dot={{ r: 3, fill: S.blue }} activeDot={{ r: 5 }} />
+            <Area type="monotone" dataKey="clotures" name="Clôturés" stroke={S.aqua} strokeWidth={2} fill="url(#gClotures)" dot={{ r: 3, fill: S.aqua }} activeDot={{ r: 5 }} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Conformité : négligences & non-conformités par gravité */}
+      <div className={box}>
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">
+            Conformité — par gravité
+          </div>
+          <div className="flex items-center gap-4 text-[12px]">
+            <span className="text-slate-500">Négligences : <b className="text-slate-800 dark:text-slate-100">{negSum.total}</b> · {negSum.enAttente} en attente</span>
+            <span className="text-slate-500">Non-conformités : <b className="text-slate-800 dark:text-slate-100">{ncSum.total}</b> · {ncSum.enAttente} en attente</span>
+          </div>
         </div>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={conformiteChart} margin={{ top: 4, right: 8, left: -12, bottom: 0 }} barGap={2}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
+            <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
+            <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+            <Tooltip {...tip} />
+            <Legend wrapperStyle={legendStyle} />
+            <Bar dataKey="negligences" name="Négligences" fill={S.blue} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="nonConformites" name="Non-conformités" fill={S.orange} radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -142,10 +200,10 @@ export default function StatsPage() {
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={parMetier}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
-              <XAxis dataKey="name" tick={tick} />
-              <YAxis tick={tick} allowDecimals={false} />
-              <Tooltip {...tip} />
-              <Bar dataKey="v" radius={[4, 4, 0, 0]} fill="#1FA07A" />
+              <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
+              <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+              <Tooltip {...tip} cursor={{ fill: dark ? "#ffffff10" : "#00000008" }} />
+              <Bar dataKey="v" name="Suivis" radius={[4, 4, 0, 0]} fill={S.aqua} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -157,19 +215,24 @@ export default function StatsPage() {
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={parAgent}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
-              <XAxis dataKey="name" tick={tick} />
-              <YAxis tick={tick} domain={[0, 100]} />
-              <Tooltip {...tip} />
-              <Bar dataKey="taux" radius={[4, 4, 0, 0]}>
+              <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
+              <YAxis tick={tick} domain={[0, 100]} tickLine={false} axisLine={false} width={28} />
+              <Tooltip {...tip} cursor={{ fill: dark ? "#ffffff10" : "#00000008" }} />
+              <Bar dataKey="taux" name="Taux de réponse" radius={[4, 4, 0, 0]}>
                 {parAgent.map((e, i) => (
                   <Cell
                     key={i}
-                    fill={e.taux >= 60 ? "#1FA07A" : e.taux >= 30 ? "#D9943B" : "#C9503E"}
+                    fill={e.taux >= 60 ? STATUS.good : e.taux >= 30 ? STATUS.warning : STATUS.critical}
                   />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-500">
+            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: STATUS.good }} /> ≥ 60 %</span>
+            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: STATUS.warning }} /> 30–59 %</span>
+            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: STATUS.critical }} /> &lt; 30 %</span>
+          </div>
         </div>
 
         <div className={box}>
@@ -179,10 +242,10 @@ export default function StatsPage() {
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={relances}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={grid} />
-              <XAxis dataKey="name" tick={tick} />
-              <YAxis tick={tick} allowDecimals={false} />
-              <Tooltip {...tip} />
-              <Bar dataKey="v" radius={[4, 4, 0, 0]} fill="#3E7CB1" />
+              <XAxis dataKey="name" tick={tick} tickLine={false} axisLine={{ stroke: grid }} />
+              <YAxis tick={tick} allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+              <Tooltip {...tip} cursor={{ fill: dark ? "#ffffff10" : "#00000008" }} />
+              <Bar dataKey="v" name="Relances" radius={[4, 4, 0, 0]} fill={S.blue} />
             </BarChart>
           </ResponsiveContainer>
         </div>
