@@ -8,6 +8,13 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.11.1] - 2026-07-25
+
+### Amélioré — Tableau de bord des statistiques
+- **Deux blocs par ligne (au choix)** : chaque bloc peut passer en demi-largeur pour en aligner deux côte à côte, tout en gardant un bloc par ligne par défaut.
+- **Glisser-déposer plus clair** : le bloc déplacé suit nettement le curseur (aperçu flottant) et se saisit n'importe où sur la carte ; plus de déformation pendant le glissé.
+- **Bouton « Personnaliser la disposition » bien plus visible** (accent vert, libellé explicite).
+
 ## [1.11.0] - 2026-07-25
 
 ### Ajouté — Statistiques
