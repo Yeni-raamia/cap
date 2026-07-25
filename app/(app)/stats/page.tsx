@@ -723,14 +723,14 @@ export default function StatsPage() {
             )}
             <button
               onClick={() => setCustomize((v) => !v)}
-              className={`inline-flex items-center gap-1.5 text-[12px] font-medium rounded-lg px-2.5 py-2 border ${
+              className={`inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-lg px-3 py-2 border shadow-sm ${
                 customize
                   ? "bg-emerald-600 text-white border-emerald-600"
-                  : "text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  : "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/40 hover:bg-emerald-100 dark:hover:bg-emerald-500/20"
               }`}
             >
               {customize ? <Plus size={14} className="rotate-45" /> : <Settings2 size={14} />}
-              {customize ? "Terminer" : "Personnaliser"}
+              {customize ? "Terminer" : "Personnaliser la disposition"}
             </button>
             <RapportPdf />
           </div>
