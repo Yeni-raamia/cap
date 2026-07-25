@@ -6,7 +6,9 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-_Rien pour l'instant._
+### Modifié
+- **Documentation** : README mis à jour au périmètre actuel (2FA, journal d'audit, sessions & alerte de connexion, non-conformités, modèles & envoi réel des relances, import d'e-mail `.eml`, durée de traitement, plan de l'année, gamification, tableau de bord réorganisable, sauvegarde/restauration & planifiée, tests Vitest). Ajout d'une section Tests et Sauvegarde, lien vers le guide d'hébergement LAN.
+- **CI** : la chaîne d'intégration exécute désormais les tests (`npm test`) en plus du lint et du build.
 
 ## [1.17.0] - 2026-07-25
 
