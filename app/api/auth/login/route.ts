@@ -5,6 +5,7 @@ import { verifyPassword } from "@/lib/auth/password";
 import { setSessionCookie } from "@/lib/auth/cookie";
 import { issuePreauthToken, setPreauthCookie } from "@/lib/auth/preauth";
 import { clientIp, isRateLimited, recordAttempt, resetAttempts } from "@/lib/auth/rate-limit";
+import { maybeAlertNewLogin } from "@/lib/auth/login-alert";
 
 const MAX_PER_IP_FACTOR = 6; // limite IP = maxAttempts × 6 (anti-énumération)
 
@@ -63,8 +64,10 @@ export async function POST(request: Request) {
     return res;
   }
 
-  const token = createSession(row.id, sec.sessionDays, { userAgent: request.headers.get("user-agent"), ip });
+  const userAgent = request.headers.get("user-agent");
+  const token = createSession(row.id, sec.sessionDays, { userAgent, ip });
   logActivity(row.id, "login");
+  maybeAlertNewLogin(row.id, userAgent, ip, token);
   const user = getProfileById(row.id);
   const res = NextResponse.json({ user, pending: !user?.approved, mustChangePassword: mustChange });
   setSessionCookie(res, token);

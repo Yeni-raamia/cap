@@ -729,7 +729,7 @@ export function computeScores(
 }
 
 /* ---------- Notifications (moteur de relance) ---------- */
-export type NotifKind = "relance" | "escalade" | "digest" | "echeance" | "message" | "projet" | "tache";
+export type NotifKind = "relance" | "escalade" | "digest" | "echeance" | "message" | "projet" | "tache" | "securite";
 
 export interface Notif {
   id: string;

@@ -12,6 +12,7 @@ import {
   verifyPreauthToken,
 } from "@/lib/auth/preauth";
 import { clientIp, isRateLimited, recordAttempt, resetAttempts } from "@/lib/auth/rate-limit";
+import { maybeAlertNewLogin } from "@/lib/auth/login-alert";
 
 const WINDOW_MS = 10 * 60 * 1000; // fenêtre anti-force-brute du code (10 min)
 const MAX_ATTEMPTS = 8;
@@ -64,8 +65,10 @@ export async function POST(request: Request) {
 
   resetAttempts(key);
   const sec = getSecuritySettings();
-  const token = createSession(uid, sec.sessionDays, { userAgent: request.headers.get("user-agent"), ip });
+  const userAgent = request.headers.get("user-agent");
+  const token = createSession(uid, sec.sessionDays, { userAgent, ip });
   logActivity(uid, usedBackup ? "login_backup_code" : "login_2fa");
+  maybeAlertNewLogin(uid, userAgent, ip, token);
 
   const user = getProfileById(uid);
   const res = NextResponse.json({

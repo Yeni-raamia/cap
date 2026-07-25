@@ -390,6 +390,15 @@ export function listSessionsForUser(userId: string, currentToken?: string): Sess
   }));
 }
 
+/** User-agents des AUTRES sessions actives du compte (hors token courant).
+ *  Sert de référence des appareils connus pour l'alerte de nouvelle connexion. */
+export function otherSessionAgents(userId: string, excludeToken: string): string[] {
+  const rows = getDb()
+    .prepare("select user_agent from sessions where user_id = ? and token != ? and expires_at >= ?")
+    .all(userId, excludeToken, new Date().toISOString()) as { user_agent: string | null }[];
+  return rows.map((r) => r.user_agent ?? "");
+}
+
 /** Révoque une session d'un compte par son handle public (scopé à l'utilisateur). */
 export function revokeSession(userId: string, sessionId: string): boolean {
   const res = getDb().prepare("delete from sessions where user_id = ? and id = ?").run(userId, sessionId);
