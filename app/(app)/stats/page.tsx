@@ -200,6 +200,18 @@ export default function StatsPage() {
     nonConformites: nonConformites.filter((x) => x.gravite === g).length,
   }));
 
+  // Répartition des non-conformités par politique / article / contrôle violé.
+  const parPolitique = (() => {
+    const counts = new Map<string, number>();
+    for (const n of nonConformites) {
+      const p = n.policy?.trim();
+      if (p) counts.set(p, (counts.get(p) ?? 0) + 1);
+    }
+    return [...counts.entries()].map(([policy, n]) => ({ policy, n })).sort((a, b) => b.n - a.n);
+  })();
+  const maxPol = Math.max(1, ...parPolitique.map((p) => p.n));
+  const ncWithPolicy = nonConformites.filter((n) => n.policy && n.policy.trim()).length;
+
   /* ---------- Registre des blocs du tableau de bord ---------- */
   const blocks: { id: string; title: string; node: ReactNode }[] = [
     {
@@ -289,6 +301,37 @@ export default function StatsPage() {
               <Bar dataKey="nonConformites" name="Non-conformités" fill={S.orange} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+      ),
+    },
+    {
+      id: "politiques",
+      title: "Politiques violées",
+      node: (
+        <div className={box}>
+          <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+            <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-200">Politiques / articles les plus violés</div>
+            <span className="text-[11px] text-slate-400">{ncWithPolicy}/{nonConformites.length} fiche(s) renseignée(s)</span>
+          </div>
+          <p className="text-[11px] text-slate-400 mb-3">Référentiels les plus fréquemment en écart (ISO 27001, CIS, NIST).</p>
+          {parPolitique.length === 0 ? (
+            <div className="text-[13px] text-slate-400 text-center py-6">Aucune politique renseignée sur les non-conformités.</div>
+          ) : (
+            <div className="space-y-2 mt-2">
+              {parPolitique.slice(0, 10).map((p) => (
+                <div key={p.policy} className="flex items-center gap-2 text-[12px]">
+                  <span className="w-56 shrink-0 text-slate-600 dark:text-slate-300 truncate" title={p.policy}>{p.policy}</span>
+                  <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${(p.n / maxPol) * 100}%`, background: S.orange }} />
+                  </div>
+                  <span className="w-6 text-right text-slate-500">{p.n}</span>
+                </div>
+              ))}
+              {parPolitique.length > 10 && (
+                <div className="text-[11px] text-slate-400 pt-1">+ {parPolitique.length - 10} autre(s) politique(s) — rapport PDF pour le détail complet.</div>
+              )}
+            </div>
+          )}
         </div>
       ),
     },
