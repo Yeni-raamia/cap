@@ -218,6 +218,19 @@ export function getDb(): Database.Database {
   return db;
 }
 
+/** Chemin du fichier de base (pour sauvegarde / restauration). */
+export function getDbPath(): string {
+  return DB_PATH;
+}
+
+/** Ferme la connexion vivante (checkpoint WAL) et force une réouverture au prochain getDb(). */
+export function closeDb(): void {
+  if (_db) {
+    _db.close();
+    _db = null;
+  }
+}
+
 // Modèles de relance — seed initial si la table est vide. Ensuite éditables.
 function seedTemplates(db: Database.Database) {
   const n = (db.prepare("select count(*) as n from email_templates").get() as { n: number }).n;

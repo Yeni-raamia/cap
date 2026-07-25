@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
+  DatabaseBackup,
   FolderKanban,
   KeyRound,
   FileText,
@@ -33,6 +34,7 @@ import { useApp } from "@/components/app-context";
 import { Avatar, Card, TypeTag } from "@/components/atoms";
 import { AuditJournal } from "@/components/AuditJournal";
 import { TemplatesAdmin } from "@/components/TemplatesAdmin";
+import { BackupSection } from "@/components/BackupSection";
 
 const ROLES: Role[] = ["agent", "manager", "directeur", "admin", "dsi"];
 const roleBadge = (r: string) =>
@@ -41,7 +43,7 @@ const roleBadge = (r: string) =>
 const dt = (d: string | Date) =>
   new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
-type Section = "membres" | "catalogue" | "listes" | "modeles" | "parametres" | "securite" | "journal";
+type Section = "membres" | "catalogue" | "listes" | "modeles" | "parametres" | "securite" | "sauvegarde" | "journal";
 
 interface Overview {
   members: AdminMember[];
@@ -87,6 +89,7 @@ export default function AdminPage() {
     { id: "modeles", label: "Modèles", icon: FileText },
     { id: "parametres", label: "Paramètres", icon: Settings2 },
     { id: "securite", label: "Sécurité", icon: ShieldCheck },
+    { id: "sauvegarde", label: "Sauvegarde", icon: DatabaseBackup },
     { id: "journal", label: "Journal & stats", icon: Activity },
   ];
 
@@ -128,6 +131,8 @@ export default function AdminPage() {
         <ParametresSection settings={over.settings} onSaved={load} setErr={setErr} />
       ) : section === "securite" ? (
         <SecuriteSection setErr={setErr} />
+      ) : section === "sauvegarde" ? (
+        <BackupSection />
       ) : (
         <JournalSection over={over} />
       )}
