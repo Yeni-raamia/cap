@@ -8,6 +8,11 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.13.1] - 2026-07-25
+
+### Ajouté — Qualité / tests
+- **Couverture étendue** (86 tests) : ajout des tests pour le Fil d'avancement (`filStage`), les sous-tâches (`subtaskProgress`), les objectifs annuels (`objectiveProgress`, `objectiveTimePct`, `objectiveHealth`), le membre du mois (`memberOfMonth`), les défis de la semaine (`weeklyChallenges`) et les helpers de rôle/projet. Verrouille la logique dérivée des pages classement / membre / plan / productivité.
+
 ## [1.13.0] - 2026-07-25
 
 ### Ajouté — Qualité / tests
