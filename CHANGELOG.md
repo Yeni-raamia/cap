@@ -8,6 +8,11 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.16.0] - 2026-07-25
+
+### Ajouté — Sécurité
+- **Alerte de connexion depuis un appareil inconnu**. À l'ouverture d'une session (mot de passe ou double authentification), Cap compare l'appareil (navigateur + système) aux autres sessions actives du compte ; s'il est inconnu — hors toute première session — l'utilisateur est prévenu par une notification in-app (nouvelle catégorie « sécurité ») et par e-mail si l'envoi est configuré, et l'événement est tracé au journal d'audit (`login_new_device`). Anti-bruit : le déclencheur est le changement d'appareil, pas le simple changement d'adresse IP (l'IP est rappelée dans le message). Best effort, jamais bloquant pour la connexion.
+
 ## [1.15.0] - 2026-07-25
 
 ### Ajouté — Administration
