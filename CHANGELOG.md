@@ -8,6 +8,11 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.14.0] - 2026-07-25
+
+### Ajouté — Administration
+- **Sauvegarde & restauration de la base** (onglet Administration › Sauvegarde, réservé aux administrateurs). Télécharge un instantané SQLite cohérent de toute l'application (membres, suivis, projets, tâches, négligences, non-conformités, messages, pièces jointes, journal…) dans un seul fichier, via l'API de sauvegarde en ligne de SQLite (le contenu du WAL est inclus). Restauration depuis un fichier téléversé, protégée par : validation du fichier (en-tête + tables requises), instantané de sécurité automatique de la base courante (`.bak`), sortie propre du mode WAL avant remplacement, puis réouverture avec migrations (une sauvegarde d'un schéma antérieur est mise à niveau). Événements d'audit dédiés (`backup_download` / `backup_restore`).
+
 ## [1.13.1] - 2026-07-25
 
 ### Ajouté — Qualité / tests
