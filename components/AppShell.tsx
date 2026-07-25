@@ -9,6 +9,7 @@ import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { Drawer } from "./Drawer";
 import { NewSuiviModal } from "./NewSuiviModal";
+import { ImportEmailModal } from "./ImportEmailModal";
 import { TaskModal } from "./TaskModal";
 import { CommandPalette } from "./CommandPalette";
 import { Toasts } from "./Toasts";
@@ -50,6 +51,7 @@ function Shell({ children }: { children: ReactNode }) {
       </div>
       <Drawer />
       <NewSuiviModal />
+      <ImportEmailModal />
       <TaskModal />
       <CommandPalette />
       <Toasts />

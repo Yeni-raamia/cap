@@ -681,6 +681,55 @@ export function applyAction(itemId: string, action: Action, cause: string | unde
   tx();
 }
 
+/** Recherche un suivi par sa référence exacte (insensible à la casse). */
+export function findItemByRef(ref: string): { id: string; ref: string; objet: string; statut: string } | null {
+  const r = getDb()
+    .prepare("select id, ref, objet, statut from items where upper(ref) = upper(?)")
+    .get(ref) as { id: string; ref: string; objet: string; statut: string } | undefined;
+  return r ?? null;
+}
+
+/**
+ * Enregistre une réponse reçue par import d'e-mail sur un suivi : ajoute un
+ * événement « reponse » (le suivi repasse « En traitement » sauf s'il est
+ * clôturé) et attache l'e-mail original (.eml) comme preuve.
+ */
+export function recordEmailResponse(
+  itemId: string,
+  meId: string,
+  meta: { from: string },
+  eml: { filename: string; content: Buffer }
+): boolean {
+  const db = getDb();
+  const current = db.prepare("select statut from items where id = ?").get(itemId) as { statut: string } | undefined;
+  if (!current) return false;
+  const now = new Date().toISOString();
+  const fromTxt = meta.from ? ` de ${meta.from}` : "";
+  const tx = db.transaction(() => {
+    if (current.statut !== "Clôturé") {
+      db.prepare("update items set statut='En traitement', date_maj=? where id=?").run(now, itemId);
+    }
+    db.prepare("insert into events (id, item_id, kind, label, author_id, created_at) values (?,?,?,?,?,?)").run(
+      randomUUID(),
+      itemId,
+      "reponse",
+      `Réponse reçue${fromTxt} (import e-mail)`,
+      meId,
+      now
+    );
+  });
+  tx();
+  createAttachment({
+    itemId,
+    filename: eml.filename,
+    mime: "message/rfc822",
+    size: eml.content.length,
+    data: eml.content,
+    uploadedBy: meId,
+  });
+  return true;
+}
+
 /**
  * Édition des métadonnées d'un suivi après création : objet, priorité, points
  * clés et personnes. NB : on ne touche PAS à `date_maj` — corriger un libellé

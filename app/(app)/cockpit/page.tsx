@@ -10,6 +10,7 @@ import {
   Command,
   Gauge as GaugeIcon,
   Inbox,
+  Mailbox,
   Plus,
   ShieldAlert,
   Sparkles,
@@ -24,7 +25,7 @@ import { CountUp, Sparkline, Ring, Heatmap } from "@/components/dataviz";
 const iso = (d: Date) => new Date(d).toISOString().slice(0, 10);
 
 export default function CockpitPage() {
-  const { items, projects, tasks, negligences, objectives, profiles, me, now, rs, scores, setShowNew, openItem, profileById } = useApp();
+  const { items, projects, tasks, negligences, objectives, profiles, me, now, rs, scores, setShowNew, setShowImport, openItem, profileById } = useApp();
 
   const firstName = (me.nom || "").split(/\s+/)[0] || me.nom;
   const game = useMemo(() => computeGame(me.id, items, tasks, projects, objectives), [me.id, items, tasks, projects, objectives]);
@@ -137,6 +138,12 @@ export default function CockpitPage() {
                 className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-4 py-2.5 hover:-translate-y-0.5 transition-transform shadow-soft"
               >
                 <Plus size={16} /> Nouveau suivi de mail
+              </button>
+              <button
+                onClick={() => setShowImport(true)}
+                className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-600 dark:text-slate-300 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-1.5 hover:-translate-y-0.5 transition-transform"
+              >
+                <Mailbox size={14} /> Importer un e-mail (.eml)
               </button>
               <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
                 <Command size={12} /> Astuce : appuie sur <kbd className="px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-sans">⌘K</kbd>

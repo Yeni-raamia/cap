@@ -146,6 +146,9 @@ interface AppCtx {
   closeItem: () => void;
   showNew: boolean;
   setShowNew: (v: boolean) => void;
+  showImport: boolean;
+  setShowImport: (v: boolean) => void;
+  importEmailResponse: (itemId: string, file: File) => Promise<boolean>;
   act: (item: Item, action: Action, cause?: string) => void;
   bulkAct: (ids: string[], action: Action) => Promise<{ applied: number; skipped: number } | null>;
   setItemLate: (item: Item, late: boolean) => Promise<boolean>;
@@ -407,6 +410,7 @@ export function AppProvider({
   const [digestHour, setDigestHour] = useState(initialSettings?.digestHour ?? "08:00");
   const [open, setOpen] = useState<Item | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const applySettings = (s: AppSettings) => {
     setOrgName(s.orgName);
@@ -586,6 +590,26 @@ export function AppProvider({
         console.error("Action échouée :", e);
         toast("Action échouée.", "error");
       });
+  };
+
+  const importEmailResponse = async (itemId: string, file: File): Promise<boolean> => {
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("itemId", itemId);
+      const r = await fetch("/api/email/import", { method: "POST", body: form });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        toast(d.error || "Import impossible.", "error");
+        return false;
+      }
+      if (d.items) setItems(reviveItems(d.items));
+      toast("Réponse importée et enregistrée sur le suivi.", "success");
+      return true;
+    } catch {
+      toast("Import impossible.", "error");
+      return false;
+    }
   };
 
   const bulkAct = async (ids: string[], action: Action): Promise<{ applied: number; skipped: number } | null> => {
@@ -1350,6 +1374,9 @@ export function AppProvider({
     closeItem: () => setOpen(null),
     showNew,
     setShowNew,
+    showImport,
+    setShowImport,
+    importEmailResponse,
     act,
     create,
     setRelanceDate,

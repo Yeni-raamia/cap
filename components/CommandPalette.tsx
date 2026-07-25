@@ -9,6 +9,7 @@ import {
   FolderKanban,
   Inbox,
   LogOut,
+  Mailbox,
   Moon,
   Plus,
   Search,
@@ -28,7 +29,7 @@ interface Cmd {
 }
 
 export function CommandPalette() {
-  const { demo, me, setShowNew, toggleTheme, theme, signOut, items, projects, objectives, profiles, openItem } = useApp();
+  const { demo, me, setShowNew, setShowImport, toggleTheme, theme, signOut, items, projects, objectives, profiles, openItem } = useApp();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -88,6 +89,17 @@ export function CommandPalette() {
           setOpen(false);
         },
       });
+      actions.push({
+        id: "import-eml",
+        label: "Importer un e-mail (.eml)",
+        hint: "Réponse",
+        group: "Actions",
+        icon: <Mailbox size={15} className="text-emerald-500" />,
+        run: () => {
+          setShowImport(true);
+          setOpen(false);
+        },
+      });
     }
     actions.push({
       id: "theme",
@@ -113,7 +125,7 @@ export function CommandPalette() {
       });
     }
     return [...actions, ...nav];
-  }, [me, demo, theme, router, setShowNew, toggleTheme, signOut]);
+  }, [me, demo, theme, router, setShowNew, setShowImport, toggleTheme, signOut]);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
