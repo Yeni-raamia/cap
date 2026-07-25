@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createItem, getCatalogue, listItems } from "@/lib/db/repo";
 import { listProjects } from "@/lib/db/projects";
+import { ensureNonConformite, listNonConformites } from "@/lib/db/nonconformites";
 import { logActivity } from "@/lib/db/admin";
 import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
@@ -32,8 +33,15 @@ export async function POST(request: Request) {
   }
 
   // L'objet appartient toujours à son créateur.
-  createItem({ parsed, prio, dest, destService, pointsRaw: points, ownerId: user.id });
+  const item = createItem({ parsed, prio, dest, destService, pointsRaw: points, ownerId: user.id });
   logActivity(user.id, "item_create", `${parsed.ref} — ${parsed.objet}`);
+
+  // Case « non-conformité à la politique de sécurité » : ouvre la fiche liée.
+  if (body?.nonConformite === true) {
+    ensureNonConformite(item.id, user.id, { objet: item.objet, service: destService, concerne: dest });
+    logActivity(user.id, "nonconf_open", item.ref);
+  }
+
   // On renvoie aussi les projets : un suivi PRJ crée son projet à la volée.
-  return NextResponse.json({ items: listItems(), projects: listProjects() });
+  return NextResponse.json({ items: listItems(), projects: listProjects(), nonconformites: listNonConformites() });
 }

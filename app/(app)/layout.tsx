@@ -8,6 +8,7 @@ import { listProjects } from "@/lib/db/projects";
 import { listTasks } from "@/lib/db/tasks";
 import { listObjectives } from "@/lib/db/objectives";
 import { listNegligences } from "@/lib/db/negligences";
+import { listNonConformites } from "@/lib/db/nonconformites";
 import { listConversationsFor } from "@/lib/db/messaging";
 import { getRefLists, getSecuritySettings, getSettings } from "@/lib/db/admin";
 import { maybeRunRemindersInBackground } from "@/lib/reminders/auto";
@@ -38,6 +39,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const settings = getSettings();
   const refLists = getRefLists();
   const negligences = listNegligences();
+  const nonConformites = listNonConformites();
   const conversations = listConversationsFor(user.id);
   const tasks = listTasks();
   const objectives = listObjectives();
@@ -54,6 +56,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialSettings={settings}
       initialRefLists={refLists}
       initialNegligences={negligences}
+      initialNonConformites={nonConformites}
       initialConversations={conversations}
       initialTasks={tasks}
       initialObjectives={objectives}

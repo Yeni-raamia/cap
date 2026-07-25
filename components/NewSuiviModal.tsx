@@ -29,6 +29,7 @@ export function NewSuiviModal() {
   const [destService, setDestService] = useState("");
   const [dest, setDest] = useState("");
   const [points, setPoints] = useState("");
+  const [nonConformite, setNonConformite] = useState(false);
 
   // Mode « codes »
   const [metier, setMetier] = useState("");
@@ -74,6 +75,7 @@ export function NewSuiviModal() {
     setDestService("");
     setDest("");
     setPoints("");
+    setNonConformite(false);
     setCopied(false);
   };
 
@@ -98,7 +100,7 @@ export function NewSuiviModal() {
       parsed = parsedRaw;
     }
     if (!parsed) return;
-    create(parsed, prio, dest, destService, points);
+    create(parsed, prio, dest, destService, points, nonConformite);
     reset();
   };
 
@@ -354,6 +356,21 @@ Coller un e-mail
           className={inputCls}
           placeholder={"Correctif disponible\nFenêtre à planifier"}
         />
+
+        <label className="flex items-start gap-2 mt-3 text-[12px] text-slate-600 cursor-pointer bg-orange-50/60 border border-orange-200 rounded-lg px-3 py-2">
+          <input
+            type="checkbox"
+            checked={nonConformite}
+            onChange={(e) => setNonConformite(e.target.checked)}
+            className="h-3.5 w-3.5 accent-orange-600 mt-0.5"
+          />
+          <span>
+            <span className="font-medium text-slate-700">Non-conformité à la politique de sécurité</span>
+            <span className="block text-[11px] text-slate-500">
+              Ouvre automatiquement une fiche dans le module Non-conformités.
+            </span>
+          </span>
+        </label>
 
         <div className="flex gap-2 mt-4">
           <button

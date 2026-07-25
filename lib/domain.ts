@@ -345,6 +345,30 @@ export interface Negligence {
   decidedAt: Date | null;
 }
 
+/* ---------- Module Non-conformité (à la politique de sécurité) ----------
+ * Même logique que le module Négligence : registre parallèle, mêmes échelles
+ * de gravité/risque, mêmes statuts et mécanisme de décision. */
+export const NONCONF_LABEL = "Non-conformité à la politique de sécurité";
+
+export interface NonConformite {
+  id: string;
+  itemId: string | null; // lien facultatif vers un suivi
+  objet: string; // description courte de la non-conformité
+  service: string; // service concerné
+  concerne: string; // personne / entité concernée
+  gravite: string;
+  risque: string;
+  impact: string;
+  description: string;
+  status: string;
+  decisions: string[];
+  createdBy: string;
+  decidedBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  decidedAt: Date | null;
+}
+
 /** Listes de référence par défaut (seed + repli si la base est vide). */
 export const DEFAULT_REF_LISTS: RefLists = {
   appreciations: APPRECIATIONS,

@@ -156,6 +156,19 @@ create table if not exists negligence_decisions (
   id text primary key, negligence_id text not null, decision text not null
 );
 create index if not exists idx_negdec_neg on negligence_decisions(negligence_id);
+create table if not exists nonconformites (
+  id text primary key, item_id text,
+  objet text not null default '', service text not null default '', concerne text not null default '',
+  gravite text not null default 'Modérée', risque text not null default 'Moyen',
+  impact text not null default '', description text not null default '',
+  status text not null default 'Ouverte', created_by text, decided_by text,
+  created_at text not null default (datetime('now')), updated_at text not null default (datetime('now')),
+  decided_at text
+);
+create table if not exists nonconformite_decisions (
+  id text primary key, nonconformite_id text not null, decision text not null
+);
+create index if not exists idx_ncdec_nc on nonconformite_decisions(nonconformite_id);
 create table if not exists conversations (
   id text primary key, title text not null default '', kind text not null default 'group',
   ref_type text, ref_id text, created_by text, created_at text not null default (datetime('now'))

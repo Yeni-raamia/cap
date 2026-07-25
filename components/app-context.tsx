@@ -38,6 +38,7 @@ import {
   type EmailTemplate,
   type Message,
   type Negligence,
+  type NonConformite,
   type Objective,
   type RefLists,
   type Catalogue,
@@ -116,6 +117,7 @@ interface NegligenceForm {
   impact?: string;
   description?: string;
 }
+type NonConformiteForm = NegligenceForm;
 type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service";
 type RefListActionPayload =
   | { op: "add"; listKey: RefListKey; label: string; icon?: string }
@@ -146,7 +148,7 @@ interface AppCtx {
   setShowNew: (v: boolean) => void;
   act: (item: Item, action: Action, cause?: string) => void;
   bulkAct: (ids: string[], action: Action) => Promise<{ applied: number; skipped: number } | null>;
-  create: (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string) => void;
+  create: (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite?: boolean) => void;
   setRelanceDate: (item: Item, date: string | null) => void;
   updateItem: (
     item: Item,
@@ -167,6 +169,13 @@ interface AppCtx {
   updateNegligence: (id: string, fields: Partial<NegligenceForm>) => Promise<string | null>;
   setNegligenceStatus: (id: string, status: string) => Promise<string | null>;
   setNegligenceDecisions: (id: string, decisions: string[]) => Promise<string | null>;
+  nonConformites: NonConformite[];
+  nonConformiteById: (id: string) => NonConformite | null;
+  nonConformiteByItem: (itemId: string) => NonConformite | null;
+  createNonConformite: (form: NonConformiteForm) => Promise<string | null>;
+  updateNonConformite: (id: string, fields: Partial<NonConformiteForm>) => Promise<string | null>;
+  setNonConformiteStatus: (id: string, status: string) => Promise<string | null>;
+  setNonConformiteDecisions: (id: string, decisions: string[]) => Promise<string | null>;
   notifications: Notif[];
   markNotificationsRead: () => void;
   markNotificationRead: (id: string) => void;
@@ -265,6 +274,13 @@ const reviveNeg = (n: Negligence): Negligence => ({
   decidedAt: n.decidedAt ? new Date(n.decidedAt) : null,
 });
 const reviveNegs = (arr: Negligence[]): Negligence[] => arr.map(reviveNeg);
+const reviveNc = (n: NonConformite): NonConformite => ({
+  ...n,
+  createdAt: new Date(n.createdAt),
+  updatedAt: new Date(n.updatedAt),
+  decidedAt: n.decidedAt ? new Date(n.decidedAt) : null,
+});
+const reviveNcs = (arr: NonConformite[]): NonConformite[] => arr.map(reviveNc);
 const reviveConvs = (arr: ConversationSummary[]): ConversationSummary[] =>
   arr.map((c) => ({ ...c, lastAt: c.lastAt ? new Date(c.lastAt) : null }));
 const reviveMsgs = (arr: Message[]): Message[] => arr.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }));
@@ -322,6 +338,7 @@ export function AppProvider({
   initialSettings,
   initialRefLists,
   initialNegligences,
+  initialNonConformites,
   initialConversations,
   initialTasks,
   initialObjectives,
@@ -338,6 +355,7 @@ export function AppProvider({
   initialSettings?: AppSettings;
   initialRefLists?: RefLists;
   initialNegligences?: Negligence[];
+  initialNonConformites?: NonConformite[];
   initialConversations?: ConversationSummary[];
   initialTasks?: Task[];
   initialObjectives?: Objective[];
@@ -360,6 +378,9 @@ export function AppProvider({
   );
   const [refLists, setRefLists] = useState<RefLists>(
     demo || !initialRefLists ? DEFAULT_REF_LISTS : initialRefLists
+  );
+  const [nonConformites, setNonConformites] = useState<NonConformite[]>(
+    demo ? [] : reviveNcs(initialNonConformites ?? [])
   );
   const [negligences, setNegligences] = useState<Negligence[]>(
     demo ? [] : reviveNegs(initialNegligences ?? [])
@@ -598,7 +619,7 @@ export function AppProvider({
     }
   };
 
-  const create = (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string) => {
+  const create = (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite = false) => {
     setShowNew(false);
     if (demo) {
       setItems((prev) => mockCreate(prev, parsed, prio, dest, destService, points, meId));
@@ -607,12 +628,13 @@ export function AppProvider({
     fetch("/api/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ parsed, prio, dest, destService, points }),
+      body: JSON.stringify({ parsed, prio, dest, destService, points, nonConformite }),
     })
       .then((r) => r.json())
       .then((d) => {
         if (d.items) setItems(reviveItems(d.items));
         if (d.projects) setProjects(reviveProjects(d.projects)); // suivi PRJ → projet visible aussitôt
+        if (d.nonconformites) setNonConformites(reviveNcs(d.nonconformites));
       })
       .catch((e) => console.error("Création échouée :", e));
   };
@@ -824,6 +846,74 @@ export function AppProvider({
       return null;
     }
     return postNeg({ op: "decisions", id, decisions });
+  };
+
+  /* ---------- Non-conformités (même logique que les négligences) ---------- */
+  const nonConformiteById = (id: string): NonConformite | null => nonConformites.find((n) => n.id === id) ?? null;
+  const nonConformiteByItem = (itemId: string): NonConformite | null =>
+    nonConformites.find((n) => n.itemId === itemId) ?? null;
+  const patchNc = (id: string, patch: Partial<NonConformite>) =>
+    setNonConformites((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: new Date() } : n)));
+  const postNc = async (body: Record<string, unknown>): Promise<string | null> => {
+    const res = await fetch("/api/nonconformites", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const d = await res.json();
+    if (!res.ok) return d.error ?? "Erreur.";
+    if (d.nonconformites) setNonConformites(reviveNcs(d.nonconformites));
+    if (d.items) setItems(reviveItems(d.items));
+    return null;
+  };
+  const createNonConformite = async (form: NonConformiteForm): Promise<string | null> => {
+    if (demo) {
+      const now = new Date();
+      setNonConformites((prev) => [
+        {
+          id: `nc-${now.getTime()}`,
+          itemId: form.itemId ?? null,
+          objet: form.objet ?? "",
+          service: form.service ?? "",
+          concerne: form.concerne ?? "",
+          gravite: form.gravite ?? "Modérée",
+          risque: form.risque ?? "Moyen",
+          impact: form.impact ?? "",
+          description: form.description ?? "",
+          status: "Ouverte",
+          decisions: [],
+          createdBy: me.id,
+          decidedBy: null,
+          createdAt: now,
+          updatedAt: now,
+          decidedAt: null,
+        },
+        ...prev,
+      ]);
+      return null;
+    }
+    return postNc({ op: "create", ...form });
+  };
+  const updateNonConformite = async (id: string, fields: Partial<NonConformiteForm>) => {
+    if (demo) {
+      patchNc(id, fields);
+      return null;
+    }
+    return postNc({ op: "update", id, ...fields });
+  };
+  const setNonConformiteStatus = async (id: string, status: string) => {
+    if (demo) {
+      patchNc(id, { status });
+      return null;
+    }
+    return postNc({ op: "status", id, status });
+  };
+  const setNonConformiteDecisions = async (id: string, decisions: string[]) => {
+    if (demo) {
+      patchNc(id, { decisions, decidedBy: me.id, decidedAt: new Date(), status: decisions.length ? "Décision rendue" : "Transmise au DG" });
+      return null;
+    }
+    return postNc({ op: "decisions", id, decisions });
   };
 
   const refListAction = async (action: RefListActionPayload): Promise<string | null> => {
@@ -1227,6 +1317,13 @@ export function AppProvider({
     updateNegligence,
     setNegligenceStatus,
     setNegligenceDecisions,
+    nonConformites,
+    nonConformiteById,
+    nonConformiteByItem,
+    createNonConformite,
+    updateNonConformite,
+    setNonConformiteStatus,
+    setNonConformiteDecisions,
     notifications,
     markNotificationsRead,
     markNotificationRead,
