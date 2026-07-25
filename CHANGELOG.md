@@ -8,7 +8,12 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
-## [1.12.0] - 2026-07-25
+## [1.13.0] - 2026-07-25
+
+### Ajouté — Qualité / tests
+- **Harnais de tests automatisés (Vitest)** : premier runner de tests du projet, `npm test` / `npm run test:watch`. 65 tests sur la logique métier pure (sans base ni navigateur) — horloge SLA et état de relance, échéances de traitement, référence anti-collision, parse d'objet/e-mail, modèles ; double authentification TOTP (RFC 6238) et codes de secours ; description de user-agent ; libellés d'audit ; agrégats (classement « culture juste », métriques projet, productivité, gamification). Fabriques de domaine partagées pour les tests.
+
+
 
 ### Ajouté — Suivis de mail
 - **Envoi réel des relances par e-mail** : la relance ne se limite plus au copier-coller, elle part vraiment au destinataire avec le modèle choisi. Un e-mail de destinataire se renseigne à la création et en édition du suivi ; l'encart « Modèles de relance » propose un bouton **« Envoyer la relance »**. Le message part d'une adresse Cap avec **réponse dirigée vers l'agent responsable** (reply-to), et l'envoi compte comme une relance (statut Relancé, +1, tracé en timeline). Événement d'audit dédié.
