@@ -314,6 +314,12 @@ function ensureColumns(db: Database.Database) {
   if (mcols.length > 0 && !mcols.includes("reply_to")) {
     db.exec("alter table messages add column reply_to text");
   }
+  // Suivis : durée de traitement acceptable (jours) + marqueur « en retard ».
+  const itcols = (db.prepare("pragma table_info(items)").all() as { name: string }[]).map((c) => c.name);
+  if (!itcols.includes("due_duration_days")) {
+    db.exec("alter table items add column due_duration_days integer");
+    db.exec("alter table items add column marked_late integer not null default 0");
+  }
   // Sessions : métadonnées appareil (gestion des sessions actives).
   const scols = (db.prepare("pragma table_info(sessions)").all() as { name: string }[]).map((c) => c.name);
   if (!scols.includes("id")) {

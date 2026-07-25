@@ -30,6 +30,7 @@ export function NewSuiviModal() {
   const [dest, setDest] = useState("");
   const [points, setPoints] = useState("");
   const [nonConformite, setNonConformite] = useState(false);
+  const [dueDuration, setDuration] = useState("");
 
   // Mode « codes »
   const [metier, setMetier] = useState("");
@@ -76,6 +77,7 @@ export function NewSuiviModal() {
     setDest("");
     setPoints("");
     setNonConformite(false);
+    setDuration("");
     setCopied(false);
   };
 
@@ -100,7 +102,8 @@ export function NewSuiviModal() {
       parsed = parsedRaw;
     }
     if (!parsed) return;
-    create(parsed, prio, dest, destService, points, nonConformite);
+    const dur = dueDuration.trim() ? Number(dueDuration) : null;
+    create(parsed, prio, dest, destService, points, nonConformite, dur && dur > 0 ? dur : null);
     reset();
   };
 
@@ -355,6 +358,19 @@ Coller un e-mail
           rows={2}
           className={inputCls}
           placeholder={"Correctif disponible\nFenêtre à planifier"}
+        />
+
+        <label className="text-[12px] font-medium text-slate-600 mt-3 block" htmlFor="duree">
+          Durée de traitement acceptable (jours)
+        </label>
+        <input
+          id="duree"
+          type="number"
+          min={1}
+          value={dueDuration}
+          onChange={(e) => setDuration(e.target.value)}
+          className={inputCls}
+          placeholder="Ex. 5 — au-delà, notification + suivi en retard"
         />
 
         <label className="flex items-start gap-2 mt-3 text-[12px] text-slate-600 cursor-pointer bg-orange-50/60 border border-orange-200 rounded-lg px-3 py-2">

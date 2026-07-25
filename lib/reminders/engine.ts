@@ -7,7 +7,8 @@
  *  Canaux : toujours in-app ; e-mail en plus si Resend est configuré.
  *  Idempotent : pas de doublon non lu le même jour pour le même objet.
  * ================================================================== */
-import { reminderState } from "@/lib/domain";
+import { isOverDuration, isTaskLate, reminderState } from "@/lib/domain";
+import { listTasks } from "@/lib/db/tasks";
 import {
   getCatalogue,
   getEmailById,
@@ -88,6 +89,26 @@ export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<Re
         }
       }
     }
+
+    // Durée de traitement acceptable dépassée (échéance perso, en plus du SLA).
+    if (isOverDuration(item, now) && !notifExistsToday(item.ownerId, item.id, "echeance")) {
+      const message = `Durée de traitement dépassée : [${item.ref}] ${item.objet}.`;
+      insertNotification({ userId: item.ownerId, itemId: item.id, kind: "echeance", message, channel });
+      echeances++;
+      const to = getEmailById(item.ownerId);
+      if (emailOn && to) emails.push({ to, subject: `Cap · Durée dépassée (${item.ref})`, text: message });
+    }
+  }
+
+  // Tâches en retard (échéance dépassée) : rappel à la personne assignée.
+  for (const t of listTasks()) {
+    if (!t.assigneeId || !isTaskLate(t, now)) continue;
+    if (notifExistsToday(t.assigneeId, t.id, "tache")) continue;
+    const message = `Tâche en retard : « ${t.title} » — échéance dépassée.`;
+    insertNotification({ userId: t.assigneeId, itemId: t.id, kind: "tache", message, channel });
+    echeances++;
+    const to = getEmailById(t.assigneeId);
+    if (emailOn && to) emails.push({ to, subject: "Cap · Tâche en retard", text: message });
   }
 
   // Échéances d'objectifs annuels (Plan de l'année) : rappel au responsable

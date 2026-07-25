@@ -148,11 +148,12 @@ interface AppCtx {
   setShowNew: (v: boolean) => void;
   act: (item: Item, action: Action, cause?: string) => void;
   bulkAct: (ids: string[], action: Action) => Promise<{ applied: number; skipped: number } | null>;
-  create: (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite?: boolean) => void;
+  setItemLate: (item: Item, late: boolean) => Promise<boolean>;
+  create: (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite?: boolean, dueDurationDays?: number | null) => void;
   setRelanceDate: (item: Item, date: string | null) => void;
   updateItem: (
     item: Item,
-    fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[] }
+    fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[]; dueDurationDays?: number | null }
   ) => Promise<boolean>;
   addBlocageAction: (item: Item, kind: string, concerne: string, note: string) => void;
   setAppreciation: (item: Item, appreciation: string | null) => void;
@@ -619,7 +620,31 @@ export function AppProvider({
     }
   };
 
-  const create = (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite = false) => {
+  const setItemLate = async (item: Item, late: boolean): Promise<boolean> => {
+    if (demo) {
+      setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, markedLate: late } : i)));
+      return true;
+    }
+    try {
+      const res = await fetch("/api/items/late", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: item.id, late }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        toast(d.error ?? "Action échouée.", "error");
+        return false;
+      }
+      if (d.items) setItems(reviveItems(d.items));
+      return true;
+    } catch (e) {
+      console.error("Marquage en retard échoué :", e);
+      return false;
+    }
+  };
+
+  const create = (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite = false, dueDurationDays: number | null = null) => {
     setShowNew(false);
     if (demo) {
       setItems((prev) => mockCreate(prev, parsed, prio, dest, destService, points, meId));
@@ -628,7 +653,7 @@ export function AppProvider({
     fetch("/api/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ parsed, prio, dest, destService, points, nonConformite }),
+      body: JSON.stringify({ parsed, prio, dest, destService, points, nonConformite, dueDurationDays }),
     })
       .then((r) => r.json())
       .then((d) => {
@@ -658,7 +683,7 @@ export function AppProvider({
 
   const updateItem = async (
     item: Item,
-    fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[] }
+    fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[]; dueDurationDays?: number | null }
   ): Promise<boolean> => {
     if (demo) {
       setItems((prev) =>
@@ -1302,6 +1327,7 @@ export function AppProvider({
     setRelanceDate,
     updateItem,
     bulkAct,
+    setItemLate,
     addBlocageAction,
     setAppreciation,
     updateRole,

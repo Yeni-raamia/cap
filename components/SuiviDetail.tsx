@@ -1,19 +1,23 @@
 "use client";
 
 import { useState, type ComponentType } from "react";
+import Link from "next/link";
 import {
+  AlertOctagon,
   ArrowUp,
   CalendarClock,
   CheckCircle2,
   ChevronRight,
   Circle,
+  Clock,
+  FileWarning,
   Inbox,
   RotateCcw,
   Send,
   ShieldAlert,
   UserCircle2,
 } from "lucide-react";
-import { daysBetween, fmt, STATUTS, type EventKind, type Item } from "@/lib/domain";
+import { customDeadline, daysBetween, fmt, isLateByDuration, STATUTS, type EventKind, type Item } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { Avatar, Card } from "./atoms";
 import { Fil } from "./Fil";
@@ -49,10 +53,17 @@ export function SuiviDetail({
   editing: boolean;
   setEditing: (v: boolean) => void;
 }) {
-  const { now, act, setRelanceDate, rs, me, profileById, refLists } = useApp();
+  const {
+    now, act, setRelanceDate, rs, me, profileById, refLists,
+    createNegligence, createNonConformite, setItemLate, negligenceByItem, nonConformiteByItem,
+  } = useApp();
   const [cause, setCause] = useState(refLists.causes[0] ?? "");
 
   const canEdit = me.role === "agent" ? item.ownerId === me.id : true;
+  const late = isLateByDuration(item, now);
+  const deadline = customDeadline(item);
+  const neg = negligenceByItem(item.id);
+  const nc = nonConformiteByItem(item.id);
   const relanceValue = item.dateRelancePrevue
     ? new Date(item.dateRelancePrevue).toISOString().slice(0, 10)
     : "";
@@ -70,6 +81,48 @@ export function SuiviDetail({
           <span className="font-mono text-slate-400">{STATUTS[item.statut].pct}%</span>
         </div>
       </Card>
+
+      {late && (
+        <Card className="p-4 border-orange-300 bg-orange-50/70 ring-1 ring-orange-200">
+          <div className="flex items-center gap-2 text-[13px] font-semibold text-orange-800">
+            <Clock size={16} /> Durée de traitement dépassée
+          </div>
+          <p className="text-[12px] text-orange-700 mt-1">
+            {deadline
+              ? `Échéance de traitement : ${fmt(deadline)} (durée acceptable : ${item.dueDurationDays} j).`
+              : "Ce suivi a été marqué « En retard »."}
+            {item.markedLate && deadline ? " · marqué en retard" : ""}
+          </p>
+          {canEdit && item.statut !== "Clôturé" && (
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <button onClick={() => act(item, "relance")} className="inline-flex items-center gap-1 text-[12px] font-medium bg-amber-100 text-amber-800 border border-amber-300 rounded-lg px-2.5 py-1.5 hover:bg-amber-200">
+                <RotateCcw size={13} /> Relancer
+              </button>
+              {neg ? (
+                <Link href={`/negligences/${neg.id}`} className="inline-flex items-center gap-1 text-[12px] font-medium text-rose-700 border border-rose-200 rounded-lg px-2.5 py-1.5 hover:bg-rose-50">
+                  <ShieldAlert size={13} /> Voir la négligence
+                </Link>
+              ) : (
+                <button onClick={() => createNegligence({ itemId: item.id })} className="inline-flex items-center gap-1 text-[12px] font-medium text-rose-700 border border-rose-200 rounded-lg px-2.5 py-1.5 hover:bg-rose-50">
+                  <AlertOctagon size={13} /> Basculer en négligence
+                </button>
+              )}
+              {nc ? (
+                <Link href={`/non-conformites/${nc.id}`} className="inline-flex items-center gap-1 text-[12px] font-medium text-orange-700 border border-orange-300 rounded-lg px-2.5 py-1.5 hover:bg-orange-100">
+                  <FileWarning size={13} /> Voir la non-conformité
+                </Link>
+              ) : (
+                <button onClick={() => createNonConformite({ itemId: item.id })} className="inline-flex items-center gap-1 text-[12px] font-medium text-orange-700 border border-orange-300 rounded-lg px-2.5 py-1.5 hover:bg-orange-100">
+                  <FileWarning size={13} /> Basculer en non-conformité
+                </button>
+              )}
+              <button onClick={() => setItemLate(item, !item.markedLate)} className="inline-flex items-center gap-1 text-[12px] font-medium text-slate-600 border border-slate-300 rounded-lg px-2.5 py-1.5 hover:bg-slate-100">
+                {item.markedLate ? "Lever le retard" : "Marquer « En retard »"}
+              </button>
+            </div>
+          )}
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-3">

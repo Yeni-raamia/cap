@@ -73,6 +73,10 @@ export interface Item {
   timeline: TimelineEvent[];
   /** Nombre de pièces jointes / preuves (renseigné côté serveur). */
   attachmentsCount?: number;
+  /** Durée de traitement acceptable en jours (échéance perso, EN PLUS du SLA du type). */
+  dueDurationDays?: number | null;
+  /** Marqué explicitement « En retard » par un utilisateur. */
+  markedLate?: boolean;
 }
 
 export interface Profile {
@@ -615,6 +619,24 @@ export function lastOutboundDate(item: Item): Date {
     if ((e.kind === "envoi" || e.kind === "relance") && e.date > d) d = e.date;
   }
   return d;
+}
+
+/** Échéance de traitement personnalisée (création + durée acceptable), ou null. */
+export function customDeadline(item: Item): Date | null {
+  if (item.dueDurationDays == null || item.dueDurationDays <= 0) return null;
+  return new Date(item.dateCreation.getTime() + item.dueDurationDays * DAY);
+}
+
+/** Le suivi a-t-il dépassé sa durée de traitement acceptable ? */
+export function isOverDuration(item: Item, now: Date): boolean {
+  if (item.statut === "Clôturé") return false;
+  const dl = customDeadline(item);
+  return dl != null && now.getTime() > dl.getTime();
+}
+
+/** « En retard » au sens durée : dépassement de la durée OU marqué manuellement. */
+export function isLateByDuration(item: Item, now: Date): boolean {
+  return item.statut !== "Clôturé" && (item.markedLate === true || isOverDuration(item, now));
 }
 
 export function reminderState(

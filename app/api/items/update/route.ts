@@ -23,7 +23,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Droits insuffisants sur cet objet." }, { status: 403 });
   }
 
-  const fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[] } = {};
+  const fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[]; dueDurationDays?: number | null } = {};
+  if (body?.dueDurationDays !== undefined) {
+    fields.dueDurationDays =
+      typeof body.dueDurationDays === "number" && body.dueDurationDays > 0 ? Math.floor(body.dueDurationDays) : null;
+  }
   if (typeof body?.objet === "string") {
     if (!body.objet.trim()) return NextResponse.json({ error: "L'objet ne peut pas être vide." }, { status: 400 });
     fields.objet = body.objet;

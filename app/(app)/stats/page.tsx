@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { STATUTS, type Statut } from "@/lib/domain";
+import { isLateByDuration, STATUTS, type Statut } from "@/lib/domain";
 import { computeBreakdowns, computeProjectStats } from "@/lib/stats";
 import { BarChart3 } from "lucide-react";
 import { useApp } from "@/components/app-context";
@@ -56,6 +56,11 @@ export default function StatsPage() {
     v: items.filter((i) => i.ownerId === u.id).reduce((s, i) => s + i.relancesCount, 0),
   }));
 
+  // Retard sur durée de traitement acceptable (échéance perso).
+  const lateByDuration = items.filter((i) => isLateByDuration(i, now)).length;
+  const markedLate = items.filter((i) => i.markedLate && i.statut !== "Clôturé").length;
+  const withDuration = items.filter((i) => i.dueDurationDays != null && i.statut !== "Clôturé").length;
+
   return (
     <div className="space-y-6 animate-float">
       <PageHero
@@ -72,6 +77,22 @@ export default function StatsPage() {
           <span className="font-semibold text-slate-800 dark:text-slate-100">Exports</span> — données brutes pour Excel / reporting.
         </div>
         <ExportSuivis />
+      </div>
+
+      {/* Retard sur durée de traitement acceptable */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className={box}>
+          <div className="text-2xl font-semibold text-orange-600">{lateByDuration}</div>
+          <div className="text-[12px] text-slate-500">En retard (durée dépassée)</div>
+        </div>
+        <div className={box}>
+          <div className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{markedLate}</div>
+          <div className="text-[12px] text-slate-500">Marqués « en retard »</div>
+        </div>
+        <div className={box}>
+          <div className="text-2xl font-semibold text-slate-800 dark:text-slate-100">{withDuration}</div>
+          <div className="text-[12px] text-slate-500">Suivis avec durée cible</div>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">

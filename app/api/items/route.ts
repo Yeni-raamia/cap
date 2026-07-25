@@ -20,6 +20,8 @@ export async function POST(request: Request) {
   const dest = typeof body?.dest === "string" ? body.dest : "";
   const destService = typeof body?.destService === "string" ? body.destService : "";
   const points = typeof body?.points === "string" ? body.points : "";
+  const dueDurationDays =
+    typeof body?.dueDurationDays === "number" && body.dueDurationDays > 0 ? Math.floor(body.dueDurationDays) : null;
 
   const catalogue = getCatalogue();
   if (
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   // L'objet appartient toujours à son créateur.
-  const item = createItem({ parsed, prio, dest, destService, pointsRaw: points, ownerId: user.id });
+  const item = createItem({ parsed, prio, dest, destService, pointsRaw: points, ownerId: user.id, dueDurationDays });
   logActivity(user.id, "item_create", `${parsed.ref} — ${parsed.objet}`);
 
   // Case « non-conformité à la politique de sécurité » : ouvre la fiche liée.

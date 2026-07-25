@@ -15,6 +15,7 @@ export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) 
   const [objet, setObjet] = useState(item.objet);
   const [priorite, setPriorite] = useState<Priorite>(item.priorite);
   const [points, setPoints] = useState(item.pointsCles.filter((p) => p !== "—").join("\n"));
+  const [dueDuration, setDuration] = useState(item.dueDurationDays != null ? String(item.dueDurationDays) : "");
   const [personnes, setPersonnes] = useState(
     item.personnes.map((p) => ({ name: p.name, kind: p.kind, service: p.service ?? "" }))
   );
@@ -32,6 +33,7 @@ export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) 
       objet,
       priorite,
       pointsCles: points.split("\n"),
+      dueDurationDays: dueDuration.trim() ? Number(dueDuration) : null,
       personnes: personnes
         .filter((p) => p.name.trim())
         .map((p) => ({ name: p.name.trim(), kind: p.kind, service: p.service.trim() || null })),
@@ -75,6 +77,18 @@ export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) 
           rows={4}
           placeholder="Un point par ligne…"
           className={`${inputCls} resize-y`}
+        />
+      </div>
+
+      <div>
+        <div className={label}>Durée de traitement acceptable (jours)</div>
+        <input
+          type="number"
+          min={1}
+          value={dueDuration}
+          onChange={(e) => setDuration(e.target.value)}
+          placeholder="Ex. 5 — vide = aucune"
+          className={`${inputCls} max-w-[10rem]`}
         />
       </div>
 

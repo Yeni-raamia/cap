@@ -18,7 +18,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { daysBetween, fmt, STATUTS, type Item, type ReminderLevel, type Statut } from "@/lib/domain";
+import { daysBetween, fmt, isLateByDuration, STATUTS, type Item, type ReminderLevel, type Statut } from "@/lib/domain";
 import { downloadCsv } from "@/lib/export";
 import { useApp } from "./app-context";
 import { Avatar, Card, KPI, MetierChip, Priority, Token, TypeTag } from "./atoms";
@@ -521,6 +521,7 @@ export function SuiviExplorer({
           onOpen={openItem}
           profileById={profileById}
           rs={rs}
+          now={now}
           showResponsable={showResponsable}
           selected={selected}
           onToggle={toggleSel}
@@ -552,6 +553,7 @@ function ListeView({
   onOpen,
   profileById,
   rs,
+  now,
   showResponsable,
   selected,
   onToggle,
@@ -564,6 +566,7 @@ function ListeView({
   onOpen: (i: Item) => void;
   profileById: ReturnType<typeof useApp>["profileById"];
   rs: ReturnType<typeof useApp>["rs"];
+  now: Date;
   showResponsable: boolean;
   selected: Set<string>;
   onToggle: (id: string) => void;
@@ -611,12 +614,13 @@ function ListeView({
         {rows.map((i) => {
           const state = rs(i);
           const owner = profileById(i.ownerId);
+          const isLate = isLateByDuration(i, now);
           return (
             <div
               key={i.id}
               className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 ${
-                selected.has(i.id) ? "bg-emerald-50/50" : ""
-              }`}
+                isLate ? "border-l-2 border-orange-400 bg-orange-50/40" : ""
+              } ${selected.has(i.id) ? "bg-emerald-50/50" : ""}`}
             >
               <input
                 type="checkbox"
@@ -641,7 +645,10 @@ function ListeView({
                   <Token>{i.ref}</Token>
                 </div>
                 <div className="w-24 text-right text-[12px] text-slate-500 hidden md:block">{i.statut}</div>
-                <div className="w-24 text-right">{etatBadge(state.level, state.days)}</div>
+                <div className="w-24 text-right flex flex-col items-end gap-0.5">
+                  {etatBadge(state.level, state.days)}
+                  {isLate && <span className="text-[10px] font-medium text-orange-600">⏱ Retard</span>}
+                </div>
               </button>
             </div>
           );

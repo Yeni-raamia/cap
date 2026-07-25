@@ -422,6 +422,8 @@ interface ItemRow {
   date_relance_prevue: string | null;
   project_id: string | null;
   appreciation: string | null;
+  due_duration_days: number | null;
+  marked_late: number;
 }
 interface BlocageActionRow {
   id: string;
@@ -529,6 +531,8 @@ function mapItem(
     blocageActions,
     timeline,
     attachmentsCount,
+    dueDurationDays: r.due_duration_days ?? null,
+    markedLate: r.marked_late === 1,
   };
 }
 
@@ -583,6 +587,7 @@ export function createItem(input: {
   destService?: string | null;
   pointsRaw: string;
   ownerId: string;
+  dueDurationDays?: number | null;
 }): Item {
   const db = getDb();
   const now = new Date().toISOString();
@@ -597,8 +602,8 @@ export function createItem(input: {
     // auto attribué côté serveur pour éviter toute collision de référence.
     const ref = input.parsed.metier === "CASE" ? input.parsed.ref : nextItemRef(db, input.parsed.metier);
     db.prepare(
-      "insert into items (id, ref, metier_code, type_code, objet, priorite, statut, owner_id, points_cles, date_creation, date_maj) " +
-        "values (?,?,?,?,?,?,?,?,?,?,?)"
+      "insert into items (id, ref, metier_code, type_code, objet, priorite, statut, owner_id, points_cles, date_creation, date_maj, due_duration_days) " +
+        "values (?,?,?,?,?,?,?,?,?,?,?,?)"
     ).run(
       id,
       ref,
@@ -610,7 +615,8 @@ export function createItem(input: {
       input.ownerId,
       JSON.stringify(points.length ? points : ["—"]),
       now,
-      now
+      now,
+      input.dueDurationDays ?? null
     );
     if (input.dest.trim()) {
       db.prepare("insert into item_people (id, item_id, name, kind, service) values (?,?,?,?,?)").run(
@@ -672,7 +678,7 @@ export function applyAction(itemId: string, action: Action, cause: string | unde
 export function updateItem(
   itemId: string,
   meId: string,
-  fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[] }
+  fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[]; dueDurationDays?: number | null }
 ): void {
   const db = getDb();
   const current = db.prepare("select objet, priorite from items where id = ?").get(itemId) as
@@ -682,6 +688,11 @@ export function updateItem(
 
   const changes: string[] = [];
   const tx = db.transaction(() => {
+    if (fields.dueDurationDays !== undefined) {
+      const d = fields.dueDurationDays && fields.dueDurationDays > 0 ? Math.floor(fields.dueDurationDays) : null;
+      db.prepare("update items set due_duration_days = ? where id = ?").run(d, itemId);
+      changes.push("durée de traitement");
+    }
     if (fields.objet !== undefined) {
       const objet = fields.objet.trim();
       if (objet && objet !== current.objet) {
@@ -717,6 +728,20 @@ export function updateItem(
     }
   });
   tx();
+}
+
+/** Marque (ou lève) l'état « En retard » d'un suivi, et trace l'action. */
+export function setItemMarkedLate(itemId: string, meId: string, late: boolean): void {
+  const db = getDb();
+  db.prepare("update items set marked_late = ? where id = ?").run(late ? 1 : 0, itemId);
+  db.prepare("insert into events (id, item_id, kind, label, author_id, created_at) values (?,?,?,?,?,?)").run(
+    randomUUID(),
+    itemId,
+    "statut",
+    late ? "Marqué « En retard »" : "Retard levé",
+    meId,
+    new Date().toISOString()
+  );
 }
 
 /** Droit d'édition d'un objet : propriétaire, ou directeur/admin. */
