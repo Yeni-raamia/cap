@@ -217,6 +217,9 @@ interface AppCtx {
   decideProjectStatus: (id: string, approve: boolean) => Promise<string | null>;
   requestProjectClosure: (id: string, summary: string, deliverables: string[]) => Promise<string | null>;
   decideProjectClosure: (id: string, approve: boolean, note?: string) => Promise<string | null>;
+  archiveProject: (id: string, archived: boolean) => Promise<string | null>;
+  requestProjectDeletion: (id: string, reason: string) => Promise<string | null>;
+  decideProjectDeletion: (id: string, approve: boolean, note?: string) => Promise<string | null>;
   // Tâches (productivité)
   tasks: Task[];
   taskAction: (op: "create" | "update" | "delete", input: TaskInput) => Promise<string | null>;
@@ -276,6 +279,9 @@ const reviveProject = (p: Project): Project => ({
         createdAt: new Date(p.closure.createdAt),
         decidedAt: p.closure.decidedAt ? new Date(p.closure.decidedAt) : null,
       }
+    : null,
+  deletionRequest: p.deletionRequest
+    ? { ...p.deletionRequest, requestedAt: new Date(p.deletionRequest.requestedAt) }
     : null,
 });
 const reviveProjects = (arr: Project[]): Project[] => arr.map(reviveProject);
@@ -1232,6 +1238,21 @@ export function AppProvider({
     if (!e) toast("Demande de clôture envoyée.", "success");
     return e;
   };
+  // Archivage & suppression d'un projet (demande + approbation manager/admin).
+  const archiveProject = async (id: string, archived: boolean) =>
+    demo ? DEMO_MSG : postProjects("/api/projects/lifecycle", { op: "archive", id, archived });
+  const requestProjectDeletion = async (id: string, reason: string) => {
+    if (demo) return DEMO_MSG;
+    const e = await postProjects("/api/projects/lifecycle", { op: "request_delete", id, reason });
+    if (!e) toast("Demande de suppression envoyée.", "success");
+    return e;
+  };
+  const decideProjectDeletion = async (id: string, approve: boolean, note = "") => {
+    if (demo) return DEMO_MSG;
+    const e = await postProjects("/api/projects/lifecycle", { op: approve ? "approve_delete" : "reject_delete", id, note });
+    if (!e) toast(approve ? "Projet supprimé." : "Demande de suppression refusée.", approve ? "success" : "info");
+    return e;
+  };
   const decideProjectClosure = async (id: string, approve: boolean, note = "") => {
     if (demo) return DEMO_MSG;
     const e = await postProjects("/api/projects/closure", { op: "decide", id, approve, note });
@@ -1532,6 +1553,9 @@ export function AppProvider({
     decideProjectStatus,
     requestProjectClosure,
     decideProjectClosure,
+    archiveProject,
+    requestProjectDeletion,
+    decideProjectDeletion,
     tasks,
     taskAction,
     subtaskAction,

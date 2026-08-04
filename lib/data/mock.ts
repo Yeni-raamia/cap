@@ -357,6 +357,8 @@ export function seedProjects(): Project[] {
       pendingStatus: null,
       pendingBy: null,
       closure: null,
+      archived: false,
+      deletionRequest: null,
     },
     {
       id: "demo-p2",
@@ -376,6 +378,8 @@ export function seedProjects(): Project[] {
       pendingStatus: null,
       pendingBy: null,
       closure: null,
+      archived: false,
+      deletionRequest: null,
     },
   ];
 }

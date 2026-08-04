@@ -47,7 +47,9 @@ create table if not exists projects (
   id text primary key, name text not null, description text not null default '',
   owner_id text not null, status text not null default 'En cours',
   deadline text, source_item_id text, created_at text not null default (datetime('now')),
-  pending_status text, pending_by text
+  pending_status text, pending_by text,
+  archived integer not null default 0,
+  del_requested_by text, del_reason text, del_requested_at text
 );
 create table if not exists project_tasks (
   id text primary key, project_id text not null, title text not null,
@@ -330,6 +332,15 @@ function ensureColumns(db: Database.Database) {
   if (!pjcols.includes("pending_status")) {
     db.exec("alter table projects add column pending_status text");
     db.exec("alter table projects add column pending_by text");
+  }
+  // Projets : archivage explicite + demande de suppression (approbation manager/admin).
+  if (!pjcols.includes("archived")) {
+    db.exec("alter table projects add column archived integer not null default 0");
+  }
+  if (!pjcols.includes("del_requested_by")) {
+    db.exec("alter table projects add column del_requested_by text");
+    db.exec("alter table projects add column del_reason text");
+    db.exec("alter table projects add column del_requested_at text");
   }
   const tkcols = (db.prepare("pragma table_info(tasks)").all() as { name: string }[]).map((c) => c.name);
   if (tkcols.length > 0 && !tkcols.includes("start_date")) {

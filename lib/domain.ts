@@ -917,6 +917,13 @@ export interface ClosureRequest {
   decidedAt: Date | null;
 }
 
+/** Demande de suppression d'un projet, en attente d'approbation manager/admin. */
+export interface ProjectDeletionRequest {
+  requestedBy: string;
+  reason: string;
+  requestedAt: Date;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -934,6 +941,10 @@ export interface Project {
   pendingBy: string | null;
   /** Dernière demande de clôture (la plus récente), le cas échéant. */
   closure: ClosureRequest | null;
+  /** Projet archivé (masqué des vues actives, conservé). */
+  archived: boolean;
+  /** Demande de suppression en attente d'approbation (ou null). */
+  deletionRequest: ProjectDeletionRequest | null;
 }
 
 export interface ProjectMetrics {
@@ -956,8 +967,9 @@ export function projectMetrics(p: Project, now: Date): ProjectMetrics {
   return { total, done, open: total - done, late, progress };
 }
 
-/** Un projet archivé (terminé ou annulé) est masqué de la liste active. */
-export const isProjectArchived = (p: Project): boolean => p.status === "Terminé" || p.status === "Annulé";
+/** Un projet archivé (explicitement, ou terminé/annulé) est masqué de la liste active. */
+export const isProjectArchived = (p: Project): boolean =>
+  p.archived === true || p.status === "Terminé" || p.status === "Annulé";
 
 /* ---------- Plan de l'année (objectifs annuels) ---------- */
 export type ObjectiveStatus = "planifie" | "en_cours" | "atteint" | "declasse";

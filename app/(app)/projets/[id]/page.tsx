@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
+  Archive,
+  ArchiveRestore,
   ArrowLeft,
   CalendarClock,
   Check,
@@ -56,7 +58,11 @@ export default function ProjetDetailPage() {
     decideProjectStatus,
     requestProjectClosure,
     decideProjectClosure,
+    archiveProject,
+    requestProjectDeletion,
+    decideProjectDeletion,
   } = useApp();
+  const router = useRouter();
 
   const project = projectById(id);
   const [taskTitle, setTaskTitle] = useState("");
@@ -73,6 +79,9 @@ export default function ProjetDetailPage() {
   const [closureSummary, setClosureSummary] = useState("");
   const [closureDeliverables, setClosureDeliverables] = useState("");
   const [rejectNote, setRejectNote] = useState("");
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [delRejectNote, setDelRejectNote] = useState("");
 
   if (!project) {
     return (
@@ -265,6 +274,114 @@ export default function ProjetDetailPage() {
           </div>
         </div>
       </Card>
+
+      {/* Cycle de vie : archivage & suppression (avec approbation) */}
+      {(() => {
+        const isApprover = !demo && (me.role === "manager" || me.role === "directeur" || me.role === "admin");
+        const del = project.deletionRequest;
+        return (
+          <Card className="p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <Archive size={15} className="text-slate-500" />
+              <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Cycle de vie</h2>
+            </div>
+
+            {/* Archivage */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[12px] text-slate-500">
+                {project.archived ? "Projet archivé — masqué des vues actives, conservé." : "Projet actif."}
+              </span>
+              {canContribute && (
+                <button
+                  onClick={() => run(archiveProject(project.id, !project.archived))}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-lg px-2.5 py-1.5"
+                >
+                  {project.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                  {project.archived ? "Désarchiver" : "Archiver"}
+                </button>
+              )}
+            </div>
+
+            {/* Suppression : demande + approbation */}
+            {del ? (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-[12px]">
+                <div className="flex items-center gap-1.5 font-semibold text-rose-700">
+                  <Trash2 size={14} /> Demande de suppression en attente
+                </div>
+                <p className="text-slate-500 mt-0.5">Demandée par {profileById(del.requestedBy).nom} · {fmt(del.requestedAt)}</p>
+                <p className="text-slate-700 mt-1"><b>Motif :</b> {del.reason}</p>
+                {isApprover ? (
+                  <div className="mt-2 flex items-center gap-2 flex-wrap border-t border-rose-200 pt-2">
+                    <input
+                      value={delRejectNote}
+                      onChange={(e) => setDelRejectNote(e.target.value)}
+                      placeholder="Motif (si refus)…"
+                      className="flex-1 min-w-[160px] text-[12px] border border-slate-200 rounded-lg px-2.5 py-1.5"
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Supprimer définitivement le projet « ${project.name} » et ses tâches/notes ? Les suivis liés seront détachés.`)) return;
+                        const e = await decideProjectDeletion(project.id, true);
+                        if (e) setErr(e);
+                        else router.push("/projets");
+                      }}
+                      className="inline-flex items-center gap-1 text-[13px] font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg px-3 py-1.5"
+                    >
+                      <Trash2 size={14} /> Approuver et supprimer
+                    </button>
+                    <button
+                      onClick={() => run(decideProjectDeletion(project.id, false, delRejectNote))}
+                      className="inline-flex items-center gap-1 text-[13px] font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-lg px-3 py-1.5"
+                    >
+                      <X size={14} /> Refuser
+                    </button>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-rose-600 italic">En attente d&apos;approbation d&apos;un manager ou admin.</p>
+                )}
+              </div>
+            ) : (
+              canContribute &&
+              (showDelete ? (
+                <div className="space-y-2 rounded-lg border border-rose-200 p-3">
+                  <div className="text-[12px] font-semibold text-rose-700">Demander la suppression du projet</div>
+                  <textarea
+                    value={deleteReason}
+                    onChange={(e) => setDeleteReason(e.target.value)}
+                    rows={2}
+                    placeholder="Motif de la suppression (visible par l'approbateur)…"
+                    className="w-full text-[13px] border border-slate-200 rounded-lg px-2.5 py-2"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={async () => {
+                        const e = await requestProjectDeletion(project.id, deleteReason.trim());
+                        if (e) setErr(e);
+                        else {
+                          setShowDelete(false);
+                          setDeleteReason("");
+                        }
+                      }}
+                      disabled={!deleteReason.trim()}
+                      className="text-[13px] font-medium text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-lg px-3 py-1.5"
+                    >
+                      Envoyer la demande
+                    </button>
+                    <button onClick={() => setShowDelete(false)} className="text-[13px] text-slate-500 px-3 py-1.5">Annuler</button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowDelete(true)}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-rose-700 border border-rose-200 hover:bg-rose-50 rounded-lg px-2.5 py-1.5"
+                >
+                  <Trash2 size={14} /> Demander la suppression
+                </button>
+              ))
+            )}
+          </Card>
+        );
+      })()}
 
       {/* Clôture du projet */}
       {(() => {

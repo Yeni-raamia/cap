@@ -24,6 +24,10 @@ interface ProjectRow {
   created_at: string;
   pending_status: string | null;
   pending_by: string | null;
+  archived: number;
+  del_requested_by: string | null;
+  del_reason: string | null;
+  del_requested_at: string | null;
 }
 interface TaskRow {
   id: string;
@@ -137,7 +141,62 @@ export function listProjects(): Project[] {
     pendingStatus: p.pending_status,
     pendingBy: p.pending_by,
     closure: cByP.has(p.id) ? mapClosure(cByP.get(p.id)!) : null,
+    archived: p.archived === 1,
+    deletionRequest: p.del_requested_by
+      ? {
+          requestedBy: p.del_requested_by,
+          reason: p.del_reason ?? "",
+          requestedAt: new Date(p.del_requested_at ?? p.created_at),
+        }
+      : null,
   }));
+}
+
+/* ---------- Archivage & suppression ---------- */
+
+/** Archive (ou désarchive) un projet — masqué des vues actives, conservé. */
+export function setProjectArchived(projectId: string, archived: boolean): void {
+  getDb().prepare("update projects set archived=? where id=?").run(archived ? 1 : 0, projectId);
+}
+
+/** Enregistre une demande de suppression, en attente d'approbation. */
+export function requestProjectDeletion(projectId: string, byId: string, reason: string): void {
+  getDb()
+    .prepare("update projects set del_requested_by=?, del_reason=?, del_requested_at=? where id=?")
+    .run(byId, reason, new Date().toISOString(), projectId);
+}
+
+/** Retire la demande de suppression en attente (rejet ou annulation). */
+export function clearProjectDeletion(projectId: string): void {
+  getDb()
+    .prepare("update projects set del_requested_by=null, del_reason=null, del_requested_at=null where id=?")
+    .run(projectId);
+}
+
+/** Demandeur de la suppression en attente, le cas échéant. */
+export function getProjectDeletionRequester(projectId: string): string | null {
+  const r = getDb().prepare("select del_requested_by from projects where id=?").get(projectId) as
+    | { del_requested_by: string | null }
+    | undefined;
+  return r?.del_requested_by ?? null;
+}
+
+/**
+ * Supprime définitivement un projet et ses dépendances (tâches, membres, notes,
+ * demandes de clôture, liens objectifs) ; les suivis liés sont détachés.
+ */
+export function deleteProject(projectId: string): void {
+  const db = getDb();
+  const tx = db.transaction(() => {
+    db.prepare("update items set project_id=null where project_id=?").run(projectId);
+    db.prepare("delete from project_tasks where project_id=?").run(projectId);
+    db.prepare("delete from project_members where project_id=?").run(projectId);
+    db.prepare("delete from project_notes where project_id=?").run(projectId);
+    db.prepare("delete from project_closure_requests where project_id=?").run(projectId);
+    db.prepare("delete from objective_projects where project_id=?").run(projectId);
+    db.prepare("delete from projects where id=?").run(projectId);
+  });
+  tx();
 }
 
 /* ---------- Workflow de validation du statut ----------

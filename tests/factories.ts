@@ -106,6 +106,8 @@ export function mkProject(over: Partial<Project> = {}): Project {
     pendingStatus: null,
     pendingBy: null,
     closure: null,
+    archived: false,
+    deletionRequest: null,
   };
   return { ...base, ...over };
 }
