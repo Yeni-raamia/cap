@@ -138,8 +138,12 @@ export function buildGraph(d: GraphData): Graph {
   return { nodes: [...nodes.values()], edges };
 }
 
-/** Sous-graphe égocentré : le nœud central + ses voisins jusqu'à `depth`. */
-export function egoSubgraph(graph: Graph, centerId: string, depth = 1): Graph {
+/**
+ * Sous-graphe égocentré : le nœud central + ses voisins jusqu'à `depth`.
+ * Plafonné à `maxNodes` (les voisins les mieux connectés sont conservés) pour
+ * garder l'affichage lisible et éviter de bloquer le rendu sur un nœud « hub ».
+ */
+export function egoSubgraph(graph: Graph, centerId: string, depth = 1, maxNodes = 60): Graph {
   const byId = new Map(graph.nodes.map((n) => [n.id, n]));
   if (!byId.has(centerId)) return { nodes: [], edges: [] };
   const adj = new Map<string, string[]>();
@@ -161,8 +165,17 @@ export function egoSubgraph(graph: Graph, centerId: string, depth = 1): Graph {
     }
     frontier = next;
   }
-  const nodes = graph.nodes.filter((n) => keep.has(n.id));
-  const edges = graph.edges.filter((e) => keep.has(e.source) && keep.has(e.target));
+  let kept = new Set(keep);
+  if (kept.size > maxNodes) {
+    const deg = degrees(graph);
+    const ranked = [...kept]
+      .filter((id) => id !== centerId)
+      .sort((a, b) => (deg.get(b) ?? 0) - (deg.get(a) ?? 0))
+      .slice(0, maxNodes - 1);
+    kept = new Set([centerId, ...ranked]);
+  }
+  const nodes = graph.nodes.filter((n) => kept.has(n.id));
+  const edges = graph.edges.filter((e) => kept.has(e.source) && kept.has(e.target));
   return { nodes, edges };
 }
 

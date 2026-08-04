@@ -58,24 +58,25 @@ function RelationsInner() {
     return list.slice(0, 40);
   }, [graph, q]);
 
-  const openNode = (n: GraphNode) => {
-    if (n.kind === "item") {
-      const it = items.find((i) => i.id === n.rawId);
-      if (it) openItem(it);
-      return null;
-    }
-    return (
-      {
-        project: `/projets/${n.rawId}`,
-        task: "/productivite",
-        negligence: `/negligences/${n.rawId}`,
-        nonconformite: `/non-conformites/${n.rawId}`,
-        objective: "/plan",
-        meeting: `/reunions/${n.rawId}`,
-        member: `/membre/${n.rawId}`,
-        contact: "/contacts",
-      } as Record<string, string>
-    )[n.kind];
+  // Route d'une fiche (sans effet de bord). Les suivis s'ouvrent dans le drawer.
+  const nodeHref = (n: GraphNode): string | null =>
+    n.kind === "item"
+      ? null
+      : (
+          {
+            project: `/projets/${n.rawId}`,
+            task: "/productivite",
+            negligence: `/negligences/${n.rawId}`,
+            nonconformite: `/non-conformites/${n.rawId}`,
+            objective: "/plan",
+            meeting: `/reunions/${n.rawId}`,
+            member: `/membre/${n.rawId}`,
+            contact: "/contacts",
+          } as Record<string, string>
+        )[n.kind];
+  const openCenterItem = (n: GraphNode) => {
+    const it = items.find((i) => i.id === n.rawId);
+    if (it) openItem(it);
   };
 
   return (
@@ -132,14 +133,11 @@ function RelationsInner() {
               ) : "Sélectionnez un nœud"}
             </div>
             <div className="flex items-center gap-2">
-              {centerNode && (() => {
-                const href = openNode(centerNode);
-                return href ? (
-                  <Link href={href} className="inline-flex items-center gap-1 text-[12px] text-emerald-700 hover:underline"><ExternalLink size={12} /> Ouvrir la fiche</Link>
-                ) : centerNode.kind === "item" ? (
-                  <button onClick={() => openNode(centerNode)} className="inline-flex items-center gap-1 text-[12px] text-emerald-700 hover:underline"><ExternalLink size={12} /> Ouvrir le suivi</button>
-                ) : null;
-              })()}
+              {centerNode && centerNode.kind === "item" ? (
+                <button onClick={() => openCenterItem(centerNode)} className="inline-flex items-center gap-1 text-[12px] text-emerald-700 hover:underline"><ExternalLink size={12} /> Ouvrir le suivi</button>
+              ) : centerNode && nodeHref(centerNode) ? (
+                <Link href={nodeHref(centerNode)!} className="inline-flex items-center gap-1 text-[12px] text-emerald-700 hover:underline"><ExternalLink size={12} /> Ouvrir la fiche</Link>
+              ) : null}
               <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-[11px]">
                 {[1, 2].map((d) => (
                   <button key={d} onClick={() => setDepth(d)} className={`px-2 py-0.5 rounded-md font-medium ${depth === d ? "bg-emerald-600 text-white" : "text-slate-500"}`}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { degrees, type Graph, type GraphNodeKind } from "@/lib/graph";
 
 /** Couleur de bulle par type de nœud (palette dérivée du thème de l'app). */
@@ -29,82 +29,95 @@ export const NODE_LABEL: Record<GraphNodeKind, string> = {
 
 const W = 900;
 const H = 600;
+// Constantes de la simulation ressort-électrique.
+const REP = 5200; // répulsion
+const SPRING = 0.035; // raideur des liens
+const LEN = 115; // longueur idéale d'un lien
+const GRAVITY = 0.022; // rappel vers le centre
+const DAMP = 0.85; // amortissement
+const MAXV = 16; // vitesse max / frame
+const JITTER = 0.5; // « dandinement » permanent
 
-interface Pos {
-  x: number;
-  y: number;
-}
+interface P { x: number; y: number; vx: number; vy: number }
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
-/** Disposition force-directed déterministe (Fruchterman-Reingold simplifié). */
-function computeLayout(graph: Graph, centerId: string): Record<string, Pos> {
+/** Un pas de simulation (met à jour `pos` en place). */
+function step(graph: Graph, pos: Record<string, P>, centerId: string) {
   const nodes = graph.nodes;
-  const n = nodes.length;
-  const pos: Record<string, { x: number; y: number }> = {};
-  const cx = W / 2;
-  const cy = H / 2;
-  if (n === 0) return pos;
-  // Initialisation déterministe sur un cercle (le centre au milieu).
-  const R = Math.min(W, H) * 0.34;
-  const others = nodes.filter((nd) => nd.id !== centerId);
-  pos[centerId] = { x: cx, y: cy };
-  others.forEach((nd, i) => {
-    const a = (i / Math.max(1, others.length)) * Math.PI * 2;
-    pos[nd.id] = { x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R };
-  });
+  const cx = W / 2, cy = H / 2;
+  const fx: Record<string, number> = {};
+  const fy: Record<string, number> = {};
+  for (const n of nodes) { fx[n.id] = 0; fy[n.id] = 0; }
 
-  const k = Math.min(W, H) / Math.max(2, Math.sqrt(n)); // distance idéale
-  const idsWithoutCenter = others.map((o) => o.id);
-  for (let iter = 0; iter < 320; iter++) {
-    const disp: Record<string, { x: number; y: number }> = {};
-    for (const nd of nodes) disp[nd.id] = { x: 0, y: 0 };
-    // Répulsion entre toutes les paires.
-    for (let i = 0; i < n; i++) {
-      for (let j = i + 1; j < n; j++) {
-        const a = nodes[i].id;
-        const b = nodes[j].id;
-        let dx = pos[a].x - pos[b].x;
-        let dy = pos[a].y - pos[b].y;
-        let dist = Math.hypot(dx, dy) || 0.01;
-        if (dist < 0.01) { dx = 0.5; dy = 0.5; dist = 0.71; }
-        const rep = (k * k) / dist;
-        const ux = (dx / dist) * rep;
-        const uy = (dy / dist) * rep;
-        disp[a].x += ux; disp[a].y += uy;
-        disp[b].x -= ux; disp[b].y -= uy;
-      }
+  // Répulsion entre toutes les paires.
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const a = pos[nodes[i].id], b = pos[nodes[j].id];
+      const dx = a.x - b.x, dy = a.y - b.y;
+      const d2 = dx * dx + dy * dy || 0.01;
+      const d = Math.sqrt(d2);
+      const f = REP / d2;
+      const ux = (dx / d) * f, uy = (dy / d) * f;
+      fx[nodes[i].id] += ux; fy[nodes[i].id] += uy;
+      fx[nodes[j].id] -= ux; fy[nodes[j].id] -= uy;
     }
-    // Attraction le long des liens.
-    for (const e of graph.edges) {
-      const dx = pos[e.source].x - pos[e.target].x;
-      const dy = pos[e.source].y - pos[e.target].y;
-      const dist = Math.hypot(dx, dy) || 0.01;
-      const att = (dist * dist) / k;
-      const ux = (dx / dist) * att;
-      const uy = (dy / dist) * att;
-      disp[e.source].x -= ux; disp[e.source].y -= uy;
-      disp[e.target].x += ux; disp[e.target].y += uy;
-    }
-    const temp = 30 * (1 - iter / 320) + 2; // refroidissement
-    for (const id of idsWithoutCenter) {
-      // Légère gravité vers le centre.
-      disp[id].x += (cx - pos[id].x) * 0.02;
-      disp[id].y += (cy - pos[id].y) * 0.02;
-      const d = Math.hypot(disp[id].x, disp[id].y) || 0.01;
-      pos[id].x += (disp[id].x / d) * Math.min(d, temp);
-      pos[id].y += (disp[id].y / d) * Math.min(d, temp);
-      pos[id].x = Math.max(40, Math.min(W - 40, pos[id].x));
-      pos[id].y = Math.max(30, Math.min(H - 30, pos[id].y));
-    }
-    pos[centerId] = { x: cx, y: cy }; // centre épinglé
   }
-  return pos;
+  // Ressorts le long des liens.
+  for (const e of graph.edges) {
+    const s = pos[e.source], t = pos[e.target];
+    if (!s || !t) continue;
+    const dx = s.x - t.x, dy = s.y - t.y;
+    const d = Math.hypot(dx, dy) || 0.01;
+    const f = SPRING * (d - LEN);
+    const ux = (dx / d) * f, uy = (dy / d) * f;
+    fx[e.source] -= ux; fy[e.source] -= uy;
+    fx[e.target] += ux; fy[e.target] += uy;
+  }
+  // Intégration (le centre reste épinglé au milieu).
+  for (const n of nodes) {
+    if (n.id === centerId) { pos[n.id] = { x: cx, y: cy, vx: 0, vy: 0 }; continue; }
+    const p = pos[n.id];
+    const ax = fx[n.id] + (cx - p.x) * GRAVITY + (Math.random() - 0.5) * JITTER;
+    const ay = fy[n.id] + (cy - p.y) * GRAVITY + (Math.random() - 0.5) * JITTER;
+    p.vx = clamp((p.vx + ax) * DAMP, -MAXV, MAXV);
+    p.vy = clamp((p.vy + ay) * DAMP, -MAXV, MAXV);
+    p.x = clamp(p.x + p.vx, 40, W - 40);
+    p.y = clamp(p.y + p.vy, 28, H - 28);
+  }
 }
 
 const short = (s: string, n = 26) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
 export function RelationsGraph({ graph, centerId, onSelect }: { graph: Graph; centerId: string; onSelect: (id: string) => void }) {
-  const pos = useMemo(() => computeLayout(graph, centerId), [graph, centerId]);
-  const deg = useMemo(() => degrees(graph), [graph]);
+  const posRef = useRef<Record<string, P>>({});
+  const rafRef = useRef(0);
+  const [pos, setPos] = useState<Record<string, P>>({});
+
+  // (Ré)initialisation des positions + boucle d'animation quand le graphe change.
+  useEffect(() => {
+    const cx = W / 2, cy = H / 2;
+    const others = graph.nodes.filter((n) => n.id !== centerId);
+    const R = Math.min(W, H) * 0.32;
+    const p: Record<string, P> = {};
+    p[centerId] = { x: cx, y: cy, vx: 0, vy: 0 };
+    others.forEach((n, i) => {
+      const a = (i / Math.max(1, others.length)) * Math.PI * 2;
+      p[n.id] = { x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R, vx: 0, vy: 0 };
+    });
+    posRef.current = p;
+    setPos({ ...p });
+    cancelAnimationFrame(rafRef.current);
+    const loop = () => {
+      step(graph, posRef.current, centerId);
+      setPos({ ...posRef.current }); // nouvelle référence → rendu (positions animées)
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graph, centerId]);
+
+  const deg = degrees(graph);
 
   if (graph.nodes.length === 0) {
     return <div className="grid place-items-center h-[420px] text-[13px] text-slate-400">Aucune relation à afficher.</div>;
@@ -112,14 +125,11 @@ export function RelationsGraph({ graph, centerId, onSelect }: { graph: Graph; ce
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[520px] select-none" role="img" aria-label="Graphe de relations">
-      {/* Liens */}
       {graph.edges.map((e, i) => {
-        const a = pos[e.source];
-        const b = pos[e.target];
+        const a = pos[e.source], b = pos[e.target];
         if (!a || !b) return null;
         return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#cbd5e1" strokeWidth={1} opacity={0.7} />;
       })}
-      {/* Nœuds */}
       {graph.nodes.map((nd) => {
         const p = pos[nd.id];
         if (!p) return null;
