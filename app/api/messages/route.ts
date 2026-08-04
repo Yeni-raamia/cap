@@ -14,7 +14,7 @@ import {
   postMessage,
 } from "@/lib/db/messaging";
 
-const REF_TYPES = ["item", "negligence", "project"];
+const REF_TYPES = ["item", "negligence", "project", "meeting"];
 
 export async function GET(request: Request) {
   const user = await getCurrentUser();

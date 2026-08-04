@@ -8,6 +8,13 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.22.1] - 2026-08-04
+
+### Corrigé
+- **Graphe de relations** : le repositionnement des bulles est désormais conservé. Auparavant, la disposition réorganisée à la souris se réinitialisait au bout de quelques secondes (l'animation était relancée à chaque rafraîchissement de la page). Les positions épinglées sont préservées entre les rendus, tant que l'ensemble des nœuds ne change pas.
+- **Graphe de relations** : le nœud central est maintenant lui aussi déplaçable (il revient au centre par défaut mais peut être épinglé ailleurs).
+- **Réunion — fil de discussion** : l'envoi de messages dans l'onglet discussion d'une réunion fonctionne (le type de conversation « meeting » était rejeté par l'API des messages).
+
 ## [1.22.0] - 2026-08-04
 
 ### Ajouté

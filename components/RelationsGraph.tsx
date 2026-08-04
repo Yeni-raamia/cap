@@ -75,7 +75,11 @@ function step(graph: Graph, pos: Record<string, P>, centerId: string) {
   }
   // Intégration (le centre reste épinglé au milieu).
   for (const n of nodes) {
-    if (n.id === centerId) { pos[n.id] = { x: cx, y: cy, vx: 0, vy: 0 }; continue; }
+    if (n.id === centerId) {
+      if (pos[n.id]?.fixed) continue; // centre déplacé manuellement → on le laisse
+      pos[n.id] = { x: cx, y: cy, vx: 0, vy: 0 };
+      continue;
+    }
     const p = pos[n.id];
     if (p.fixed) continue; // épinglé par l'utilisateur (glissé-déposé) → immobile
     const ax = fx[n.id] + (cx - p.x) * GRAVITY + (Math.random() - 0.5) * JITTER;
@@ -96,14 +100,22 @@ export function RelationsGraph({ graph, centerId, onSelect }: { graph: Graph; ce
   const dragRef = useRef<{ id: string; moved: boolean } | null>(null);
   const [pos, setPos] = useState<Record<string, P>>({});
 
-  // (Ré)initialisation des positions + boucle d'animation quand le graphe change.
+  // Clé stable = l'ensemble des nœuds. L'effet ne se relance que si cet ensemble
+  // change (pas à chaque re-rendu / sondage), sinon les positions (dont celles
+  // épinglées au glisser-déposé) seraient réinitialisées.
+  const nodeKey = graph.nodes.map((n) => n.id).join("|");
+
   useEffect(() => {
     const cx = W / 2, cy = H / 2;
+    const prev = posRef.current;
     const others = graph.nodes.filter((n) => n.id !== centerId);
     const R = Math.min(W, H) * 0.32;
     const p: Record<string, P> = {};
-    p[centerId] = { x: cx, y: cy, vx: 0, vy: 0 };
+    // On réutilise la position existante (y compris l'épinglage) ; seuls les
+    // nouveaux nœuds sont semés sur le cercle.
+    p[centerId] = prev[centerId] ? { ...prev[centerId] } : { x: cx, y: cy, vx: 0, vy: 0 };
     others.forEach((n, i) => {
+      if (prev[n.id]) { p[n.id] = { ...prev[n.id] }; return; }
       const a = (i / Math.max(1, others.length)) * Math.PI * 2;
       p[n.id] = { x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R, vx: 0, vy: 0 };
     });
@@ -118,7 +130,7 @@ export function RelationsGraph({ graph, centerId, onSelect }: { graph: Graph; ce
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [graph, centerId]);
+  }, [nodeKey, centerId]);
 
   const deg = degrees(graph);
 
@@ -131,9 +143,8 @@ export function RelationsGraph({ graph, centerId, onSelect }: { graph: Graph; ce
     return { x: p.x, y: p.y };
   };
   const onNodeDown = (e: RPE<SVGGElement>, id: string) => {
-    if (id === centerId) return; // le centre reste au milieu
     e.stopPropagation();
-    dragRef.current = { id, moved: false };
+    dragRef.current = { id, moved: false }; // tous les nœuds (centre compris) sont déplaçables
   };
   const onMove = (e: RPE<SVGSVGElement>) => {
     const drag = dragRef.current;
@@ -186,7 +197,7 @@ export function RelationsGraph({ graph, centerId, onSelect }: { graph: Graph; ce
           <g
             key={nd.id}
             transform={`translate(${p.x},${p.y})`}
-            className={isCenter ? "cursor-default" : "cursor-grab active:cursor-grabbing"}
+            className="cursor-grab active:cursor-grabbing"
             onPointerDown={(e) => onNodeDown(e, nd.id)}
             onPointerUp={() => onUp(nd.id)}
           >
