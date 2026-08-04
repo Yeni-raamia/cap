@@ -1,21 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  Check,
   DatabaseBackup,
   FolderKanban,
   KeyRound,
   FileText,
   ListChecks,
   ListTree,
+  Pencil,
   RotateCcw,
+  Search,
   Settings2,
   ShieldCheck,
   ShieldOff,
   Trash2,
+  UserCog,
   UserPlus,
   Users2,
+  X,
 } from "lucide-react";
 import {
   ACTION_ICONS,
@@ -43,7 +48,7 @@ const roleBadge = (r: string) =>
 const dt = (d: string | Date) =>
   new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
-type Section = "membres" | "catalogue" | "listes" | "modeles" | "parametres" | "securite" | "sauvegarde" | "journal";
+type Section = "membres" | "catalogue" | "listes" | "destinataires" | "modeles" | "parametres" | "securite" | "sauvegarde" | "journal";
 
 interface Overview {
   members: AdminMember[];
@@ -86,6 +91,7 @@ export default function AdminPage() {
     { id: "membres", label: "Membres", icon: Users2 },
     { id: "catalogue", label: "Catalogue", icon: ListTree },
     { id: "listes", label: "Listes", icon: ListChecks },
+    { id: "destinataires", label: "Destinataires", icon: UserCog },
     { id: "modeles", label: "Modèles", icon: FileText },
     { id: "parametres", label: "Paramètres", icon: Settings2 },
     { id: "securite", label: "Sécurité", icon: ShieldCheck },
@@ -125,6 +131,8 @@ export default function AdminPage() {
         <CatalogueSection onChanged={load} setErr={setErr} />
       ) : section === "listes" ? (
         <ListesSection onChanged={load} setErr={setErr} />
+      ) : section === "destinataires" ? (
+        <DestinatairesSection />
       ) : section === "modeles" ? (
         <TemplatesAdmin />
       ) : section === "parametres" ? (
@@ -632,6 +640,116 @@ function ListesSection({ onChanged, setErr }: { onChanged: () => void; setErr: (
         onAdd={(v) => run({ op: "add", listKey: "policy", label: v })}
         onDelete={(v) => run({ op: "delete", listKey: "policy", value: v })}
       />
+    </div>
+  );
+}
+
+/* ================= Destinataires (correction / fusion) ================= */
+function DestinatairesSection() {
+  const { items, correctDestinataire } = useApp();
+  const [search, setSearch] = useState("");
+  const [from, setFrom] = useState<string | null>(null);
+  const [to, setTo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const names = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const it of items)
+      for (const p of it.personnes) {
+        if (p.kind === "destinataire" && p.name?.trim()) m.set(p.name, (m.get(p.name) ?? 0) + 1);
+      }
+    return [...m.entries()]
+      .map(([name, n]) => ({ name, n }))
+      .sort((a, b) => b.n - a.n || a.name.localeCompare(b.name, "fr"));
+  }, [items]);
+  const allNames = names.map((x) => x.name);
+  const q = search.trim().toLowerCase();
+  const filtered = q ? names.filter((x) => x.name.toLowerCase().includes(q)) : names;
+
+  const doRename = async () => {
+    if (!from || !to.trim()) return;
+    setBusy(true);
+    setErr(null);
+    const e = await correctDestinataire(from, to.trim());
+    setBusy(false);
+    if (e) setErr(e);
+    else {
+      setFrom(null);
+      setTo("");
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <Card className="p-4">
+        <div className="text-[13px] font-semibold text-slate-700 mb-1">Correction des destinataires</div>
+        <p className="text-[12px] text-slate-500 mb-3">
+          Un même destinataire saisi avec des orthographes différentes apparaît comme plusieurs personnes et fausse les
+          statistiques. Corrigez ici pour <b>fusionner</b> une variante vers le bon libellé, sur <b>tous les suivis</b> à la
+          fois. La page Statistiques reste en lecture seule ; la correction ne se fait qu&apos;ici.
+        </p>
+        {err && <div className="text-[12px] text-rose-600 mb-2">{err}</div>}
+        <div className="flex items-center gap-2 mb-3">
+          <Search size={15} className="text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher un destinataire…"
+            className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 flex-1"
+          />
+          <span className="text-[12px] text-slate-400">{filtered.length}</span>
+        </div>
+        <datalist id="cap-admin-dest">
+          {allNames.map((n) => (
+            <option key={n} value={n} />
+          ))}
+        </datalist>
+        {names.length === 0 ? (
+          <div className="text-[12px] text-slate-400">Aucun destinataire renseigné pour l&apos;instant.</div>
+        ) : (
+          <div className="divide-y divide-slate-100 border border-slate-100 rounded-lg">
+            {filtered.map((d) => (
+              <div key={d.name} className="flex items-center gap-2 px-3 py-2 text-[12px]">
+                {from === d.name ? (
+                  <div className="flex items-center gap-1.5 flex-1">
+                    <input
+                      value={to}
+                      onChange={(e) => setTo(e.target.value)}
+                      list="cap-admin-dest"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") doRename();
+                        if (e.key === "Escape") setFrom(null);
+                      }}
+                      placeholder="Bon libellé (ex. un nom déjà existant)…"
+                      className="flex-1 text-[12px] border border-slate-200 rounded px-2 py-1"
+                    />
+                    <button onClick={doRename} disabled={busy} title="Corriger partout" className="text-emerald-600 hover:text-emerald-700">
+                      <Check size={15} />
+                    </button>
+                    <button onClick={() => { setFrom(null); setTo(""); }} title="Annuler" className="text-slate-400 hover:text-slate-600">
+                      <X size={15} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <span className="flex-1 text-slate-700 truncate">{d.name}</span>
+                    <span className="text-slate-400 tabular-nums">{d.n} suivi(s)</span>
+                    <button
+                      onClick={() => { setFrom(d.name); setTo(d.name); }}
+                      title="Corriger / fusionner ce nom"
+                      className="text-slate-300 hover:text-emerald-600"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

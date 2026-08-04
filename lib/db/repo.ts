@@ -681,6 +681,18 @@ export function applyAction(itemId: string, action: Action, cause: string | unde
   tx();
 }
 
+/**
+ * Corrige/fusionne un nom de destinataire PARTOUT (toutes les fiches) : outil
+ * d'administration pour nettoyer les orthographes divergentes qui faussent les
+ * statistiques. Renvoie le nombre de lignes mises à jour.
+ */
+export function renamePerson(oldName: string, newName: string): number {
+  const from = oldName.trim();
+  const to = newName.trim();
+  if (!from || !to || from === to) return 0;
+  return getDb().prepare("update item_people set name = ? where name = ?").run(to, from).changes;
+}
+
 /** Recherche un suivi par sa référence exacte (insensible à la casse). */
 export function findItemByRef(ref: string): { id: string; ref: string; objet: string; statut: string } | null {
   const r = getDb()
