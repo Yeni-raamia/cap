@@ -122,18 +122,26 @@ export function buildGraph(d: GraphData): Graph {
     m.links.forEach((l) => link(nid("meeting", m.id), nid(linkKind[l.type], l.id)));
     m.participants.forEach((p) => link(nid("meeting", m.id), nid(p.kind === "member" ? "member" : "contact", p.id)));
   });
-  // Suivis ↔ contacts (destinataire retrouvé dans l'annuaire, par nom)
+  // Personnes libres (destinataires, personnes concernées) → nœud « contact » :
+  // on réutilise le contact de l'annuaire si le nom correspond, sinon on crée
+  // un nœud personne synthétique (clé = nom). Objectif : relier le maximum.
   const contactByName = new Map<string, string>();
   d.contacts.forEach((c) => {
-    const n = contactDisplayName(c).toLowerCase();
-    if (n && !contactByName.has(n)) contactByName.set(n, c.id);
+    const nn = contactDisplayName(c).toLowerCase();
+    if (nn && !contactByName.has(nn)) contactByName.set(nn, c.id);
   });
-  d.items.forEach((i) => {
-    i.personnes.forEach((p) => {
-      const cid = contactByName.get((p.name || "").trim().toLowerCase());
-      if (cid) link(nid("item", i.id), nid("contact", cid));
-    });
-  });
+  const personNode = (name?: string | null): string | null => {
+    const t = (name || "").trim();
+    if (!t) return null;
+    const cid = contactByName.get(t.toLowerCase());
+    const rawId = cid ?? `name:${t.toLowerCase()}`;
+    const id = nid("contact", rawId);
+    if (!nodes.has(id)) nodes.set(id, { id, kind: "contact", rawId, label: t });
+    return id;
+  };
+  d.items.forEach((i) => i.personnes.forEach((p) => { const pn = personNode(p.name); if (pn) link(nid("item", i.id), pn); }));
+  d.negligences.forEach((n) => { const pn = personNode(n.concerne); if (pn) link(nid("negligence", n.id), pn); });
+  d.nonConformites.forEach((n) => { const pn = personNode(n.concerne); if (pn) link(nid("nonconformite", n.id), pn); });
 
   return { nodes: [...nodes.values()], edges };
 }

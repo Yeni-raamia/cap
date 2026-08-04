@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ExternalLink, Search, Share2 } from "lucide-react";
+import { ExternalLink, RotateCcw, Search, Share2 } from "lucide-react";
 import { buildGraph, egoSubgraph, type GraphNode } from "@/lib/graph";
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
@@ -31,6 +31,7 @@ function RelationsInner() {
   const [center, setCenter] = useState<string>("");
   const [depth, setDepth] = useState(1);
   const [q, setQ] = useState("");
+  const [layoutKey, setLayoutKey] = useState(0);
 
   // Nœud de départ : paramètre ?node=kind:id, sinon le mieux connecté.
   useEffect(() => {
@@ -138,6 +139,9 @@ function RelationsInner() {
               ) : centerNode && nodeHref(centerNode) ? (
                 <Link href={nodeHref(centerNode)!} className="inline-flex items-center gap-1 text-[12px] text-emerald-700 hover:underline"><ExternalLink size={12} /> Ouvrir la fiche</Link>
               ) : null}
+              <button onClick={() => setLayoutKey((k) => k + 1)} className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 border border-slate-200 rounded-lg px-2 py-1 hover:bg-slate-50" title="Réinitialiser la disposition">
+                <RotateCcw size={12} /> Réorganiser
+              </button>
               <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-[11px]">
                 {[1, 2].map((d) => (
                   <button key={d} onClick={() => setDepth(d)} className={`px-2 py-0.5 rounded-md font-medium ${depth === d ? "bg-emerald-600 text-white" : "text-slate-500"}`}>
@@ -147,7 +151,8 @@ function RelationsInner() {
               </div>
             </div>
           </div>
-          {center && <RelationsGraph graph={ego} centerId={center} onSelect={setCenter} />}
+          <p className="px-2 text-[11px] text-slate-400">Astuce : glissez une bulle pour la repositionner ; cliquez-en une pour recentrer le graphe dessus.</p>
+          {center && <RelationsGraph key={`${center}:${layoutKey}`} graph={ego} centerId={center} onSelect={setCenter} />}
         </Card>
       </div>
     </div>

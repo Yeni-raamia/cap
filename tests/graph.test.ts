@@ -53,6 +53,26 @@ describe("buildGraph", () => {
   });
 });
 
+describe("buildGraph — personnes (couverture élargie)", () => {
+  it("relie une non-conformité et un suivi à la même personne (par nom)", () => {
+    const d = emptyData();
+    d.items = [mkItem({ id: "i1", personnes: [{ name: "Jean Dupont", kind: "destinataire" }] })];
+    d.nonConformites = [
+      {
+        id: "nc1", itemId: null, objet: "Écart", service: "Réseau", concerne: "Jean Dupont", policy: "",
+        gravite: "Modérée", risque: "Moyen", impact: "", description: "", status: "Ouverte",
+        decisions: [], createdBy: "", decidedBy: null, createdAt: new Date(0), updatedAt: new Date(0), decidedAt: null,
+      },
+    ];
+    const g = buildGraph(d);
+    const person = g.nodes.find((n) => n.kind === "contact" && n.label === "Jean Dupont");
+    expect(person).toBeTruthy();
+    const has = (a: string, b: string) => g.edges.some((e) => (e.source === a && e.target === b) || (e.source === b && e.target === a));
+    expect(has(nid("item", "i1"), person!.id)).toBe(true);
+    expect(has(nid("nonconformite", "nc1"), person!.id)).toBe(true); // même nœud personne → non-conformité reliée
+  });
+});
+
 describe("egoSubgraph", () => {
   it("extrait le nœud central et ses voisins directs (profondeur 1)", () => {
     const d = emptyData();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as RPE } from "react";
 import { degrees, type Graph, type GraphNodeKind } from "@/lib/graph";
 
 /** Couleur de bulle par type de nœud (palette dérivée du thème de l'app). */
@@ -38,7 +38,7 @@ const DAMP = 0.85; // amortissement
 const MAXV = 16; // vitesse max / frame
 const JITTER = 0.5; // « dandinement » permanent
 
-interface P { x: number; y: number; vx: number; vy: number }
+interface P { x: number; y: number; vx: number; vy: number; fixed?: boolean }
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
 /** Un pas de simulation (met à jour `pos` en place). */
@@ -77,6 +77,7 @@ function step(graph: Graph, pos: Record<string, P>, centerId: string) {
   for (const n of nodes) {
     if (n.id === centerId) { pos[n.id] = { x: cx, y: cy, vx: 0, vy: 0 }; continue; }
     const p = pos[n.id];
+    if (p.fixed) continue; // épinglé par l'utilisateur (glissé-déposé) → immobile
     const ax = fx[n.id] + (cx - p.x) * GRAVITY + (Math.random() - 0.5) * JITTER;
     const ay = fy[n.id] + (cy - p.y) * GRAVITY + (Math.random() - 0.5) * JITTER;
     p.vx = clamp((p.vx + ax) * DAMP, -MAXV, MAXV);
@@ -91,6 +92,8 @@ const short = (s: string, n = 26) => (s.length > n ? s.slice(0, n - 1) + "…" :
 export function RelationsGraph({ graph, centerId, onSelect }: { graph: Graph; centerId: string; onSelect: (id: string) => void }) {
   const posRef = useRef<Record<string, P>>({});
   const rafRef = useRef(0);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dragRef = useRef<{ id: string; moved: boolean } | null>(null);
   const [pos, setPos] = useState<Record<string, P>>({});
 
   // (Ré)initialisation des positions + boucle d'animation quand le graphe change.
@@ -119,12 +122,55 @@ export function RelationsGraph({ graph, centerId, onSelect }: { graph: Graph; ce
 
   const deg = degrees(graph);
 
+  // Conversion coordonnées écran → coordonnées SVG (pour le glissé-déposé).
+  const toSvg = (clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return null;
+    const p = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y };
+  };
+  const onNodeDown = (e: RPE<SVGGElement>, id: string) => {
+    if (id === centerId) return; // le centre reste au milieu
+    e.stopPropagation();
+    dragRef.current = { id, moved: false };
+  };
+  const onMove = (e: RPE<SVGSVGElement>) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const c = toSvg(e.clientX, e.clientY);
+    if (!c) return;
+    drag.moved = true;
+    const p = posRef.current[drag.id];
+    if (p) {
+      p.x = Math.max(20, Math.min(W - 20, c.x));
+      p.y = Math.max(20, Math.min(H - 20, c.y));
+      p.vx = 0; p.vy = 0;
+      p.fixed = true; // épinglé là où on le dépose
+    }
+    setPos({ ...posRef.current });
+  };
+  const onUp = (id?: string) => {
+    const drag = dragRef.current;
+    dragRef.current = null;
+    if (drag && !drag.moved && id) onSelect(id); // clic simple (sans glisser) = recentrer
+  };
+
   if (graph.nodes.length === 0) {
     return <div className="grid place-items-center h-[420px] text-[13px] text-slate-400">Aucune relation à afficher.</div>;
   }
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[520px] select-none" role="img" aria-label="Graphe de relations">
+    <svg
+      ref={svgRef}
+      viewBox={`0 0 ${W} ${H}`}
+      className="w-full h-[520px] select-none touch-none"
+      role="img"
+      aria-label="Graphe de relations"
+      onPointerMove={onMove}
+      onPointerUp={() => onUp()}
+      onPointerLeave={() => { dragRef.current = null; }}
+    >
       {graph.edges.map((e, i) => {
         const a = pos[e.source], b = pos[e.target];
         if (!a || !b) return null;
@@ -137,7 +183,13 @@ export function RelationsGraph({ graph, centerId, onSelect }: { graph: Graph; ce
         const r = isCenter ? 16 : Math.max(7, Math.min(14, 6 + (deg.get(nd.id) ?? 0)));
         const color = NODE_COLOR[nd.kind];
         return (
-          <g key={nd.id} transform={`translate(${p.x},${p.y})`} className="cursor-pointer" onClick={() => onSelect(nd.id)}>
+          <g
+            key={nd.id}
+            transform={`translate(${p.x},${p.y})`}
+            className={isCenter ? "cursor-default" : "cursor-grab active:cursor-grabbing"}
+            onPointerDown={(e) => onNodeDown(e, nd.id)}
+            onPointerUp={() => onUp(nd.id)}
+          >
             <title>{`${NODE_LABEL[nd.kind]} · ${nd.label}`}</title>
             {isCenter && <circle r={r + 5} fill="none" stroke={color} strokeWidth={2} strokeDasharray="3 3" opacity={0.6} />}
             <circle r={r} fill={color} stroke="#fff" strokeWidth={2} />
