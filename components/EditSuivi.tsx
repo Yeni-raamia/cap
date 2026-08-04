@@ -1,43 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Plus, Save, Trash2, X } from "lucide-react";
-import { contactDisplayName, type Contact, type Item, type PersonKind, type Priorite } from "@/lib/domain";
+import { Info, Loader2, Save, X } from "lucide-react";
+import type { Item, Priorite } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { Card } from "./atoms";
-import { ContactAutocomplete } from "./ContactAutocomplete";
 
 const PRIORITES: Priorite[] = ["Critique", "Élevé", "Moyenne"];
-const KINDS: PersonKind[] = ["destinataire", "copie", "impliqué"];
 
-/** Formulaire d'édition des métadonnées d'un suivi (dans le Drawer). */
+/** Formulaire d'édition des métadonnées d'un suivi (dans le Drawer).
+ *  Les personnes (destinataires) ne sont pas modifiables ici : elles se
+ *  définissent à la création, et une éventuelle correction d'orthographe se
+ *  fait de façon contrôlée dans Administration → Destinataires (évite les
+ *  saisies divergentes qui faussent les statistiques). */
 export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) {
-  const { updateItem } = useApp();
+  const { updateItem, me } = useApp();
   const [objet, setObjet] = useState(item.objet);
   const [priorite, setPriorite] = useState<Priorite>(item.priorite);
   const [points, setPoints] = useState(item.pointsCles.filter((p) => p !== "—").join("\n"));
   const [dueDuration, setDuration] = useState(item.dueDurationDays != null ? String(item.dueDurationDays) : "");
-  const [personnes, setPersonnes] = useState(
-    item.personnes.map((p) => ({ name: p.name, kind: p.kind, service: p.service ?? "", email: p.email ?? "" }))
-  );
   const [saving, setSaving] = useState(false);
-
-  const setPerson = (i: number, patch: Partial<{ name: string; kind: PersonKind; service: string; email: string }>) =>
-    setPersonnes((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
-  const addPerson = () => setPersonnes((prev) => [...prev, { name: "", kind: "destinataire", service: "", email: "" }]);
-  const removePerson = (i: number) => setPersonnes((prev) => prev.filter((_, idx) => idx !== i));
 
   const save = async () => {
     if (!objet.trim()) return;
     setSaving(true);
+    // On ne touche PAS aux personnes : édition des métadonnées uniquement.
     const ok = await updateItem(item, {
       objet,
       priorite,
       pointsCles: points.split("\n"),
       dueDurationDays: dueDuration.trim() ? Number(dueDuration) : null,
-      personnes: personnes
-        .filter((p) => p.name.trim())
-        .map((p) => ({ name: p.name.trim(), kind: p.kind, service: p.service.trim() || null, email: p.email.trim() || null })),
     });
     setSaving(false);
     if (ok) onDone();
@@ -46,6 +38,7 @@ export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) 
   const inputCls =
     "w-full text-[13px] border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-emerald-400";
   const label = "text-[10px] uppercase tracking-wide text-slate-400 mb-1";
+  const isAdmin = me.role === "admin";
 
   return (
     <Card className="p-3 space-y-3 ring-1 ring-emerald-200">
@@ -93,66 +86,31 @@ export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) 
         />
       </div>
 
+      {/* Personnes : lecture seule (correction contrôlée en administration) */}
       <div>
-        <div className="flex items-center justify-between mb-1">
-          <div className={label + " mb-0"}>Personnes</div>
-          <button onClick={addPerson} className="inline-flex items-center gap-1 text-[11px] text-emerald-700 hover:underline">
-            <Plus size={12} /> Ajouter
-          </button>
-        </div>
-        <div className="space-y-1.5">
-          {personnes.map((p, i) => (
-            <div key={i} className="border border-slate-200 rounded-lg p-1.5 space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <div className="flex-1 min-w-0">
-                  <ContactAutocomplete
-                    value={p.name}
-                    onChange={(v) => setPerson(i, { name: v })}
-                    onPick={(c: Contact) =>
-                      setPerson(i, {
-                        name: contactDisplayName(c),
-                        service: c.service || p.service,
-                        email: c.email || p.email,
-                      })
-                    }
-                    placeholder="Nom"
-                    className={`${inputCls} w-full`}
-                  />
-                </div>
-                <select
-                  value={p.kind}
-                  onChange={(e) => setPerson(i, { kind: e.target.value as PersonKind })}
-                  className="text-[12px] border border-slate-200 rounded-lg px-1.5 py-1.5 outline-none focus:border-emerald-400"
-                  aria-label="Rôle"
-                >
-                  {KINDS.map((k) => (
-                    <option key={k} value={k}>{k}</option>
-                  ))}
-                </select>
-                <input
-                  value={p.service}
-                  onChange={(e) => setPerson(i, { service: e.target.value })}
-                  placeholder="Service"
-                  className={`${inputCls} w-24`}
-                />
-                <button
-                  onClick={() => removePerson(i)}
-                  aria-label="Retirer cette personne"
-                  className="text-slate-400 hover:text-rose-600 shrink-0 px-1"
-                >
-                  <Trash2 size={14} />
-                </button>
+        <div className={label}>Personnes</div>
+        <div className="space-y-1">
+          {item.personnes.length === 0 ? (
+            <div className="text-[11px] text-slate-400">Aucune personne renseignée.</div>
+          ) : (
+            item.personnes.map((p, i) => (
+              <div key={i} className="flex items-center gap-2 text-[12px] text-slate-600">
+                <span className="text-slate-800">{p.name}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">{p.kind}</span>
+                {p.service && <span className="text-slate-400">· {p.service}</span>}
+                {p.email && <span className="text-slate-400 truncate">· {p.email}</span>}
               </div>
-              <input
-                type="email"
-                value={p.email}
-                onChange={(e) => setPerson(i, { email: e.target.value })}
-                placeholder={p.kind === "destinataire" ? "E-mail (pour envoyer les relances)" : "E-mail"}
-                className={inputCls}
-              />
-            </div>
-          ))}
-          {personnes.length === 0 && <div className="text-[11px] text-slate-400">Aucune personne. Ajoutez-en une.</div>}
+            ))
+          )}
+        </div>
+        <div className="mt-1.5 flex items-start gap-1.5 text-[10.5px] text-slate-400">
+          <Info size={12} className="mt-0.5 shrink-0" />
+          <span>
+            Les destinataires se définissent à la création du suivi.{" "}
+            {isAdmin
+              ? "Pour corriger une orthographe, utilisez Administration → Destinataires (répercuté partout)."
+              : "Pour corriger une orthographe, demandez à un administrateur (Administration → Destinataires)."}
+          </span>
         </div>
       </div>
 
