@@ -5,8 +5,8 @@ import { Check, Copy, Plus, X } from "lucide-react";
 import {
   buildRef,
   buildSubjectLine,
+  contactDisplayName,
   isUrgentType,
-  knownPersonNames,
   nextRefNumber,
   parseEmail,
   parseSubject,
@@ -17,6 +17,7 @@ import { APP_MOTTO } from "@/lib/config";
 import { copyText } from "@/lib/clipboard";
 import { useApp } from "./app-context";
 import { MetierChip, Token, TypeTag } from "./atoms";
+import { ContactAutocomplete } from "./ContactAutocomplete";
 
 type Mode = "codes" | "coller";
 
@@ -45,24 +46,11 @@ export function NewSuiviModal() {
   const email = useMemo(() => parseEmail(raw), [raw]);
   const parsedRaw = useMemo(() => parseSubject(email.subject || raw, catalogue), [email.subject, raw, catalogue]);
 
-  // Autocomplétion des destinataires déjà saisis (cohérence des statistiques).
-  const destNames = useMemo(() => knownPersonNames(items), [items]);
-  const destInfo = useMemo(() => {
-    const m = new Map<string, { service: string; email: string }>();
-    for (const it of items)
-      for (const p of it.personnes) {
-        const n = p.name?.trim();
-        if (n && !m.has(n)) m.set(n, { service: p.service ?? "", email: p.email ?? "" });
-      }
-    return m;
-  }, [items]);
-  const onDestChange = (v: string) => {
-    setDest(v);
-    const info = destInfo.get(v.trim());
-    if (info) {
-      if (!destService && info.service && refLists.services.includes(info.service)) setDestService(info.service);
-      if (!destEmail && info.email) setDestEmail(info.email);
-    }
+  // Sélection d'un contact de l'annuaire → pré-remplit nom, service et e-mail.
+  const onPickContact = (c: { prenom?: string; nom?: string; service?: string; email?: string }) => {
+    setDest(contactDisplayName(c));
+    if (c.service && refLists.services.includes(c.service)) setDestService(c.service);
+    if (c.email) setDestEmail(c.email);
   };
 
   const [copied, setCopied] = useState(false);
@@ -362,21 +350,16 @@ Coller un e-mail
           <label className="text-[12px] font-medium text-slate-600" htmlFor="dest">
             Destinataire (nom de la personne)
           </label>
-          <input
+          <ContactAutocomplete
             id="dest"
             value={dest}
-            onChange={(e) => onDestChange(e.target.value)}
-            list="cap-dest-names"
-            placeholder="Nom de la personne à qui le mail est adressé"
+            onChange={setDest}
+            onPick={onPickContact}
+            placeholder="Tape quelques lettres — l'annuaire propose les contacts"
             className={inputCls}
           />
-          <datalist id="cap-dest-names">
-            {destNames.map((n) => (
-              <option key={n} value={n} />
-            ))}
-          </datalist>
           <p className="text-[10px] text-slate-400 mt-1">
-            Choisis un nom déjà utilisé (autocomplétion) pour rester cohérent, ou saisis-en un nouveau.
+            Choisis un contact de l&apos;annuaire (nom, service et e-mail pré-remplis) ou saisis un nouveau nom.
           </p>
         </div>
         <div className="mt-3">

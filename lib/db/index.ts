@@ -122,6 +122,12 @@ create table if not exists sessions (
 create table if not exists settings (
   key text primary key, value text not null
 );
+create table if not exists contacts (
+  id text primary key, prenom text not null default '', nom text not null default '',
+  email text not null default '', telephone text not null default '', service text not null default '',
+  fonction text not null default '', created_by text,
+  created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists activity_log (
   id text primary key, actor_id text, action text not null, detail text not null default '',
   created_at text not null default (datetime('now'))

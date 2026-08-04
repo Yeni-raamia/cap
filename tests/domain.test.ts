@@ -15,6 +15,7 @@ import {
   reminderState,
   isTaskLate,
   knownPersonNames,
+  contactDisplayName,
 } from "@/lib/domain";
 
 /** Fabrique un suivi minimal complet ; on surcharge les champs utiles au test. */
@@ -240,6 +241,15 @@ describe("reminderState (horloge SLA)", () => {
     });
     // Créé il y a 7 j mais relancé hier → toujours "ok", pas escalade.
     expect(reminderState(item, new Date("2026-07-08T00:00:00Z")).level).toBe("ok");
+  });
+});
+
+describe("contactDisplayName", () => {
+  it("assemble prénom + nom en compactant les espaces", () => {
+    expect(contactDisplayName({ prenom: "Jean", nom: "Dupont" })).toBe("Jean Dupont");
+    expect(contactDisplayName({ prenom: "", nom: "Dupont" })).toBe("Dupont");
+    expect(contactDisplayName({ prenom: "Ana", nom: "" })).toBe("Ana");
+    expect(contactDisplayName({})).toBe("");
   });
 });
 

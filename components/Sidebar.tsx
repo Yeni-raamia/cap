@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   BarChart3,
   Bell,
+  BookUser,
   CalendarRange,
   Compass,
   FileWarning,
@@ -37,6 +38,7 @@ const ICONS: Record<string, LucideIcon> = {
   BarChart3,
   Trophy,
   Bell,
+  BookUser,
   MessageSquare,
   Settings,
 };

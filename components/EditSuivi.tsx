@@ -1,18 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Loader2, Plus, Save, Trash2, X } from "lucide-react";
-import { knownPersonNames, type Item, type PersonKind, type Priorite } from "@/lib/domain";
+import { contactDisplayName, type Contact, type Item, type PersonKind, type Priorite } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { Card } from "./atoms";
+import { ContactAutocomplete } from "./ContactAutocomplete";
 
 const PRIORITES: Priorite[] = ["Critique", "Élevé", "Moyenne"];
 const KINDS: PersonKind[] = ["destinataire", "copie", "impliqué"];
 
 /** Formulaire d'édition des métadonnées d'un suivi (dans le Drawer). */
 export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) {
-  const { updateItem, items } = useApp();
-  const personNames = useMemo(() => knownPersonNames(items), [items]);
+  const { updateItem } = useApp();
   const [objet, setObjet] = useState(item.objet);
   const [priorite, setPriorite] = useState<Priorite>(item.priorite);
   const [points, setPoints] = useState(item.pointsCles.filter((p) => p !== "—").join("\n"));
@@ -100,22 +100,25 @@ export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) 
             <Plus size={12} /> Ajouter
           </button>
         </div>
-        <datalist id="cap-edit-person-names">
-          {personNames.map((n) => (
-            <option key={n} value={n} />
-          ))}
-        </datalist>
         <div className="space-y-1.5">
           {personnes.map((p, i) => (
             <div key={i} className="border border-slate-200 rounded-lg p-1.5 space-y-1.5">
               <div className="flex items-center gap-1.5">
-                <input
-                  value={p.name}
-                  onChange={(e) => setPerson(i, { name: e.target.value })}
-                  list="cap-edit-person-names"
-                  placeholder="Nom"
-                  className={`${inputCls} flex-1`}
-                />
+                <div className="flex-1 min-w-0">
+                  <ContactAutocomplete
+                    value={p.name}
+                    onChange={(v) => setPerson(i, { name: v })}
+                    onPick={(c: Contact) =>
+                      setPerson(i, {
+                        name: contactDisplayName(c),
+                        service: c.service || p.service,
+                        email: c.email || p.email,
+                      })
+                    }
+                    placeholder="Nom"
+                    className={`${inputCls} w-full`}
+                  />
+                </div>
                 <select
                   value={p.kind}
                   onChange={(e) => setPerson(i, { kind: e.target.value as PersonKind })}

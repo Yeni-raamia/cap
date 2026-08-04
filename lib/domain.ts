@@ -42,6 +42,22 @@ export interface Person {
   email?: string | null;
 }
 
+/** Contact partagé (annuaire éditable par tous) — pré-remplit un destinataire. */
+export interface Contact {
+  id: string;
+  prenom: string;
+  nom: string;
+  email: string;
+  telephone: string;
+  service: string;
+  fonction: string;
+}
+
+/** Nom affiché d'un contact : « Prénom Nom » (espaces compactés). */
+export function contactDisplayName(c: { prenom?: string; nom?: string }): string {
+  return `${c.prenom ?? ""} ${c.nom ?? ""}`.replace(/\s+/g, " ").trim();
+}
+
 export interface TimelineEvent {
   date: Date;
   kind: EventKind;

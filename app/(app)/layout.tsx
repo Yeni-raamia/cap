@@ -10,6 +10,7 @@ import { listObjectives } from "@/lib/db/objectives";
 import { listNegligences } from "@/lib/db/negligences";
 import { listNonConformites } from "@/lib/db/nonconformites";
 import { listConversationsFor } from "@/lib/db/messaging";
+import { listContacts } from "@/lib/db/contacts";
 import { getRefLists, getSecuritySettings, getSettings } from "@/lib/db/admin";
 import { maybeRunRemindersInBackground } from "@/lib/reminders/auto";
 import { maybeRunBackupInBackground } from "@/lib/backup/auto";
@@ -47,6 +48,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const tasks = listTasks();
   const objectives = listObjectives();
   const templates = listTemplates();
+  const contacts = listContacts();
 
   return (
     <AppShell
@@ -64,6 +66,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialTasks={tasks}
       initialObjectives={objectives}
       initialTemplates={templates}
+      initialContacts={contacts}
     >
       {children}
     </AppShell>

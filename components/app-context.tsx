@@ -34,6 +34,7 @@ import {
   weeklyChallenges,
   weekStart,
   type AppSettings,
+  type Contact,
   type ConversationSummary,
   type EmailTemplate,
   type Message,
@@ -151,6 +152,10 @@ interface AppCtx {
   importEmailResponse: (itemId: string, file: File) => Promise<boolean>;
   createItemFromEmail: (file: File, opts: { metier: string; type: string; prio: string; objet: string; dest: string }) => Promise<boolean>;
   renameDestinataire: (oldName: string, newName: string) => Promise<string | null>;
+  contacts: Contact[];
+  createContact: (c: Omit<Contact, "id">) => Promise<string | null>;
+  updateContact: (id: string, f: Partial<Omit<Contact, "id">>) => Promise<string | null>;
+  deleteContact: (id: string) => Promise<string | null>;
   act: (item: Item, action: Action, cause?: string) => void;
   bulkAct: (ids: string[], action: Action) => Promise<{ applied: number; skipped: number } | null>;
   setItemLate: (item: Item, late: boolean) => Promise<boolean>;
@@ -350,6 +355,7 @@ export function AppProvider({
   initialTasks,
   initialObjectives,
   initialTemplates,
+  initialContacts,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -367,6 +373,7 @@ export function AppProvider({
   initialTasks?: Task[];
   initialObjectives?: Objective[];
   initialTemplates?: EmailTemplate[];
+  initialContacts?: Contact[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -386,6 +393,7 @@ export function AppProvider({
   const [refLists, setRefLists] = useState<RefLists>(
     demo || !initialRefLists ? DEFAULT_REF_LISTS : initialRefLists
   );
+  const [contacts, setContacts] = useState<Contact[]>(demo ? [] : initialContacts ?? []);
   const [nonConformites, setNonConformites] = useState<NonConformite[]>(
     demo ? [] : reviveNcs(initialNonConformites ?? [])
   );
@@ -619,6 +627,43 @@ export function AppProvider({
       toast("Création impossible.", "error");
       return false;
     }
+  };
+
+  const postContact = async (payload: Record<string, unknown>): Promise<string | null> => {
+    try {
+      const r = await fetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) return d.error ?? "Erreur.";
+      if (d.contacts) setContacts(d.contacts as Contact[]);
+      return null;
+    } catch {
+      return "Opération impossible.";
+    }
+  };
+  const createContact = async (c: Omit<Contact, "id">): Promise<string | null> => {
+    if (demo) {
+      setContacts((prev) => [...prev, { ...c, id: `c-${prev.length + 1}` }]);
+      return null;
+    }
+    return postContact({ op: "create", ...c });
+  };
+  const updateContact = async (id: string, f: Partial<Omit<Contact, "id">>): Promise<string | null> => {
+    if (demo) {
+      setContacts((prev) => prev.map((x) => (x.id === id ? { ...x, ...f } : x)));
+      return null;
+    }
+    return postContact({ op: "update", id, ...f });
+  };
+  const deleteContact = async (id: string): Promise<string | null> => {
+    if (demo) {
+      setContacts((prev) => prev.filter((x) => x.id !== id));
+      return null;
+    }
+    return postContact({ op: "delete", id });
   };
 
   const renameDestinataire = async (oldName: string, newName: string): Promise<string | null> => {
@@ -1427,6 +1472,10 @@ export function AppProvider({
     importEmailResponse,
     createItemFromEmail,
     renameDestinataire,
+    contacts,
+    createContact,
+    updateContact,
+    deleteContact,
     act,
     create,
     setRelanceDate,
