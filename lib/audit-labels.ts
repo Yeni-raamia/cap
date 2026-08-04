@@ -17,6 +17,7 @@ export const ACTION_LABEL: Record<string, string> = {
   item_bulk_cloture: "Clôture groupée",
   item_late: "Suivi marqué en retard",
   email_import: "Réponse importée (e-mail)",
+  person_rename: "Destinataire renommé",
   member_create: "Membre créé",
   member_role: "Rôle modifié",
   member_active: "Statut de compte",

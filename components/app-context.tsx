@@ -150,6 +150,7 @@ interface AppCtx {
   setShowImport: (v: boolean) => void;
   importEmailResponse: (itemId: string, file: File) => Promise<boolean>;
   createItemFromEmail: (file: File, opts: { metier: string; type: string; prio: string; objet: string; dest: string }) => Promise<boolean>;
+  renameDestinataire: (oldName: string, newName: string) => Promise<string | null>;
   act: (item: Item, action: Action, cause?: string) => void;
   bulkAct: (ids: string[], action: Action) => Promise<{ applied: number; skipped: number } | null>;
   setItemLate: (item: Item, late: boolean) => Promise<boolean>;
@@ -617,6 +618,24 @@ export function AppProvider({
     } catch {
       toast("Création impossible.", "error");
       return false;
+    }
+  };
+
+  const renameDestinataire = async (oldName: string, newName: string): Promise<string | null> => {
+    if (demo) return "Renommage indisponible en mode démo.";
+    try {
+      const r = await fetch("/api/items/rename-person", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldName, newName }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) return d.error ?? "Renommage impossible.";
+      if (d.items) setItems(reviveItems(d.items));
+      toast(`Destinataire renommé sur ${d.updated ?? 0} suivi(s).`, "success");
+      return null;
+    } catch {
+      return "Renommage impossible.";
     }
   };
 
@@ -1407,6 +1426,7 @@ export function AppProvider({
     setShowImport,
     importEmailResponse,
     createItemFromEmail,
+    renameDestinataire,
     act,
     create,
     setRelanceDate,

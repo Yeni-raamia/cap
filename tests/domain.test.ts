@@ -14,6 +14,7 @@ import {
   lastOutboundDate,
   reminderState,
   isTaskLate,
+  knownPersonNames,
 } from "@/lib/domain";
 
 /** Fabrique un suivi minimal complet ; on surcharge les champs utiles au test. */
@@ -239,6 +240,19 @@ describe("reminderState (horloge SLA)", () => {
     });
     // Créé il y a 7 j mais relancé hier → toujours "ok", pas escalade.
     expect(reminderState(item, new Date("2026-07-08T00:00:00Z")).level).toBe("ok");
+  });
+});
+
+describe("knownPersonNames", () => {
+  it("dédoublonne, ignore les vides et trie les noms de personnes", () => {
+    const items = [
+      mkItem({ id: "a", personnes: [{ name: "Zoé", kind: "destinataire" }, { name: "Ana", kind: "copie" }] }),
+      mkItem({ id: "b", personnes: [{ name: "Ana", kind: "destinataire" }, { name: "  ", kind: "impliqué" }] }),
+    ];
+    expect(knownPersonNames(items)).toEqual(["Ana", "Zoé"]);
+  });
+  it("renvoie une liste vide sans personnes", () => {
+    expect(knownPersonNames([mkItem({ personnes: [] })])).toEqual([]);
   });
 });
 

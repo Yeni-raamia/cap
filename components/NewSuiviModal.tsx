@@ -6,6 +6,7 @@ import {
   buildRef,
   buildSubjectLine,
   isUrgentType,
+  knownPersonNames,
   nextRefNumber,
   parseEmail,
   parseSubject,
@@ -43,6 +44,26 @@ export function NewSuiviModal() {
   const [raw, setRaw] = useState("");
   const email = useMemo(() => parseEmail(raw), [raw]);
   const parsedRaw = useMemo(() => parseSubject(email.subject || raw, catalogue), [email.subject, raw, catalogue]);
+
+  // Autocomplétion des destinataires déjà saisis (cohérence des statistiques).
+  const destNames = useMemo(() => knownPersonNames(items), [items]);
+  const destInfo = useMemo(() => {
+    const m = new Map<string, { service: string; email: string }>();
+    for (const it of items)
+      for (const p of it.personnes) {
+        const n = p.name?.trim();
+        if (n && !m.has(n)) m.set(n, { service: p.service ?? "", email: p.email ?? "" });
+      }
+    return m;
+  }, [items]);
+  const onDestChange = (v: string) => {
+    setDest(v);
+    const info = destInfo.get(v.trim());
+    if (info) {
+      if (!destService && info.service && refLists.services.includes(info.service)) setDestService(info.service);
+      if (!destEmail && info.email) setDestEmail(info.email);
+    }
+  };
 
   const [copied, setCopied] = useState(false);
 
@@ -344,10 +365,19 @@ Coller un e-mail
           <input
             id="dest"
             value={dest}
-            onChange={(e) => setDest(e.target.value)}
+            onChange={(e) => onDestChange(e.target.value)}
+            list="cap-dest-names"
             placeholder="Nom de la personne à qui le mail est adressé"
             className={inputCls}
           />
+          <datalist id="cap-dest-names">
+            {destNames.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+          <p className="text-[10px] text-slate-400 mt-1">
+            Choisis un nom déjà utilisé (autocomplétion) pour rester cohérent, ou saisis-en un nouveau.
+          </p>
         </div>
         <div className="mt-3">
           <label className="text-[12px] font-medium text-slate-600" htmlFor="destEmail">

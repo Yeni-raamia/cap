@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2, Plus, Save, Trash2, X } from "lucide-react";
-import type { Item, PersonKind, Priorite } from "@/lib/domain";
+import { knownPersonNames, type Item, type PersonKind, type Priorite } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { Card } from "./atoms";
 
@@ -11,7 +11,8 @@ const KINDS: PersonKind[] = ["destinataire", "copie", "impliqué"];
 
 /** Formulaire d'édition des métadonnées d'un suivi (dans le Drawer). */
 export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) {
-  const { updateItem } = useApp();
+  const { updateItem, items } = useApp();
+  const personNames = useMemo(() => knownPersonNames(items), [items]);
   const [objet, setObjet] = useState(item.objet);
   const [priorite, setPriorite] = useState<Priorite>(item.priorite);
   const [points, setPoints] = useState(item.pointsCles.filter((p) => p !== "—").join("\n"));
@@ -99,6 +100,11 @@ export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) 
             <Plus size={12} /> Ajouter
           </button>
         </div>
+        <datalist id="cap-edit-person-names">
+          {personNames.map((n) => (
+            <option key={n} value={n} />
+          ))}
+        </datalist>
         <div className="space-y-1.5">
           {personnes.map((p, i) => (
             <div key={i} className="border border-slate-200 rounded-lg p-1.5 space-y-1.5">
@@ -106,6 +112,7 @@ export function EditSuivi({ item, onDone }: { item: Item; onDone: () => void }) 
                 <input
                   value={p.name}
                   onChange={(e) => setPerson(i, { name: e.target.value })}
+                  list="cap-edit-person-names"
                   placeholder="Nom"
                   className={`${inputCls} flex-1`}
                 />

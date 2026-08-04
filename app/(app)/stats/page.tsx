@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -33,9 +33,9 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { isLateByDuration, NEGLIGENCE_GRAVITES, STATUTS, type NonConformite, type Negligence, type Statut } from "@/lib/domain";
+import { isLateByDuration, knownPersonNames, NEGLIGENCE_GRAVITES, STATUTS, type NonConformite, type Negligence, type Statut } from "@/lib/domain";
 import { computeBreakdowns, computeProjectStats } from "@/lib/stats";
-import { BarChart3, Columns2, GripVertical, Plus, RectangleHorizontal, RotateCcw, Settings2, X } from "lucide-react";
+import { BarChart3, Check, Columns2, GripVertical, Pencil, Plus, RectangleHorizontal, RotateCcw, Settings2, X } from "lucide-react";
 
 type BlockSize = "full" | "half";
 type LayoutItem = { id: string; size: BlockSize };
@@ -121,7 +121,22 @@ function SortableBlock({
 }
 
 export default function StatsPage() {
-  const { items, profiles, catalogue, now, projects, theme, negligences, nonConformites, me } = useApp();
+  const { items, profiles, catalogue, now, projects, theme, negligences, nonConformites, me, demo, renameDestinataire } = useApp();
+  const [renameFrom, setRenameFrom] = useState<string | null>(null);
+  const [renameTo, setRenameTo] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const allNames = useMemo(() => knownPersonNames(items), [items]);
+  const canRename = !demo && (me.role === "directeur" || me.role === "admin");
+  const doRename = async () => {
+    if (!renameFrom || !renameTo.trim()) return;
+    setRenaming(true);
+    const err = await renameDestinataire(renameFrom, renameTo.trim());
+    setRenaming(false);
+    if (!err) {
+      setRenameFrom(null);
+      setRenameTo("");
+    }
+  };
   const dark = theme === "dark";
   const grid = dark ? "#1e293b" : "#eef2f6";
   const tick = { fontSize: 11, fill: dark ? "#94a3b8" : "#64748b" };
@@ -507,7 +522,13 @@ export default function StatsPage() {
       node: (
         <div className={box}>
           <div className="text-[13px] font-semibold text-slate-700 mb-1">État par destinataire (nom)</div>
-          <p className="text-[11px] text-slate-400 mb-3">Trié par blocages et retards — met en évidence les tiers dont on attend une action.</p>
+          <p className="text-[11px] text-slate-400 mb-3">
+            Trié par blocages et retards.{" "}
+            {canRename && <span>✎ pour corriger une orthographe / fusionner un doublon partout (évite de fausser les stats).</span>}
+          </p>
+          <datalist id="cap-stats-names">
+            {allNames.map((n) => (<option key={n} value={n} />))}
+          </datalist>
           <div className="overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead>
@@ -523,7 +544,31 @@ export default function StatsPage() {
               <tbody>
                 {bd.parDestinataire.map((d) => (
                   <tr key={d.name} className="border-b border-slate-100">
-                    <td className="py-1.5 pr-3 text-slate-800">{d.name}</td>
+                    <td className="py-1.5 pr-3 text-slate-800">
+                      {canRename && renameFrom === d.name ? (
+                        <span className="inline-flex items-center gap-1">
+                          <input
+                            value={renameTo}
+                            onChange={(e) => setRenameTo(e.target.value)}
+                            list="cap-stats-names"
+                            autoFocus
+                            onKeyDown={(e) => { if (e.key === "Enter") doRename(); if (e.key === "Escape") setRenameFrom(null); }}
+                            className="text-[12px] border border-slate-200 rounded px-1.5 py-0.5 w-40"
+                          />
+                          <button onClick={doRename} disabled={renaming} title="Renommer partout" className="text-emerald-600 hover:text-emerald-700"><Check size={14} /></button>
+                          <button onClick={() => { setRenameFrom(null); setRenameTo(""); }} title="Annuler" className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5">
+                          {d.name}
+                          {canRename && (
+                            <button onClick={() => { setRenameFrom(d.name); setRenameTo(d.name); }} title="Corriger / fusionner ce nom" className="text-slate-300 hover:text-emerald-600">
+                              <Pencil size={12} />
+                            </button>
+                          )}
+                        </span>
+                      )}
+                    </td>
                     <td className="py-1.5 pr-3">{d.suivis}</td>
                     <td className="py-1.5 pr-3">{d.relances}</td>
                     <td className="py-1.5 pr-3">{d.reponses}</td>
