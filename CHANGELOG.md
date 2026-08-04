@@ -8,6 +8,17 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.20.0] - 2026-08-04
+
+### Ajouté
+- **Module Contacts partagé** (annuaire éditable par toute l'équipe : prénom, nom, e-mail, téléphone, service, fonction). Le champ destinataire des suivis devient une **autocomplétion** depuis cet annuaire : en tapant quelques lettres, on choisit un contact et le **nom, le service et l'e-mail sont pré-remplis** — source unique côté serveur, visible de tous.
+- **Archivage et suppression de projet**. Un projet peut être **archivé** (masqué des vues actives, conservé) puis désarchivé. La **suppression** passe par une **demande motivée** approuvée par un manager, directeur ou admin : à l'approbation, le projet et ses tâches/membres/notes sont supprimés et les suivis liés détachés ; un rejet notifie le demandeur.
+- **Correction contrôlée des destinataires** (Administration → Destinataires). Liste les destinataires et leurs occurrences, et **fusionne les orthographes divergentes** d'un même destinataire sur tous les suivis — pour nettoyer les erreurs de saisie qui faussaient les statistiques.
+
+### Modifié
+- **Page Statistiques en lecture seule** : plus aucune correction/manipulation de données depuis les statistiques (elles ne font qu'afficher).
+- **« Éditer le suivi »** : les personnes (destinataires) ne sont plus modifiables par suivi (affichées en lecture seule). Elles se définissent à la création du suivi et une correction éventuelle passe par l'outil d'administration — pour éviter les saisies divergentes.
+
 ## [1.19.0] - 2026-07-25
 
 ### Ajouté — Suivis de mail
