@@ -14,7 +14,6 @@ import {
   lastOutboundDate,
   reminderState,
   isTaskLate,
-  knownPersonNames,
   contactDisplayName,
 } from "@/lib/domain";
 
@@ -250,19 +249,6 @@ describe("contactDisplayName", () => {
     expect(contactDisplayName({ prenom: "", nom: "Dupont" })).toBe("Dupont");
     expect(contactDisplayName({ prenom: "Ana", nom: "" })).toBe("Ana");
     expect(contactDisplayName({})).toBe("");
-  });
-});
-
-describe("knownPersonNames", () => {
-  it("dédoublonne, ignore les vides et trie les noms de personnes", () => {
-    const items = [
-      mkItem({ id: "a", personnes: [{ name: "Zoé", kind: "destinataire" }, { name: "Ana", kind: "copie" }] }),
-      mkItem({ id: "b", personnes: [{ name: "Ana", kind: "destinataire" }, { name: "  ", kind: "impliqué" }] }),
-    ];
-    expect(knownPersonNames(items)).toEqual(["Ana", "Zoé"]);
-  });
-  it("renvoie une liste vide sans personnes", () => {
-    expect(knownPersonNames([mkItem({ personnes: [] })])).toEqual([]);
   });
 });
 

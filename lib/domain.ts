@@ -677,19 +677,6 @@ export function parseEmail(raw: string): { subject: string; from: string; to: st
   return { subject, from, to, points };
 }
 
-/** Noms de personnes déjà saisis (toutes fiches), dédupliqués et triés.
- *  Sert à l'autocomplétion des destinataires — cohérence des statistiques. */
-export function knownPersonNames(items: Item[]): string[] {
-  const set = new Set<string>();
-  for (const it of items) {
-    for (const p of it.personnes) {
-      const n = p.name?.trim();
-      if (n) set.add(n);
-    }
-  }
-  return [...set].sort((a, b) => a.localeCompare(b, "fr"));
-}
-
 /* ---------- 4.5 · État de relance d'un item ---------- */
 export type ReminderLevel = "none" | "ok" | "relance" | "escalade" | "bloque";
 
