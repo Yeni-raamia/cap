@@ -13,6 +13,7 @@ import {
   ListChecks,
   MessageSquare,
   Plus,
+  Share2,
   StickyNote,
   Trash2,
   Users2,
@@ -118,9 +119,14 @@ export default function ProjetDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link href="/projets" className="inline-flex items-center gap-1 text-[13px] text-emerald-700 hover:underline">
-        <ArrowLeft size={15} /> Projets
-      </Link>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <Link href="/projets" className="inline-flex items-center gap-1 text-[13px] text-emerald-700 hover:underline">
+          <ArrowLeft size={15} /> Projets
+        </Link>
+        <Link href={`/relations?node=project:${project.id}`} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-lg px-3 py-1.5">
+          <Share2 size={14} /> Voir les relations
+        </Link>
+      </div>
 
       {err && <div className="text-[12px] text-rose-600">{err}</div>}
 

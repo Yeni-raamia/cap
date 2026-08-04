@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CalendarDays, Check, ExternalLink, Gavel, Link2, Plus, Trash2, Users2, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, ExternalLink, Gavel, Link2, Plus, Share2, Trash2, Users2, X } from "lucide-react";
 import {
   contactDisplayName,
   MEETING_LINK_TYPES,
@@ -94,14 +94,19 @@ export default function ReunionDetailPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <Link href="/reunions" className="inline-flex items-center gap-1 text-[13px] text-emerald-700 hover:underline"><ArrowLeft size={15} /> Réunions</Link>
-        {canEdit && (
+        <div className="flex items-center gap-2">
+          <Link href={`/relations?node=meeting:${meeting.id}`} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-lg px-3 py-1.5">
+            <Share2 size={14} /> Voir les relations
+          </Link>
+          {canEdit && (
           <button
             onClick={async () => { if (!confirm(`Supprimer la réunion « ${meeting.title} » ?`)) return; const e = await deleteMeeting(id); if (!e) router.push("/reunions"); }}
             className="inline-flex items-center gap-1.5 text-[12px] font-medium text-rose-700 border border-rose-200 hover:bg-rose-50 rounded-lg px-3 py-1.5"
           >
             <Trash2 size={14} /> Supprimer
           </button>
-        )}
+          )}
+        </div>
       </div>
 
       {err && <div className="text-[12px] text-rose-600">{err}</div>}

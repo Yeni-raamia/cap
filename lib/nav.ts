@@ -23,6 +23,7 @@ export const NAV: NavItem[] = [
   { id: "classement", href: "/classement", label: "Classement", icon: "Trophy", roles: ["agent", "manager", "directeur", "admin"] },
   { id: "rappels", href: "/rappels", label: "Rappels", icon: "Bell", roles: ["agent", "manager", "directeur", "admin"] },
   { id: "reunions", href: "/reunions", label: "Réunions", icon: "CalendarDays", roles: ["agent", "manager", "directeur", "admin", "dsi"] },
+  { id: "relations", href: "/relations", label: "Relations", icon: "Share2", roles: ["agent", "manager", "directeur", "admin", "dsi"] },
   { id: "contacts", href: "/contacts", label: "Contacts", icon: "BookUser", roles: ["agent", "manager", "directeur", "admin", "dsi"] },
   { id: "messagerie", href: "/messagerie", label: "Messagerie", icon: "MessageSquare", roles: ["agent", "manager", "directeur", "admin", "dsi"] },
   { id: "admin", href: "/admin", label: "Administration", icon: "Settings", roles: ["admin"] },
