@@ -1212,6 +1212,50 @@ export function memberOfMonth(profileIds: string[], items: Item[], tasks: Task[]
   return best > 0 ? bestId : null;
 }
 
+/* ---------- Module Réunion ----------
+ * Une réunion peut être autonome ou reliée à un ou plusieurs sujets déjà
+ * présents (projet, tâche, suivi, négligence, non-conformité, objectif), avec
+ * des participants (membres et/ou contacts de l'annuaire). Ces liens alimentent
+ * le graphe de relations. */
+export type MeetingStatus = "planifiée" | "tenue" | "annulée";
+export const MEETING_STATUTS: MeetingStatus[] = ["planifiée", "tenue", "annulée"];
+
+/** Types d'entités auxquelles une réunion peut être rattachée. */
+export type MeetingLinkType = "project" | "task" | "item" | "negligence" | "nonconformite" | "objective";
+export const MEETING_LINK_TYPES: { type: MeetingLinkType; label: string }[] = [
+  { type: "item", label: "Suivi de mail" },
+  { type: "project", label: "Projet" },
+  { type: "task", label: "Tâche" },
+  { type: "negligence", label: "Négligence" },
+  { type: "nonconformite", label: "Non-conformité" },
+  { type: "objective", label: "Objectif annuel" },
+];
+
+export interface MeetingParticipant {
+  kind: "member" | "contact";
+  id: string; // profileId ou contactId
+}
+export interface MeetingLink {
+  type: MeetingLinkType;
+  id: string;
+}
+
+export interface Meeting {
+  id: string;
+  title: string;
+  agenda: string; // ordre du jour
+  date: Date | null; // date/heure prévue
+  location: string; // lieu ou lien visio
+  status: MeetingStatus;
+  notes: string; // compte-rendu
+  decisions: string[]; // décisions prises
+  participants: MeetingParticipant[];
+  links: MeetingLink[];
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /* ---------- Administration ---------- */
 export interface AdminMember {
   id: string;

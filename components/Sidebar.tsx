@@ -9,8 +9,10 @@ import {
   BarChart3,
   Bell,
   BookUser,
+  CalendarDays,
   CalendarRange,
   Compass,
+  Share2,
   FileWarning,
   FolderKanban,
   LayoutDashboard,
@@ -39,8 +41,10 @@ const ICONS: Record<string, LucideIcon> = {
   Trophy,
   Bell,
   BookUser,
+  CalendarDays,
   MessageSquare,
   Settings,
+  Share2,
 };
 
 export function Sidebar() {

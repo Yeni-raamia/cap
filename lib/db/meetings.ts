@@ -1,0 +1,183 @@
+/* ==================================================================
+ *  lib/db/meetings.ts — Module Réunion (serveur).
+ *  Réunions autonomes ou reliées à des sujets existants + participants.
+ * ================================================================== */
+import { randomUUID } from "node:crypto";
+import { getDb } from "./index";
+import type { Meeting, MeetingLink, MeetingParticipant } from "@/lib/domain";
+
+interface MeetingRow {
+  id: string;
+  title: string;
+  agenda: string;
+  date: string | null;
+  location: string;
+  status: string;
+  notes: string;
+  decisions: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function mapMeeting(
+  r: MeetingRow,
+  participants: MeetingParticipant[],
+  links: MeetingLink[]
+): Meeting {
+  let decisions: string[] = [];
+  try {
+    decisions = JSON.parse(r.decisions || "[]");
+  } catch {
+    decisions = [];
+  }
+  return {
+    id: r.id,
+    title: r.title,
+    agenda: r.agenda,
+    date: r.date ? new Date(r.date) : null,
+    location: r.location,
+    status: (r.status as Meeting["status"]) ?? "planifiée",
+    notes: r.notes,
+    decisions,
+    participants,
+    links,
+    createdBy: r.created_by ?? "",
+    createdAt: new Date(r.created_at),
+    updatedAt: new Date(r.updated_at),
+  };
+}
+
+export function listMeetings(): Meeting[] {
+  const db = getDb();
+  const rows = db.prepare("select * from meetings order by coalesce(date, created_at) desc").all() as MeetingRow[];
+  const parts = db.prepare("select meeting_id, kind, ref_id from meeting_participants").all() as {
+    meeting_id: string;
+    kind: string;
+    ref_id: string;
+  }[];
+  const links = db.prepare("select meeting_id, ref_type, ref_id from meeting_links").all() as {
+    meeting_id: string;
+    ref_type: string;
+    ref_id: string;
+  }[];
+  const pByM = new Map<string, MeetingParticipant[]>();
+  parts.forEach((p) =>
+    pByM.set(p.meeting_id, [...(pByM.get(p.meeting_id) ?? []), { kind: p.kind === "contact" ? "contact" : "member", id: p.ref_id }])
+  );
+  const lByM = new Map<string, MeetingLink[]>();
+  links.forEach((l) =>
+    lByM.set(l.meeting_id, [...(lByM.get(l.meeting_id) ?? []), { type: l.ref_type as MeetingLink["type"], id: l.ref_id }])
+  );
+  return rows.map((r) => mapMeeting(r, pByM.get(r.id) ?? [], lByM.get(r.id) ?? []));
+}
+
+export function getMeeting(id: string): Meeting | null {
+  const db = getDb();
+  const r = db.prepare("select * from meetings where id = ?").get(id) as MeetingRow | undefined;
+  if (!r) return null;
+  const participants = (db.prepare("select kind, ref_id from meeting_participants where meeting_id = ?").all(id) as {
+    kind: string;
+    ref_id: string;
+  }[]).map((p) => ({ kind: p.kind === "contact" ? ("contact" as const) : ("member" as const), id: p.ref_id }));
+  const links = (db.prepare("select ref_type, ref_id from meeting_links where meeting_id = ?").all(id) as {
+    ref_type: string;
+    ref_id: string;
+  }[]).map((l) => ({ type: l.ref_type as MeetingLink["type"], id: l.ref_id }));
+  return mapMeeting(r, participants, links);
+}
+
+function replaceParticipants(id: string, participants: MeetingParticipant[]): void {
+  const db = getDb();
+  db.prepare("delete from meeting_participants where meeting_id = ?").run(id);
+  const ins = db.prepare("insert into meeting_participants (id, meeting_id, kind, ref_id) values (?,?,?,?)");
+  for (const p of participants) {
+    if (!p?.id) continue;
+    ins.run(randomUUID(), id, p.kind === "contact" ? "contact" : "member", p.id);
+  }
+}
+function replaceLinks(id: string, links: MeetingLink[]): void {
+  const db = getDb();
+  db.prepare("delete from meeting_links where meeting_id = ?").run(id);
+  const ins = db.prepare("insert into meeting_links (id, meeting_id, ref_type, ref_id) values (?,?,?,?)");
+  for (const l of links) {
+    if (!l?.id || !l?.type) continue;
+    ins.run(randomUUID(), id, l.type, l.id);
+  }
+}
+
+export function createMeeting(input: {
+  title: string;
+  agenda?: string;
+  date?: string | null;
+  location?: string;
+  status?: string;
+  notes?: string;
+  decisions?: string[];
+  participants?: MeetingParticipant[];
+  links?: MeetingLink[];
+  createdBy: string;
+}): string {
+  const id = randomUUID();
+  getDb()
+    .prepare(
+      "insert into meetings (id, title, agenda, date, location, status, notes, decisions, created_by) values (?,?,?,?,?,?,?,?,?)"
+    )
+    .run(
+      id,
+      input.title,
+      input.agenda ?? "",
+      input.date ?? null,
+      input.location ?? "",
+      input.status ?? "planifiée",
+      input.notes ?? "",
+      JSON.stringify(input.decisions ?? []),
+      input.createdBy
+    );
+  replaceParticipants(id, input.participants ?? []);
+  replaceLinks(id, input.links ?? []);
+  return id;
+}
+
+export function updateMeeting(
+  id: string,
+  fields: {
+    title?: string;
+    agenda?: string;
+    date?: string | null;
+    location?: string;
+    status?: string;
+    notes?: string;
+    decisions?: string[];
+    participants?: MeetingParticipant[];
+    links?: MeetingLink[];
+  }
+): void {
+  const db = getDb();
+  const cur = db.prepare("select * from meetings where id = ?").get(id) as MeetingRow | undefined;
+  if (!cur) return;
+  db.prepare(
+    "update meetings set title=?, agenda=?, date=?, location=?, status=?, notes=?, decisions=?, updated_at=datetime('now') where id=?"
+  ).run(
+    fields.title ?? cur.title,
+    fields.agenda ?? cur.agenda,
+    fields.date !== undefined ? fields.date : cur.date,
+    fields.location ?? cur.location,
+    fields.status ?? cur.status,
+    fields.notes ?? cur.notes,
+    fields.decisions !== undefined ? JSON.stringify(fields.decisions) : cur.decisions,
+    id
+  );
+  if (fields.participants !== undefined) replaceParticipants(id, fields.participants);
+  if (fields.links !== undefined) replaceLinks(id, fields.links);
+}
+
+export function deleteMeeting(id: string): void {
+  const db = getDb();
+  const tx = db.transaction(() => {
+    db.prepare("delete from meeting_participants where meeting_id = ?").run(id);
+    db.prepare("delete from meeting_links where meeting_id = ?").run(id);
+    db.prepare("delete from meetings where id = ?").run(id);
+  });
+  tx();
+}

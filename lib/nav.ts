@@ -22,6 +22,7 @@ export const NAV: NavItem[] = [
   { id: "stats", href: "/stats", label: "Statistiques", icon: "BarChart3", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "classement", href: "/classement", label: "Classement", icon: "Trophy", roles: ["agent", "manager", "directeur", "admin"] },
   { id: "rappels", href: "/rappels", label: "Rappels", icon: "Bell", roles: ["agent", "manager", "directeur", "admin"] },
+  { id: "reunions", href: "/reunions", label: "Réunions", icon: "CalendarDays", roles: ["agent", "manager", "directeur", "admin", "dsi"] },
   { id: "contacts", href: "/contacts", label: "Contacts", icon: "BookUser", roles: ["agent", "manager", "directeur", "admin", "dsi"] },
   { id: "messagerie", href: "/messagerie", label: "Messagerie", icon: "MessageSquare", roles: ["agent", "manager", "directeur", "admin", "dsi"] },
   { id: "admin", href: "/admin", label: "Administration", icon: "Settings", roles: ["admin"] },

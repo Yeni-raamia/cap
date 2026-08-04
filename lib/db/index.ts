@@ -130,6 +130,20 @@ create table if not exists contacts (
   fonction text not null default '', created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists meetings (
+  id text primary key, title text not null default '', agenda text not null default '',
+  date text, location text not null default '', status text not null default 'planifiée',
+  notes text not null default '', decisions text not null default '[]', created_by text,
+  created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
+create table if not exists meeting_participants (
+  id text primary key, meeting_id text not null, kind text not null default 'member', ref_id text not null
+);
+create table if not exists meeting_links (
+  id text primary key, meeting_id text not null, ref_type text not null, ref_id text not null
+);
+create index if not exists idx_mtg_part on meeting_participants(meeting_id);
+create index if not exists idx_mtg_link on meeting_links(meeting_id);
 create table if not exists activity_log (
   id text primary key, actor_id text, action text not null, detail text not null default '',
   created_at text not null default (datetime('now'))

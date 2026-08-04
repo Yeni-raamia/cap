@@ -37,6 +37,9 @@ import {
   type Contact,
   type ConversationSummary,
   type EmailTemplate,
+  type Meeting,
+  type MeetingLink,
+  type MeetingParticipant,
   type Message,
   type Negligence,
   type NonConformite,
@@ -152,6 +155,11 @@ interface AppCtx {
   importEmailResponse: (itemId: string, file: File) => Promise<boolean>;
   createItemFromEmail: (file: File, opts: { metier: string; type: string; prio: string; objet: string; dest: string }) => Promise<boolean>;
   correctDestinataire: (oldName: string, newName: string) => Promise<string | null>;
+  meetings: Meeting[];
+  meetingById: (id: string) => Meeting | undefined;
+  createMeeting: (input: MeetingInput) => Promise<string | null>;
+  updateMeeting: (id: string, fields: MeetingInput) => Promise<string | null>;
+  deleteMeeting: (id: string) => Promise<string | null>;
   contacts: Contact[];
   createContact: (c: Omit<Contact, "id">) => Promise<string | null>;
   updateContact: (id: string, f: Partial<Omit<Contact, "id">>) => Promise<string | null>;
@@ -285,6 +293,26 @@ const reviveProject = (p: Project): Project => ({
     : null,
 });
 const reviveProjects = (arr: Project[]): Project[] => arr.map(reviveProject);
+const reviveMeeting = (m: Meeting): Meeting => ({
+  ...m,
+  date: m.date ? new Date(m.date) : null,
+  createdAt: new Date(m.createdAt),
+  updatedAt: new Date(m.updatedAt),
+});
+const reviveMeetings = (arr: Meeting[]): Meeting[] => arr.map(reviveMeeting);
+
+/** Champs modifiables d'une réunion (création / édition). */
+export interface MeetingInput {
+  title?: string;
+  agenda?: string;
+  date?: string | null;
+  location?: string;
+  status?: string;
+  notes?: string;
+  decisions?: string[];
+  participants?: MeetingParticipant[];
+  links?: MeetingLink[];
+}
 const reviveNeg = (n: Negligence): Negligence => ({
   ...n,
   createdAt: new Date(n.createdAt),
@@ -362,6 +390,7 @@ export function AppProvider({
   initialObjectives,
   initialTemplates,
   initialContacts,
+  initialMeetings,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -380,6 +409,7 @@ export function AppProvider({
   initialObjectives?: Objective[];
   initialTemplates?: EmailTemplate[];
   initialContacts?: Contact[];
+  initialMeetings?: Meeting[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -400,6 +430,7 @@ export function AppProvider({
     demo || !initialRefLists ? DEFAULT_REF_LISTS : initialRefLists
   );
   const [contacts, setContacts] = useState<Contact[]>(demo ? [] : initialContacts ?? []);
+  const [meetings, setMeetings] = useState<Meeting[]>(demo ? [] : reviveMeetings(initialMeetings ?? []));
   const [nonConformites, setNonConformites] = useState<NonConformite[]>(
     demo ? [] : reviveNcs(initialNonConformites ?? [])
   );
@@ -673,6 +704,32 @@ export function AppProvider({
   };
 
   // Correction/fusion d'un destinataire (outil d'administration, hors stats).
+  // Module Réunion (annuaire de rencontres reliées aux sujets/personnes).
+  const postMeeting = async (payload: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return DEMO_MSG;
+    try {
+      const r = await fetch("/api/meetings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        toast(d.error ?? "Erreur.", "error");
+        return d.error ?? "Erreur.";
+      }
+      if (d.meetings) setMeetings(reviveMeetings(d.meetings));
+      return null;
+    } catch {
+      toast("Opération impossible.", "error");
+      return "Opération impossible.";
+    }
+  };
+  const createMeeting = async (input: MeetingInput) => postMeeting({ op: "create", ...input });
+  const updateMeeting = async (id: string, fields: MeetingInput) => postMeeting({ op: "update", id, ...fields });
+  const deleteMeeting = async (id: string) => postMeeting({ op: "delete", id });
+  const meetingById = (id: string): Meeting | undefined => meetings.find((m) => m.id === id);
+
   const correctDestinataire = async (oldName: string, newName: string): Promise<string | null> => {
     if (demo) return "Correction indisponible en mode démo.";
     try {
@@ -1494,6 +1551,11 @@ export function AppProvider({
     importEmailResponse,
     createItemFromEmail,
     correctDestinataire,
+    meetings,
+    meetingById,
+    createMeeting,
+    updateMeeting,
+    deleteMeeting,
     contacts,
     createContact,
     updateContact,
