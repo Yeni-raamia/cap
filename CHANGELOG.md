@@ -8,6 +8,19 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.22.0] - 2026-08-04
+
+### Ajouté
+- **Module Réunion enrichi (« pro »)** — sans infrastructure temps réel :
+  - **Invitations** : bouton « Inviter » notifiant les participants (in-app + e-mail si configuré ; e-mail pour les contacts).
+  - **Présences** : statut par participant (invité / présent / absent / excusé).
+  - **Visioconférence** : champ « lien de réunion » + bouton « Rejoindre » (Teams, Zoom, Jitsi…).
+  - **Partage de fichiers** : pièces jointes sur la réunion (dépôt, téléchargement, suppression).
+  - **Fil de discussion** dédié à chaque réunion (messagerie interne).
+  - **Compte-rendu téléchargeable** en PDF (ordre du jour, participants et présences, décisions, sujets reliés).
+  - **Rappels** : le moteur notifie les participants des réunions planifiées à venir (~36 h) — visibles dans Rappels (catégorie « réunion »).
+- **Graphe de relations** : glisser-déposer des bulles (repositionnement épinglé, bouton « Réorganiser ») et couverture élargie aux personnes (destinataires, personnes concernées).
+
 ## [1.21.0] - 2026-08-04
 
 ### Ajouté
