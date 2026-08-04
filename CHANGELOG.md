@@ -8,6 +8,12 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.21.0] - 2026-08-04
+
+### Ajouté
+- **Module Réunion** (menu Réunions). Créer une réunion autonome ou **reliée à un ou plusieurs sujets existants** (suivi de mail, projet, tâche, négligence, non-conformité, objectif annuel), avec **participants** (membres de l'équipe et/ou contacts de l'annuaire), ordre du jour, compte-rendu et **décisions**. Statut planifiée / tenue / annulée. Ces liens alimentent le graphe de relations.
+- **Graphe de relations** (menu Relations) — graphe de connaissance façon Obsidian qui relie tout ce qui est rattaché à un sujet ou à une personne : suivis, projets, tâches, négligences, non-conformités, objectifs, réunions, membres et contacts. **Vue égocentrée explorable** (on clique une bulle pour recentrer), disposition en bulles (force-directed) sans dépendance, réglage de la profondeur (1/2), légende et recherche du nœud de départ. Bouton **« Voir les relations »** sur les fiches (projet, réunion) pour ouvrir le graphe centré dessus.
+
 ## [1.20.0] - 2026-08-04
 
 ### Ajouté
