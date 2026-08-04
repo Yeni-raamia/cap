@@ -9,6 +9,7 @@
  * ================================================================== */
 import { isOverDuration, isTaskLate, reminderState } from "@/lib/domain";
 import { listTasks } from "@/lib/db/tasks";
+import { listMeetings } from "@/lib/db/meetings";
 import {
   getCatalogue,
   getEmailById,
@@ -29,6 +30,7 @@ export interface ReminderSummary {
   digests: number;
   echeances: number;
   recaps: number;
+  reunions: number;
   emailsSent: number;
   emailConfigured: boolean;
 }
@@ -47,6 +49,7 @@ export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<Re
   let digests = 0;
   let echeances = 0;
   let recaps = 0;
+  let reunions = 0;
   let emailsSent = 0;
 
   const emails: Array<{ to: string; subject: string; text: string }> = [];
@@ -175,6 +178,26 @@ export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<Re
     }
   }
 
+  // Rappels de réunion : les participants (membres) sont prévenus des réunions
+  // planifiées à venir sous ~36 h (la veille / le jour même). Idempotent par jour.
+  const soon = now.getTime() + 36 * 3600 * 1000;
+  for (const mtg of listMeetings()) {
+    if (mtg.status !== "planifiée" || !mtg.date) continue;
+    const t = mtg.date.getTime();
+    if (t < now.getTime() || t > soon) continue;
+    const whenTxt = `${mtg.date.toLocaleDateString("fr-FR")} à ${mtg.date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+    const message = `Rappel : réunion « ${mtg.title} » le ${whenTxt}${mtg.location ? ` — ${mtg.location}` : ""}.`;
+    for (const p of mtg.participants) {
+      if (p.kind !== "member" || notifExistsToday(p.id, mtg.id, "reunion")) continue;
+      insertNotification({ userId: p.id, itemId: mtg.id, kind: "reunion", message, channel });
+      reunions++;
+      if (emailOn) {
+        const to = getEmailById(p.id);
+        if (to) emails.push({ to, subject: `Rappel — ${mtg.title}`, text: message });
+      }
+    }
+  }
+
   // Envoi des e-mails (best-effort) si Resend est configuré.
   for (const m of emails) {
     if (await sendEmail(m.to, m.subject, m.text)) emailsSent++;
@@ -183,8 +206,8 @@ export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<Re
   logActivity(
     null,
     "reminders_run",
-    `${relances} relance(s), ${escalades} escalade(s), ${echeances} échéance(s), ${digests} digest(s), ${recaps} récap(s), ${emailsSent} e-mail(s)`
+    `${relances} relance(s), ${escalades} escalade(s), ${echeances} échéance(s), ${digests} digest(s), ${recaps} récap(s), ${reunions} réunion(s), ${emailsSent} e-mail(s)`
   );
 
-  return { relances, escalades, digests, echeances, recaps, emailsSent, emailConfigured: emailOn };
+  return { relances, escalades, digests, echeances, recaps, reunions, emailsSent, emailConfigured: emailOn };
 }

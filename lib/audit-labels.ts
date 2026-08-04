@@ -24,6 +24,7 @@ export const ACTION_LABEL: Record<string, string> = {
   meeting_create: "Réunion créée",
   meeting_update: "Réunion modifiée",
   meeting_delete: "Réunion supprimée",
+  meeting_invite: "Invitations de réunion envoyées",
   "projet.archive": "Projet archivé / désarchivé",
   "projet.suppression.demande": "Suppression de projet demandée",
   "projet.suppression": "Projet supprimé",

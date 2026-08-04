@@ -4,8 +4,11 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
 import { createMeeting, deleteMeeting, getMeeting, listMeetings, updateMeeting } from "@/lib/db/meetings";
-import { logActivity } from "@/lib/db/admin";
-import { MEETING_LINK_TYPES, MEETING_STATUTS, type MeetingLink, type MeetingParticipant } from "@/lib/domain";
+import { getEmailById, insertNotification } from "@/lib/db/repo";
+import { getSettings, logActivity } from "@/lib/db/admin";
+import { listContacts } from "@/lib/db/contacts";
+import { isEmailConfigured, sendEmail } from "@/lib/reminders/email";
+import { MEETING_LINK_TYPES, MEETING_PRESENCES, MEETING_STATUTS, type MeetingLink, type MeetingParticipant } from "@/lib/domain";
 
 const LINK_TYPES = new Set(MEETING_LINK_TYPES.map((t) => t.type));
 const toIso = (d?: string | null) => {
@@ -18,7 +21,7 @@ const cleanParticipants = (v: unknown): MeetingParticipant[] =>
   Array.isArray(v)
     ? v
         .filter((p): p is MeetingParticipant => !!p && typeof p.id === "string" && (p.kind === "member" || p.kind === "contact"))
-        .map((p) => ({ kind: p.kind, id: p.id }))
+        .map((p) => ({ kind: p.kind, id: p.id, presence: MEETING_PRESENCES.includes(p.presence) ? p.presence : "invité" }))
     : [];
 const cleanLinks = (v: unknown): MeetingLink[] =>
   Array.isArray(v)
@@ -53,6 +56,7 @@ export async function POST(request: Request) {
       agenda: String(body?.agenda || ""),
       date: toIso(body?.date),
       location: String(body?.location || ""),
+      visioUrl: String(body?.visioUrl || ""),
       status: status ?? "planifiée",
       notes: String(body?.notes || ""),
       decisions: cleanDecisions(body?.decisions),
@@ -73,6 +77,7 @@ export async function POST(request: Request) {
       agenda: typeof body?.agenda === "string" ? body.agenda : undefined,
       date: body?.date !== undefined ? toIso(body.date) : undefined,
       location: typeof body?.location === "string" ? body.location : undefined,
+      visioUrl: typeof body?.visioUrl === "string" ? body.visioUrl : undefined,
       status,
       notes: typeof body?.notes === "string" ? body.notes : undefined,
       decisions: body?.decisions !== undefined ? cleanDecisions(body.decisions) : undefined,
@@ -88,6 +93,33 @@ export async function POST(request: Request) {
     deleteMeeting(id);
     logActivity(user.id, "meeting_delete", title);
     return NextResponse.json({ meetings: listMeetings() });
+  }
+
+  if (op === "invite") {
+    const m = getMeeting(id);
+    if (!m) return NextResponse.json({ error: "Réunion introuvable." }, { status: 404 });
+    const whenTxt = m.date ? ` le ${m.date.toLocaleDateString("fr-FR")} à ${m.date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}` : "";
+    const message = `Vous êtes invité·e à la réunion « ${m.title} »${whenTxt}${m.location ? ` — ${m.location}` : ""}.`;
+    const emailOn = getSettings().emailEnabled && isEmailConfigured();
+    const contactsById = new Map(listContacts().map((c) => [c.id, c]));
+    let notified = 0;
+    for (const p of m.participants) {
+      if (p.kind === "member") {
+        if (p.id !== user.id) {
+          insertNotification({ userId: p.id, itemId: null, kind: "reunion", message, channel: emailOn ? ["in-app", "e-mail"] : ["in-app"] });
+          notified++;
+        }
+        if (emailOn) {
+          const to = getEmailById(p.id);
+          if (to) void sendEmail(to, `Invitation — ${m.title}`, message).catch(() => {});
+        }
+      } else if (emailOn) {
+        const c = contactsById.get(p.id);
+        if (c?.email) void sendEmail(c.email, `Invitation — ${m.title}`, message).catch(() => {});
+      }
+    }
+    logActivity(user.id, "meeting_invite", `${m.title} · ${m.participants.length} invité(s)`);
+    return NextResponse.json({ meetings: listMeetings(), notified });
   }
 
   return NextResponse.json({ error: "Opération inconnue." }, { status: 400 });

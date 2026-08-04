@@ -132,18 +132,26 @@ create table if not exists contacts (
 );
 create table if not exists meetings (
   id text primary key, title text not null default '', agenda text not null default '',
-  date text, location text not null default '', status text not null default 'planifiée',
+  date text, location text not null default '', visio_url text not null default '',
+  status text not null default 'planifiée',
   notes text not null default '', decisions text not null default '[]', created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
 create table if not exists meeting_participants (
-  id text primary key, meeting_id text not null, kind text not null default 'member', ref_id text not null
+  id text primary key, meeting_id text not null, kind text not null default 'member', ref_id text not null,
+  presence text not null default 'invité'
 );
 create table if not exists meeting_links (
   id text primary key, meeting_id text not null, ref_type text not null, ref_id text not null
 );
+create table if not exists meeting_attachments (
+  id text primary key, meeting_id text not null, filename text not null, mime text not null default '',
+  size integer not null default 0, data blob not null, uploaded_by text,
+  created_at text not null default (datetime('now'))
+);
 create index if not exists idx_mtg_part on meeting_participants(meeting_id);
 create index if not exists idx_mtg_link on meeting_links(meeting_id);
+create index if not exists idx_mtg_att on meeting_attachments(meeting_id);
 create table if not exists activity_log (
   id text primary key, actor_id text, action text not null, detail text not null default '',
   created_at text not null default (datetime('now'))
@@ -374,6 +382,15 @@ function ensureColumns(db: Database.Database) {
   const nccols = (db.prepare("pragma table_info(nonconformites)").all() as { name: string }[]).map((c) => c.name);
   if (nccols.length > 0 && !nccols.includes("policy")) {
     db.exec("alter table nonconformites add column policy text not null default ''");
+  }
+  // Réunions : lien visio + présence des participants (tables créées en cours de route).
+  const mtgcols = (db.prepare("pragma table_info(meetings)").all() as { name: string }[]).map((c) => c.name);
+  if (mtgcols.length > 0 && !mtgcols.includes("visio_url")) {
+    db.exec("alter table meetings add column visio_url text not null default ''");
+  }
+  const mpcols = (db.prepare("pragma table_info(meeting_participants)").all() as { name: string }[]).map((c) => c.name);
+  if (mpcols.length > 0 && !mpcols.includes("presence")) {
+    db.exec("alter table meeting_participants add column presence text not null default 'invité'");
   }
   // Sessions : métadonnées appareil (gestion des sessions actives).
   const scols = (db.prepare("pragma table_info(sessions)").all() as { name: string }[]).map((c) => c.name);

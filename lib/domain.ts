@@ -806,7 +806,7 @@ export function computeScores(
 }
 
 /* ---------- Notifications (moteur de relance) ---------- */
-export type NotifKind = "relance" | "escalade" | "digest" | "echeance" | "message" | "projet" | "tache" | "securite";
+export type NotifKind = "relance" | "escalade" | "digest" | "echeance" | "message" | "projet" | "tache" | "securite" | "reunion";
 
 export interface Notif {
   id: string;
@@ -1231,13 +1231,28 @@ export const MEETING_LINK_TYPES: { type: MeetingLinkType; label: string }[] = [
   { type: "objective", label: "Objectif annuel" },
 ];
 
+export type MeetingPresence = "invité" | "présent" | "absent" | "excusé";
+export const MEETING_PRESENCES: MeetingPresence[] = ["invité", "présent", "absent", "excusé"];
+
 export interface MeetingParticipant {
   kind: "member" | "contact";
   id: string; // profileId ou contactId
+  presence: MeetingPresence;
 }
 export interface MeetingLink {
   type: MeetingLinkType;
   id: string;
+}
+
+/** Pièce jointe d'une réunion (support, PV signé…). */
+export interface MeetingAttachment {
+  id: string;
+  meetingId: string;
+  filename: string;
+  mime: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: Date;
 }
 
 export interface Meeting {
@@ -1245,7 +1260,8 @@ export interface Meeting {
   title: string;
   agenda: string; // ordre du jour
   date: Date | null; // date/heure prévue
-  location: string; // lieu ou lien visio
+  location: string; // lieu (salle)
+  visioUrl: string; // lien de visioconférence (Teams/Zoom/Jitsi…)
   status: MeetingStatus;
   notes: string; // compte-rendu
   decisions: string[]; // décisions prises

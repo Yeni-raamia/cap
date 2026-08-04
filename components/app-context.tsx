@@ -307,6 +307,7 @@ export interface MeetingInput {
   agenda?: string;
   date?: string | null;
   location?: string;
+  visioUrl?: string;
   status?: string;
   notes?: string;
   decisions?: string[];

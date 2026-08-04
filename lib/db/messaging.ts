@@ -34,6 +34,10 @@ function entityTitle(refType: string, refId: string): string {
     const r = db.prepare("select objet from negligences where id=?").get(refId) as { objet: string } | undefined;
     return r ? `Négligence — ${r.objet || "sans objet"}` : "Négligence";
   }
+  if (refType === "meeting") {
+    const r = db.prepare("select title from meetings where id=?").get(refId) as { title: string } | undefined;
+    return r ? `Réunion — ${r.title}` : "Réunion";
+  }
   return "Discussion";
 }
 

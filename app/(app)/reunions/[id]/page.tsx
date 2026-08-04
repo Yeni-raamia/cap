@@ -1,28 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CalendarDays, Check, ExternalLink, Gavel, Link2, Plus, Share2, Trash2, Users2, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Download, ExternalLink, FileText, Gavel, Link2, Loader2, MessageSquare, Paperclip, Plus, Send, Share2, Trash2, Users2, Video, X } from "lucide-react";
 import {
   contactDisplayName,
+  formatBytes,
   MEETING_LINK_TYPES,
+  MEETING_PRESENCES,
   MEETING_STATUTS,
   type MeetingLink,
   type MeetingLinkType,
   type MeetingParticipant,
+  type MeetingPresence,
   type MeetingStatus,
 } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, Token } from "@/components/atoms";
+import { Discussion } from "@/components/Discussion";
+import { MeetingPrint } from "@/components/MeetingPrint";
 import { meetingStatusBadge } from "../page";
+
+interface AttMeta { id: string; filename: string; mime: string; size: number }
+const presenceBadge: Record<string, string> = {
+  invité: "text-slate-500",
+  présent: "text-emerald-600",
+  absent: "text-rose-600",
+  excusé: "text-amber-600",
+};
 
 export default function ReunionDetailPage() {
   const params = useParams();
   const id = String(params.id);
   const router = useRouter();
   const {
-    meetingById, updateMeeting, deleteMeeting, readOnly,
+    meetingById, updateMeeting, deleteMeeting, readOnly, toast,
     profiles, profileById, contacts, items, projects, tasks, negligences, nonConformites, objectives, openItem,
   } = useApp();
 
@@ -31,12 +44,29 @@ export default function ReunionDetailPage() {
   const [agenda, setAgenda] = useState(meeting?.agenda ?? "");
   const [notes, setNotes] = useState(meeting?.notes ?? "");
   const [location, setLocation] = useState(meeting?.location ?? "");
+  const [visioUrl, setVisioUrl] = useState(meeting?.visioUrl ?? "");
   const [newDecision, setNewDecision] = useState("");
   const [pMember, setPMember] = useState("");
   const [pContact, setPContact] = useState("");
   const [linkType, setLinkType] = useState<MeetingLinkType>("item");
   const [linkId, setLinkId] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<AttMeta[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [inviting, setInviting] = useState(false);
+  const [printOn, setPrintOn] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/meetings/attachments?meetingId=${id}`)
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d.attachments)) setAttachments(d.attachments); })
+      .catch(() => {});
+  }, [id]);
+  useEffect(() => {
+    if (!printOn) return;
+    const t = setTimeout(() => { window.print(); setPrintOn(false); }, 150);
+    return () => clearTimeout(t);
+  }, [printOn]);
 
   if (!meeting) {
     return (
@@ -72,10 +102,37 @@ export default function ReunionDetailPage() {
 
   const addParticipant = (kind: "member" | "contact", pid: string) => {
     if (!pid || meeting.participants.some((x) => x.kind === kind && x.id === pid)) return;
-    run(updateMeeting(id, { participants: [...meeting.participants, { kind, id: pid }] }));
+    run(updateMeeting(id, { participants: [...meeting.participants, { kind, id: pid, presence: "invité" }] }));
   };
   const removeParticipant = (p: MeetingParticipant) =>
     run(updateMeeting(id, { participants: meeting.participants.filter((x) => !(x.kind === p.kind && x.id === p.id)) }));
+  const setPresence = (p: MeetingParticipant, presence: MeetingPresence) =>
+    run(updateMeeting(id, { participants: meeting.participants.map((x) => (x.kind === p.kind && x.id === p.id ? { ...x, presence } : x)) }));
+  const invite = async () => {
+    setInviting(true);
+    const r = await fetch("/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op: "invite", id }) });
+    const d = await r.json().catch(() => ({}));
+    setInviting(false);
+    if (!r.ok) { setErr(d.error || "Envoi impossible."); return; }
+    toast(`Invitations envoyées (${d.notified ?? 0} membre·s notifié·s).`, "success");
+  };
+  const upload = async (file: File | null) => {
+    if (!file) return;
+    setUploading(true);
+    const form = new FormData();
+    form.append("meetingId", id);
+    form.append("file", file);
+    const r = await fetch("/api/meetings/attachments", { method: "POST", body: form });
+    const d = await r.json().catch(() => ({}));
+    setUploading(false);
+    if (!r.ok) { setErr(d.error || "Envoi impossible."); return; }
+    if (Array.isArray(d.attachments)) setAttachments(d.attachments);
+  };
+  const removeAtt = async (attId: string) => {
+    const r = await fetch(`/api/meetings/attachments?id=${attId}&meetingId=${id}`, { method: "DELETE" });
+    const d = await r.json().catch(() => ({}));
+    if (Array.isArray(d.attachments)) setAttachments(d.attachments);
+  };
   const addLink = () => {
     if (!linkId || meeting.links.some((x) => x.type === linkType && x.id === linkId)) return;
     run(updateMeeting(id, { links: [...meeting.links, { type: linkType, id: linkId }] }));
@@ -94,9 +151,17 @@ export default function ReunionDetailPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <Link href="/reunions" className="inline-flex items-center gap-1 text-[13px] text-emerald-700 hover:underline"><ArrowLeft size={15} /> Réunions</Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {canEdit && (
+            <button onClick={invite} disabled={inviting || meeting.participants.length === 0} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-3 py-1.5 disabled:opacity-50">
+              {inviting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Inviter
+            </button>
+          )}
+          <button onClick={() => setPrintOn(true)} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-lg px-3 py-1.5">
+            <FileText size={14} /> Compte-rendu (PDF)
+          </button>
           <Link href={`/relations?node=meeting:${meeting.id}`} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-lg px-3 py-1.5">
-            <Share2 size={14} /> Voir les relations
+            <Share2 size={14} /> Relations
           </Link>
           {canEdit && (
           <button
@@ -136,10 +201,23 @@ export default function ReunionDetailPage() {
             ) : <div className="text-[13px] text-slate-700">{meeting.date ? meeting.date.toLocaleString("fr-FR") : "—"}</div>}
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Lieu / lien visio</div>
+            <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Lieu (salle)</div>
             {canEdit ? (
-              <input value={location} onChange={(e) => setLocation(e.target.value)} onBlur={() => location !== meeting.location && run(updateMeeting(id, { location }))} placeholder="Salle, ou https://…" className={inputCls} />
+              <input value={location} onChange={(e) => setLocation(e.target.value)} onBlur={() => location !== meeting.location && run(updateMeeting(id, { location }))} placeholder="Salle de réunion" className={inputCls} />
             ) : <div className="text-[13px] text-slate-700">{meeting.location || "—"}</div>}
+          </div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Lien de visioconférence</div>
+          <div className="flex items-center gap-2">
+            {canEdit ? (
+              <input value={visioUrl} onChange={(e) => setVisioUrl(e.target.value)} onBlur={() => visioUrl !== meeting.visioUrl && run(updateMeeting(id, { visioUrl }))} placeholder="https://… (Teams, Zoom, Jitsi)" className={inputCls} />
+            ) : <div className="flex-1 text-[13px] text-slate-700 truncate">{meeting.visioUrl || "—"}</div>}
+            {meeting.visioUrl && (
+              <a href={meeting.visioUrl} target="_blank" rel="noopener noreferrer" className="shrink-0 inline-flex items-center gap-1.5 text-[12px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-3 py-1.5">
+                <Video size={14} /> Rejoindre
+              </a>
+            )}
           </div>
         </div>
         <div>
@@ -154,15 +232,19 @@ export default function ReunionDetailPage() {
         {/* Participants */}
         <Card className="p-4">
           <div className="flex items-center gap-2 mb-2"><Users2 size={15} className="text-slate-500" /><h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Participants ({meeting.participants.length})</h2></div>
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="space-y-1.5 mb-3">
             {meeting.participants.length === 0 && <span className="text-[12px] text-slate-400">Aucun participant.</span>}
             {meeting.participants.map((p) => (
-              <span key={`${p.kind}-${p.id}`} className={`inline-flex items-center gap-1 text-[12px] rounded-full px-2 py-1 ${p.kind === "member" ? "bg-emerald-50 text-emerald-700" : "bg-sky-50 text-sky-700"}`}>
-                {p.kind === "member" && <Avatar init={profileById(p.id).init} size="h-4 w-4" />}
-                {partLabel(p)}
-                <span className="text-[9px] uppercase opacity-60">{p.kind === "member" ? "membre" : "contact"}</span>
-                {canEdit && <button onClick={() => removeParticipant(p)} className="hover:text-rose-600"><X size={12} /></button>}
-              </span>
+              <div key={`${p.kind}-${p.id}`} className="flex items-center gap-2 text-[12px]">
+                {p.kind === "member" ? <Avatar init={profileById(p.id).init} size="h-5 w-5" /> : <span className="h-5 w-5 rounded-full bg-sky-100 text-sky-600 grid place-items-center text-[9px]">ext</span>}
+                <span className="flex-1 truncate text-slate-700">{partLabel(p)}</span>
+                {canEdit ? (
+                  <select value={p.presence} onChange={(e) => setPresence(p, e.target.value as MeetingPresence)} className={`text-[11px] border border-slate-200 rounded px-1 py-0.5 bg-white ${presenceBadge[p.presence] ?? ""}`}>
+                    {MEETING_PRESENCES.map((pr) => (<option key={pr} value={pr}>{pr}</option>))}
+                  </select>
+                ) : <span className={`text-[11px] ${presenceBadge[p.presence] ?? ""}`}>{p.presence}</span>}
+                {canEdit && <button onClick={() => removeParticipant(p)} className="text-slate-300 hover:text-rose-600"><X size={13} /></button>}
+              </div>
             ))}
           </div>
           {canEdit && (
@@ -248,6 +330,37 @@ export default function ReunionDetailPage() {
           </div>
         )}
       </Card>
+
+      {/* Pièces jointes */}
+      <Card className="p-4">
+        <div className="flex items-center gap-2 mb-2"><Paperclip size={15} className="text-slate-500" /><h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Documents ({attachments.length})</h2></div>
+        <div className="space-y-1.5 mb-3">
+          {attachments.length === 0 && <span className="text-[12px] text-slate-400">Aucun document.</span>}
+          {attachments.map((a) => (
+            <div key={a.id} className="flex items-center gap-2 text-[12px]">
+              <Paperclip size={13} className="text-slate-300 shrink-0" />
+              <span className="flex-1 truncate text-slate-700">{a.filename}</span>
+              <span className="text-slate-400">{formatBytes(a.size)}</span>
+              <a href={`/api/meetings/attachments?id=${a.id}`} className="text-slate-400 hover:text-emerald-600" title="Télécharger"><Download size={14} /></a>
+              {canEdit && <button onClick={() => removeAtt(a.id)} className="text-slate-300 hover:text-rose-600" title="Supprimer"><Trash2 size={14} /></button>}
+            </div>
+          ))}
+        </div>
+        {canEdit && (
+          <label className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 rounded-lg px-3 py-1.5 cursor-pointer">
+            {uploading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Ajouter un document
+            <input type="file" className="hidden" onChange={(e) => { upload(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+          </label>
+        )}
+      </Card>
+
+      {/* Discussion de la réunion */}
+      <div>
+        <div className="flex items-center gap-2 mb-2"><MessageSquare size={15} className="text-slate-500" /><h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Discussion</h2></div>
+        <Card className="p-3"><Discussion target={{ refType: "meeting", refId: meeting.id }} height="h-64" /></Card>
+      </div>
+
+      {printOn && <MeetingPrint meeting={meeting} />}
     </div>
   );
 }
