@@ -4,7 +4,7 @@ import { denyReadOnly } from "@/lib/auth/guards";
 import { canEditProjectBoard } from "@/lib/auth/project-guard";
 import { addTask, deleteTask, getProjectOwner, getProjectTaskInfo, listProjects, updateTask } from "@/lib/db/projects";
 import { insertNotification } from "@/lib/db/repo";
-import { TASK_STATUTS, type TaskStatus } from "@/lib/domain";
+import { TASK_PRIORITIES, TASK_STATUTS, type TaskPriority, type TaskStatus } from "@/lib/domain";
 
 const toIso = (d?: string | null) => (d ? new Date(`${d}T00:00:00`).toISOString() : null);
 
@@ -39,7 +39,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Réservé au propriétaire et aux membres. Proposez plutôt une tâche." }, { status: 403 });
     }
     const assigneeId: string | null = body?.assigneeId || null;
-    addTask({ projectId, title, assigneeId, dueDate: toIso(body?.dueDate) });
+    const addPriority: TaskPriority | undefined = TASK_PRIORITIES.includes(body?.priority) ? body.priority : undefined;
+    addTask({ projectId, title, assigneeId, dueDate: toIso(body?.dueDate), description: typeof body?.description === "string" ? body.description : undefined, priority: addPriority });
     // Prévenir la personne assignée (si ce n'est pas soi-même).
     if (assigneeId) notifyAssignee(assigneeId, user.nom, user.id, projectId, projName(projectId), title);
   } else if (action === "update" || action === "delete") {
@@ -54,11 +55,14 @@ export async function POST(request: Request) {
       deleteTask(taskId);
     } else {
       const status: TaskStatus | undefined = TASK_STATUTS.includes(body?.status) ? body.status : undefined;
+      const priority: TaskPriority | undefined = TASK_PRIORITIES.includes(body?.priority) ? body.priority : undefined;
       updateTask(taskId, {
         title: typeof body?.title === "string" ? body.title.trim() : undefined,
         assigneeId: body?.assigneeId !== undefined ? body.assigneeId || null : undefined,
         status,
         dueDate: body?.dueDate !== undefined ? toIso(body.dueDate) : undefined,
+        description: typeof body?.description === "string" ? body.description : undefined,
+        priority,
       });
       // (Ré)assignation → prévenir la nouvelle personne assignée.
       if (body?.assigneeId !== undefined) {

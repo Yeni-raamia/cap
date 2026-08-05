@@ -81,9 +81,12 @@ export function mkProjectTask(over: Partial<ProjectTask> = {}): ProjectTask {
     id: "pt1",
     projectId: "p1",
     title: "Tâche projet",
+    description: "",
     assigneeId: null,
     status: "à faire",
+    priority: "Normale",
     dueDate: null,
+    completedAt: null,
     ordre: 0,
     createdAt: new Date("2026-07-01T00:00:00Z"),
   };

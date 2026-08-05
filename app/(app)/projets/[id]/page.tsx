@@ -15,6 +15,7 @@ import {
   Globe,
   ListChecks,
   Lock,
+  Pencil,
   MessageSquare,
   Plus,
   Share2,
@@ -34,6 +35,14 @@ import {
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
 import { Discussion } from "@/components/Discussion";
+import { ProjectTaskModal } from "@/components/ProjectTaskModal";
+
+const prioBadge: Record<string, string> = {
+  Basse: "bg-slate-100 text-slate-500",
+  Normale: "bg-sky-100 text-sky-700",
+  Haute: "bg-amber-100 text-amber-700",
+  Urgente: "bg-rose-100 text-rose-700",
+};
 
 const taskBadge: Record<TaskStatus, string> = {
   "à faire": "bg-slate-100 text-slate-600",
@@ -76,6 +85,7 @@ export default function ProjetDetailPage() {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskAssignee, setTaskAssignee] = useState("");
   const [taskDue, setTaskDue] = useState("");
+  const [editTaskId, setEditTaskId] = useState<string | null>(null);
   // Proposition de tâche (Lot 3) — pour les non-membres.
   const [propTitle, setPropTitle] = useState("");
   const [propDesc, setPropDesc] = useState("");
@@ -657,14 +667,20 @@ export default function ProjetDetailPage() {
                 return (
                   <div key={t.id} className="flex items-center gap-3 px-4 py-2.5">
                     <span className={`text-[10px] px-1.5 py-0.5 rounded ${taskBadge[t.status]}`}>{t.status}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] text-slate-800 truncate">{t.title}</div>
+                    <button onClick={() => setEditTaskId(t.id)} className="flex-1 min-w-0 text-left group">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-[13px] text-slate-800 truncate group-hover:text-emerald-700">{t.title}</span>
+                        {t.priority && t.priority !== "Normale" && (
+                          <span className={`shrink-0 text-[9px] px-1.5 py-0.5 rounded-full ${prioBadge[t.priority] ?? "bg-slate-100 text-slate-500"}`}>{t.priority}</span>
+                        )}
+                        {t.description && <span className="shrink-0 text-slate-300" title="Contient une description">≡</span>}
+                      </div>
                       {t.proposedBy && (
                         <div className="flex items-center gap-1 text-[10px] text-indigo-600 mt-0.5">
                           <GitPullRequest size={10} /> Proposée par {profileById(t.proposedBy).nom}
                         </div>
                       )}
-                    </div>
+                    </button>
                     {t.dueDate && (
                       <span className={`text-[11px] ${late ? "text-rose-600 font-medium" : "text-slate-400"}`}>
                         {fmt(t.dueDate)}
@@ -688,11 +704,12 @@ export default function ProjetDetailPage() {
                           ))}
                         </select>
                         <button
-                          onClick={() => run(projectTask("delete", { taskId: t.id }))}
-                          aria-label="Supprimer la tâche"
-                          className="text-slate-300 hover:text-rose-600"
+                          onClick={() => setEditTaskId(t.id)}
+                          aria-label="Éditer la tâche"
+                          title="Éditer la tâche"
+                          className="text-slate-300 hover:text-emerald-600"
                         >
-                          <Trash2 size={14} />
+                          <Pencil size={14} />
                         </button>
                       </>
                     )}
@@ -1018,6 +1035,12 @@ export default function ProjetDetailPage() {
           <Discussion target={{ refType: "project", refId: project.id }} height="h-64" />
         </Card>
       </div>
+
+      {editTaskId && (() => {
+        const t = project.tasks.find((x) => x.id === editTaskId);
+        if (!t) return null;
+        return <ProjectTaskModal task={t} team={teamForAssign} canEdit={canEditBoard} onClose={() => setEditTaskId(null)} />;
+      })()}
     </div>
   );
 }

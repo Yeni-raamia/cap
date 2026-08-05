@@ -346,10 +346,10 @@ export function seedProjects(): Project[] {
       createdAt: daysAgo(12),
       memberIds: ["u6", "u4", "u2"],
       tasks: [
-        { id: tid(), projectId: "demo-p1", title: "Cartographier les sources de logs", assigneeId: "u4", status: "fait", dueDate: daysAgo(6), ordre: 1, createdAt: daysAgo(12) },
-        { id: tid(), projectId: "demo-p1", title: "Valider la volumétrie avec l'exploitation", assigneeId: "u6", status: "en cours", dueDate: daysAgo(-2), ordre: 2, createdAt: daysAgo(10) },
-        { id: tid(), projectId: "demo-p1", title: "Rédiger la procédure de bascule", assigneeId: "u2", status: "à faire", dueDate: daysAgo(-8), ordre: 3, createdAt: daysAgo(8) },
-        { id: tid(), projectId: "demo-p1", title: "Fenêtre de maintenance", assigneeId: null, status: "à faire", dueDate: daysAgo(-18), ordre: 4, createdAt: daysAgo(8) },
+        { id: tid(), projectId: "demo-p1", title: "Cartographier les sources de logs", assigneeId: "u4", status: "fait", dueDate: daysAgo(6), ordre: 1, createdAt: daysAgo(12), description: "", priority: "Normale", completedAt: null },
+        { id: tid(), projectId: "demo-p1", title: "Valider la volumétrie avec l'exploitation", assigneeId: "u6", status: "en cours", dueDate: daysAgo(-2), ordre: 2, createdAt: daysAgo(10), description: "", priority: "Normale", completedAt: null },
+        { id: tid(), projectId: "demo-p1", title: "Rédiger la procédure de bascule", assigneeId: "u2", status: "à faire", dueDate: daysAgo(-8), ordre: 3, createdAt: daysAgo(8), description: "", priority: "Normale", completedAt: null },
+        { id: tid(), projectId: "demo-p1", title: "Fenêtre de maintenance", assigneeId: null, status: "à faire", dueDate: daysAgo(-18), ordre: 4, createdAt: daysAgo(8), description: "", priority: "Normale", completedAt: null },
       ],
       notes: [
         { id: "n1", projectId: "demo-p1", authorId: "u6", body: "Point d'avancement : volumétrie confirmée, reste la procédure.", createdAt: daysAgo(2) },
@@ -372,8 +372,8 @@ export function seedProjects(): Project[] {
       createdAt: daysAgo(20),
       memberIds: ["u3", "u6"],
       tasks: [
-        { id: tid(), projectId: "demo-p2", title: "Prioriser les 12 recommandations", assigneeId: "u3", status: "fait", dueDate: daysAgo(14), ordre: 1, createdAt: daysAgo(20) },
-        { id: tid(), projectId: "demo-p2", title: "Corriger les comptes à privilèges", assigneeId: "u6", status: "à faire", dueDate: daysAgo(-5), ordre: 2, createdAt: daysAgo(18) },
+        { id: tid(), projectId: "demo-p2", title: "Prioriser les 12 recommandations", assigneeId: "u3", status: "fait", dueDate: daysAgo(14), ordre: 1, createdAt: daysAgo(20), description: "", priority: "Normale", completedAt: null },
+        { id: tid(), projectId: "demo-p2", title: "Corriger les comptes à privilèges", assigneeId: "u6", status: "à faire", dueDate: daysAgo(-5), ordre: 2, createdAt: daysAgo(18), description: "", priority: "Normale", completedAt: null },
       ],
       notes: [],
       pendingStatus: null,

@@ -72,6 +72,8 @@ interface TaskPayload {
   assigneeId?: string | null;
   status?: TaskStatus;
   dueDate?: string | null;
+  description?: string;
+  priority?: TaskPriority;
 }
 interface ProjectFields {
   name?: string;
@@ -285,6 +287,7 @@ const reviveProject = (p: Project): Project => ({
     ...t,
     dueDate: t.dueDate ? new Date(t.dueDate) : null,
     createdAt: new Date(t.createdAt),
+    completedAt: t.completedAt ? new Date(t.completedAt) : null,
   })),
   notes: p.notes.map((nt) => ({ ...nt, createdAt: new Date(nt.createdAt) })),
   closure: p.closure

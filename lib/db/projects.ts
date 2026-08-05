@@ -13,6 +13,7 @@ import type {
   ProjectTask,
   ProjectTaskProposal,
   ProposalStatus,
+  TaskPriority,
   TaskStatus,
 } from "@/lib/domain";
 
@@ -43,6 +44,9 @@ interface TaskRow {
   ordre: number;
   created_at: string;
   proposed_by: string | null;
+  description: string;
+  priority: TaskPriority;
+  completed_at: string | null;
 }
 interface MemberRow {
   project_id: string;
@@ -61,9 +65,12 @@ function mapTask(r: TaskRow): ProjectTask {
     id: r.id,
     projectId: r.project_id,
     title: r.title,
+    description: r.description ?? "",
     assigneeId: r.assignee_id,
     status: r.status,
+    priority: r.priority ?? "Normale",
     dueDate: r.due_date ? new Date(r.due_date) : null,
+    completedAt: r.completed_at ? new Date(r.completed_at) : null,
     ordre: r.ordre,
     createdAt: new Date(r.created_at),
     proposedBy: r.proposed_by ?? null,
@@ -355,29 +362,57 @@ export function addTask(input: {
   title: string;
   assigneeId?: string | null;
   dueDate?: string | null;
+  description?: string;
+  priority?: TaskPriority;
 }): void {
   const db = getDb();
   const max = db
     .prepare("select coalesce(max(ordre),0)+1 as n from project_tasks where project_id = ?")
     .get(input.projectId) as { n: number };
   db.prepare(
-    "insert into project_tasks (id, project_id, title, assignee_id, status, due_date, ordre) values (?,?,?,?,?,?,?)"
-  ).run(randomUUID(), input.projectId, input.title, input.assigneeId ?? null, "à faire", input.dueDate ?? null, max.n);
+    "insert into project_tasks (id, project_id, title, assignee_id, status, due_date, ordre, description, priority) values (?,?,?,?,?,?,?,?,?)"
+  ).run(
+    randomUUID(),
+    input.projectId,
+    input.title,
+    input.assigneeId ?? null,
+    "à faire",
+    input.dueDate ?? null,
+    max.n,
+    input.description ?? "",
+    input.priority ?? "Normale"
+  );
 }
 
 export function updateTask(
   taskId: string,
-  fields: { title?: string; assigneeId?: string | null; status?: TaskStatus; dueDate?: string | null }
+  fields: {
+    title?: string;
+    assigneeId?: string | null;
+    status?: TaskStatus;
+    dueDate?: string | null;
+    description?: string;
+    priority?: TaskPriority;
+  }
 ): void {
   const cur = getDb().prepare("select * from project_tasks where id = ?").get(taskId) as TaskRow | undefined;
   if (!cur) return;
+  const nextStatus = fields.status ?? cur.status;
+  // Date d'achèvement : renseignée au passage en « fait », effacée sinon.
+  const completedAt =
+    nextStatus === "fait" ? cur.completed_at ?? new Date().toISOString() : null;
   getDb()
-    .prepare("update project_tasks set title=?, assignee_id=?, status=?, due_date=? where id=?")
+    .prepare(
+      "update project_tasks set title=?, assignee_id=?, status=?, due_date=?, description=?, priority=?, completed_at=? where id=?"
+    )
     .run(
       fields.title ?? cur.title,
       fields.assigneeId !== undefined ? fields.assigneeId : cur.assignee_id,
-      fields.status ?? cur.status,
+      nextStatus,
       fields.dueDate !== undefined ? fields.dueDate : cur.due_date,
+      fields.description !== undefined ? fields.description : cur.description ?? "",
+      fields.priority ?? cur.priority ?? "Normale",
+      completedAt,
       taskId
     );
 }
@@ -497,11 +532,21 @@ export function decideProposal(proposalId: string, approve: boolean, decidedBy: 
         .prepare("select coalesce(max(ordre),0)+1 as n from project_tasks where project_id = ?")
         .get(pending.projectId) as { n: number };
       mergedTaskId = randomUUID();
-      // La tâche fusionnée est assignée à l'auteur de la proposition, et garde
-      // trace de son origine (proposée par cette personne).
+      // La tâche fusionnée est assignée à l'auteur de la proposition, conserve la
+      // description proposée, et garde trace de son origine.
       db.prepare(
-        "insert into project_tasks (id, project_id, title, assignee_id, status, due_date, ordre, proposed_by) values (?,?,?,?,?,?,?,?)"
-      ).run(mergedTaskId, pending.projectId, pending.title, pending.proposedBy ?? null, "à faire", pending.dueDate ?? null, max.n, pending.proposedBy ?? null);
+        "insert into project_tasks (id, project_id, title, assignee_id, status, due_date, ordre, proposed_by, description) values (?,?,?,?,?,?,?,?,?)"
+      ).run(
+        mergedTaskId,
+        pending.projectId,
+        pending.title,
+        pending.proposedBy ?? null,
+        "à faire",
+        pending.dueDate ?? null,
+        max.n,
+        pending.proposedBy ?? null,
+        pending.description ?? ""
+      );
     }
     db.prepare(
       "update project_task_proposals set status=?, decided_by=?, decision_note=?, merged_task_id=?, decided_at=? where id=?"

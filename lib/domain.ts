@@ -879,9 +879,12 @@ export interface ProjectTask {
   id: string;
   projectId: string;
   title: string;
+  description: string;
   assigneeId: string | null;
   status: TaskStatus;
+  priority: TaskPriority;
   dueDate: Date | null;
+  completedAt: Date | null;
   ordre: number;
   createdAt: Date;
   /** Auteur de la proposition à l'origine de la tâche (Lot 3), ou null si ajout direct. */

@@ -8,6 +8,13 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.28.0] - 2026-08-05
+
+### Ajouté
+- **Tâches de projet éditables** — un clic sur une tâche (ou le crayon) ouvre une **fiche d'édition** : intitulé, **description**, statut, **priorité**, responsable et échéance, plus suppression. Auparavant, seuls le statut et la suppression étaient accessibles (une faute de frappe imposait de recréer la tâche).
+- **Parité avec les tâches Productivité** : les tâches de projet ont désormais une **description**, une **priorité** (badge dans la liste) et une **date d'achèvement** (renseignée au passage en « fait »).
+- La **description d'une proposition** est désormais **conservée** lorsqu'elle est intégrée (elle était perdue jusqu'ici).
+
 ## [1.27.0] - 2026-08-05
 
 ### Sécurité
