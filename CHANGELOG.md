@@ -6,7 +6,17 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-_Rien pour l'instant._
+Chantiers structurels restants (audit du module Tâches) : historique/journal des
+changements par tâche, réordonnancement par glisser-déposer, motif de blocage.
+
+## [1.29.0] - 2026-08-05
+
+### Ajouté
+- **Recherche & filtres sur les tâches** : le tableau Productivité gagne une **recherche texte** et un **filtre par priorité** (en plus du filtre par personne) ; la liste des tâches d'un projet gagne une **recherche** et une option **« masquer les terminées »**.
+- **Les deux systèmes de tâches sont reliés** : une tâche du module Productivité rattachée à un projet apparaît désormais dans une section **« Tâches Productivité rattachées »** de la fiche projet (clic pour l'ouvrir), et on peut **définir le projet d'une tâche** depuis sa fiche (champ « Projet rattaché »). Ce lien existait en base mais n'était ni affiché ni modifiable.
+
+### Modifié
+- **Décision des propositions de tâches** : outre le propriétaire du projet, un **manager / directeur / admin** peut désormais **intégrer ou refuser** une proposition (secours quand le propriétaire est indisponible). La section « Propositions à valider » leur est visible.
 
 ## [1.28.0] - 2026-08-05
 

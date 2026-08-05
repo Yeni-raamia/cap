@@ -173,6 +173,20 @@ export function TaskModal() {
                 <div className="text-[13px] text-slate-700 py-1.5">{task.dueDate ? fmt(task.dueDate) : "—"}</div>
               )}
             </Field>
+            <Field label="Projet rattaché">
+              {canEdit ? (
+                <select
+                  value={task.projectId ?? ""}
+                  onChange={(e) => patch({ projectId: e.target.value || null })}
+                  className="w-full text-[13px] border border-slate-200 rounded-lg px-2 py-1.5 bg-white"
+                >
+                  <option value="">— Aucun</option>
+                  {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              ) : (
+                <div className="text-[13px] text-slate-700 py-1.5">{proj ? proj.name : "—"}</div>
+              )}
+            </Field>
           </div>
 
           {/* Description */}

@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   CalendarClock,
   Check,
+  CheckSquare,
   Gavel,
   GitMerge,
   GitPullRequest,
@@ -59,6 +60,8 @@ export default function ProjetDetailPage() {
     me,
     now,
     items,
+    tasks,
+    setOpenTaskId,
     profiles,
     projectById,
     profileById,
@@ -86,6 +89,8 @@ export default function ProjetDetailPage() {
   const [taskAssignee, setTaskAssignee] = useState("");
   const [taskDue, setTaskDue] = useState("");
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
+  const [taskQuery, setTaskQuery] = useState("");
+  const [hideDone, setHideDone] = useState(false);
   // Proposition de tâche (Lot 3) — pour les non-membres.
   const [propTitle, setPropTitle] = useState("");
   const [propDesc, setPropDesc] = useState("");
@@ -125,9 +130,13 @@ export default function ProjetDetailPage() {
   const canEditBoard =
     !demo && (me.role === "manager" || me.role === "directeur" || me.role === "admin" || project.ownerId === me.id || project.memberIds.includes(me.id));
   const isOwner = !demo && project.ownerId === me.id;
+  // Le propriétaire décide des propositions ; un manager/directeur/admin en secours.
+  const canDecideProposals = isOwner || (!demo && (me.role === "manager" || me.role === "directeur" || me.role === "admin"));
   const pendingProposals = project.proposals.filter((p) => p.status === "en_attente");
   // Propositions de l'utilisateur courant (pour lui montrer leur suivi).
   const myProposals = demo ? [] : project.proposals.filter((p) => p.proposedBy === me.id);
+  // Tâches du module Productivité rattachées à ce projet (systèmes désormais reliés).
+  const linkedStandalone = demo ? [] : tasks.filter((t) => t.projectId === project.id);
   // Workflow de statut : le directeur/admin valide ; le manager/responsable propose.
   const isDirector = !demo && (me.role === "directeur" || me.role === "admin");
   const canProposeStatus =
@@ -335,7 +344,7 @@ export default function ProjetDetailPage() {
 
       {/* Propositions à valider (Lot 3) — juste sous la barre de progression, en
           surbrillance pulsée pour attirer l'œil du propriétaire. */}
-      {isOwner && pendingProposals.length > 0 && (
+      {canDecideProposals && pendingProposals.length > 0 && (
         <div className="animate-attention rounded-2xl border-2 border-indigo-300 bg-indigo-50/70 overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-3 bg-indigo-100/80 border-b border-indigo-200">
             <span className="relative flex h-2.5 w-2.5">
@@ -652,17 +661,40 @@ export default function ProjetDetailPage() {
 
       {/* Tâches */}
       <div>
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <ListChecks size={15} className="text-slate-500" />
           <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Tâches</h2>
           <span className="text-[11px] text-slate-400 bg-slate-100 rounded-full px-2">{m.total}</span>
+          {project.tasks.length > 3 && (
+            <div className="ml-auto flex items-center gap-2">
+              <input
+                value={taskQuery}
+                onChange={(e) => setTaskQuery(e.target.value)}
+                placeholder="Rechercher…"
+                className="text-[12px] border border-slate-200 rounded-lg px-2.5 py-1 w-36 focus:border-emerald-400 outline-none"
+              />
+              <label className="inline-flex items-center gap-1 text-[11px] text-slate-500 cursor-pointer">
+                <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} className="h-3 w-3 accent-emerald-600" />
+                Masquer les terminées
+              </label>
+            </div>
+          )}
         </div>
         <Card>
-          {project.tasks.length === 0 ? (
+          {(() => {
+            const q = taskQuery.trim().toLowerCase();
+            const visibleTasks = project.tasks.filter(
+              (t) =>
+                (!hideDone || t.status !== "fait") &&
+                (!q || t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q))
+            );
+            return project.tasks.length === 0 ? (
             <div className="p-6 text-center text-[13px] text-slate-400">Aucune tâche.</div>
+          ) : visibleTasks.length === 0 ? (
+            <div className="p-6 text-center text-[13px] text-slate-400">Aucune tâche ne correspond au filtre.</div>
           ) : (
             <div className="divide-y divide-slate-100">
-              {project.tasks.map((t) => {
+              {visibleTasks.map((t) => {
                 const late = t.status !== "fait" && t.dueDate && t.dueDate.getTime() < now.getTime();
                 return (
                   <div key={t.id} className="flex items-center gap-3 px-4 py-2.5">
@@ -717,7 +749,8 @@ export default function ProjetDetailPage() {
                 );
               })}
             </div>
-          )}
+          );
+          })()}
           {canEditBoard && (
             <div className="flex items-center gap-2 px-4 py-3 border-t border-slate-100 flex-wrap">
               <input
@@ -856,6 +889,31 @@ export default function ProjetDetailPage() {
           )}
         </Card>
       </div>
+
+      {/* Tâches Productivité rattachées à ce projet (systèmes reliés). */}
+      {linkedStandalone.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <CheckSquare size={15} className="text-violet-500" />
+            <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Tâches Productivité rattachées</h2>
+            <span className="text-[11px] text-violet-700 bg-violet-100 rounded-full px-2">{linkedStandalone.length}</span>
+          </div>
+          <Card className="divide-y divide-slate-100">
+            {linkedStandalone.map((t) => {
+              const late = t.status !== "fait" && t.dueDate && t.dueDate.getTime() < now.getTime();
+              return (
+                <button key={t.id} onClick={() => setOpenTaskId(t.id)} className="w-full text-left flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50">
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${taskBadge[t.status]}`}>{t.status}</span>
+                  <span className="flex-1 min-w-0 text-[13px] text-slate-800 truncate">{t.title}</span>
+                  {t.dueDate && <span className={`text-[11px] ${late ? "text-rose-600 font-medium" : "text-slate-400"}`}>{fmt(t.dueDate)}</span>}
+                  {t.assigneeId && <Avatar init={profileById(t.assigneeId).init} size="h-6 w-6" />}
+                </button>
+              );
+            })}
+          </Card>
+          <p className="text-[11px] text-slate-400 mt-1">Ces tâches sont gérées dans le module Productivité (clic pour ouvrir).</p>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-4">
         {/* Équipe */}

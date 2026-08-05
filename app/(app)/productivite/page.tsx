@@ -47,6 +47,8 @@ export default function ProductivitePage() {
   const [windowDays, setWindowDays] = useState(30);
   const [selected, setSelected] = useState<string | null>(null);
   const [filterMember, setFilterMember] = useState<string>("");
+  const [boardQuery, setBoardQuery] = useState("");
+  const [filterPrio, setFilterPrio] = useState<string>("");
   const [err, setErr] = useState<string | null>(null);
 
   const canAssignOthers = ["manager", "directeur", "admin"].includes(me.role);
@@ -87,7 +89,13 @@ export default function ProductivitePage() {
     return { open, doneRecent, late, blocked, rate };
   }, [tasks, now, windowDays]);
 
-  const boardTasks = filterMember ? tasks.filter((t) => t.assigneeId === filterMember) : tasks;
+  const boardQ = boardQuery.trim().toLowerCase();
+  const boardTasks = tasks.filter(
+    (t) =>
+      (!filterMember || t.assigneeId === filterMember) &&
+      (!filterPrio || t.priority === filterPrio) &&
+      (!boardQ || t.title.toLowerCase().includes(boardQ) || t.description.toLowerCase().includes(boardQ))
+  );
 
   const selProfile = selected ? profileById(selected) : null;
   const selTasks = selected ? tasks.filter((t) => t.assigneeId === selected) : [];
@@ -243,15 +251,32 @@ export default function ProductivitePage() {
       <div>
         <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
           <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Tâches de l&apos;équipe</h2>
-          <select
-            value={filterMember}
-            onChange={(e) => setFilterMember(e.target.value)}
-            aria-label="Filtrer par personne"
-            className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white"
-          >
-            <option value="">Toute l&apos;équipe</option>
-            {activeProfiles.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
-          </select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              value={boardQuery}
+              onChange={(e) => setBoardQuery(e.target.value)}
+              placeholder="Rechercher…"
+              className="text-[12px] border border-slate-200 rounded-lg px-2.5 py-1 w-36 focus:border-emerald-400 outline-none"
+            />
+            <select
+              value={filterPrio}
+              onChange={(e) => setFilterPrio(e.target.value)}
+              aria-label="Filtrer par priorité"
+              className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white"
+            >
+              <option value="">Toute priorité</option>
+              {TASK_PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+            <select
+              value={filterMember}
+              onChange={(e) => setFilterMember(e.target.value)}
+              aria-label="Filtrer par personne"
+              className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white"
+            >
+              <option value="">Toute l&apos;équipe</option>
+              {activeProfiles.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
+            </select>
+          </div>
         </div>
         <div className="grid md:grid-cols-4 gap-3">
           {TASK_STATUTS.map((st) => {

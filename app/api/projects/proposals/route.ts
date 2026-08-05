@@ -60,9 +60,10 @@ export async function POST(request: Request) {
     const proposalId: string = body?.proposalId;
     const pending = proposalId ? getPendingProposal(proposalId) : null;
     if (!pending) return NextResponse.json({ error: "Aucune proposition en attente." }, { status: 400 });
-    // Seul le propriétaire du projet décide.
-    if (getProjectOwner(pending.projectId) !== user.id) {
-      return NextResponse.json({ error: "Seul le propriétaire du projet peut décider." }, { status: 403 });
+    // Le propriétaire décide ; un manager/directeur/admin peut trancher en secours.
+    const isStaff = user.role === "manager" || user.role === "directeur" || user.role === "admin";
+    if (getProjectOwner(pending.projectId) !== user.id && !isStaff) {
+      return NextResponse.json({ error: "Réservé au propriétaire du projet (ou à un manager/directeur/admin)." }, { status: 403 });
     }
     const approve = Boolean(body?.approve);
     const note = String(body?.note || "").trim();
