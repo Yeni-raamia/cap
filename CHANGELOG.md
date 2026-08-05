@@ -6,9 +6,17 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-Module GRC — lots suivants : gestion & diffusion des politiques (par service),
-rondes & contrôles terrain, plan de travail GRC + tableau de bord, badges cyber.
-Chantiers Tâches restants : historique/journal, réordonnancement, motif de blocage.
+Module GRC — lots suivants : rondes & contrôles terrain, plan de travail GRC +
+tableau de bord, badges cyber. Chantiers Tâches restants : historique/journal,
+réordonnancement, motif de blocage.
+
+## [1.34.0] - 2026-08-05
+
+### Ajouté
+- **Module GRC — Politiques de sécurité** (lot 2) : bibliothèque de politiques et **suivi de diffusion par direction/service**.
+  - Chaque politique : référence de cadre (ISO/CIS/NIST…), domaine, **version**, statut (Brouillon / En vigueur / Révisée / Retirée), responsable, dates (en vigueur / prochaine revue), résumé, lien du document, référence auto (`POL-AAAA-NNN`).
+  - **Cycle de diffusion par service** : **Diffusée → Consultée → Comprise → Applicable** (ou « Non applicable »), avec pastilles de progression, note par service (interlocuteur, entretien…) et **taux d'applicabilité** calculé (part des services arrivés à « Applicable », hors « Non applicable »).
+  - Cartes avec barre d'applicabilité, recherche & filtres (statut, domaine), KPIs. Accès manager/directeur/admin/dsi ; suppression réservée aux manager/directeur/admin.
 
 ## [1.33.0] - 2026-08-05
 

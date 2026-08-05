@@ -227,6 +227,20 @@ create table if not exists risk_links (
   risk_id text not null, kind text not null, ref_id text not null
 );
 create index if not exists idx_risklinks_risk on risk_links(risk_id);
+create table if not exists policies (
+  id text primary key, ref text not null,
+  title text not null default '', reference text not null default '', domain text not null default '',
+  version text not null default '1.0', status text not null default 'Brouillon',
+  summary text not null default '', url text not null default '',
+  owner_id text, published_at text, review_date text, created_by text,
+  created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
+create table if not exists policy_diffusions (
+  id text primary key, policy_id text not null, service text not null default '',
+  stage text not null default 'Diffusée', note text not null default '',
+  updated_at text not null default (datetime('now'))
+);
+create index if not exists idx_polldiff_policy on policy_diffusions(policy_id);
 create table if not exists conversations (
   id text primary key, title text not null default '', kind text not null default 'group',
   ref_type text, ref_id text, created_by text, created_at text not null default (datetime('now'))

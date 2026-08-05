@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Catalogue, Contact, ConversationSummary, EmailTemplate, Item, Meeting, Negligence, NonConformite, Notif, Objective, Profile, Project, RefLists, Risk, Task } from "@/lib/domain";
+import type { AppSettings, Catalogue, Contact, ConversationSummary, EmailTemplate, Item, Meeting, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Task } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -79,6 +79,7 @@ export function AppShell({
   initialContacts,
   initialMeetings,
   initialRisks,
+  initialPolicies,
 }: {
   children: ReactNode;
   demo?: boolean;
@@ -99,6 +100,7 @@ export function AppShell({
   initialContacts?: Contact[];
   initialMeetings?: Meeting[];
   initialRisks?: Risk[];
+  initialPolicies?: Policy[];
 }) {
   return (
     <AppProvider
@@ -120,6 +122,7 @@ export function AppShell({
       initialContacts={initialContacts}
       initialMeetings={initialMeetings}
       initialRisks={initialRisks}
+      initialPolicies={initialPolicies}
     >
       <Shell>{children}</Shell>
     </AppProvider>

@@ -44,6 +44,7 @@ import {
   type Negligence,
   type NonConformite,
   type Objective,
+  type Policy,
   type RefLists,
   type Catalogue,
   type Item,
@@ -143,6 +144,19 @@ export interface RiskInput {
   ownerId?: string;
   reviewDate?: string | null;
   links?: RiskLink[];
+}
+export interface PolicyInput {
+  id?: string;
+  title?: string;
+  reference?: string;
+  domain?: string;
+  version?: string;
+  status?: string;
+  summary?: string;
+  url?: string;
+  ownerId?: string;
+  publishedAt?: string | null;
+  reviewDate?: string | null;
 }
 type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service" | "policy";
 type RefListActionPayload =
@@ -270,6 +284,14 @@ interface AppCtx {
   updateRisk: (id: string, fields: RiskInput) => Promise<string | null>;
   setRiskStatus: (id: string, status: string) => Promise<string | null>;
   deleteRisk: (id: string) => Promise<string | null>;
+  // GRC : politiques de sécurité
+  policies: Policy[];
+  policyById: (id: string) => Policy | null;
+  createPolicy: (input: PolicyInput) => Promise<string | null>;
+  updatePolicy: (id: string, fields: PolicyInput) => Promise<string | null>;
+  deletePolicy: (id: string) => Promise<string | null>;
+  setPolicyDiffusion: (id: string, service: string, stage: string, note?: string) => Promise<string | null>;
+  removePolicyDiffusion: (id: string, service: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -401,6 +423,15 @@ const reviveRisk = (r: Risk): Risk => ({
   updatedAt: new Date(r.updatedAt),
 });
 const reviveRisks = (arr: Risk[]): Risk[] => arr.map(reviveRisk);
+const revivePolicy = (p: Policy): Policy => ({
+  ...p,
+  publishedAt: p.publishedAt ? new Date(p.publishedAt) : null,
+  reviewDate: p.reviewDate ? new Date(p.reviewDate) : null,
+  createdAt: new Date(p.createdAt),
+  updatedAt: new Date(p.updatedAt),
+  diffusions: (p.diffusions ?? []).map((d) => ({ ...d, updatedAt: new Date(d.updatedAt) })),
+});
+const revivePolicies = (arr: Policy[]): Policy[] => arr.map(revivePolicy);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -460,6 +491,7 @@ export function AppProvider({
   initialContacts,
   initialMeetings,
   initialRisks,
+  initialPolicies,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -480,6 +512,7 @@ export function AppProvider({
   initialContacts?: Contact[];
   initialMeetings?: Meeting[];
   initialRisks?: Risk[];
+  initialPolicies?: Policy[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -516,6 +549,7 @@ export function AppProvider({
   const [tasks, setTasks] = useState<Task[]>(demo ? [] : reviveTasks(initialTasks ?? []));
   const [objectives, setObjectives] = useState<Objective[]>(demo ? seedObjectives() : reviveObjectives(initialObjectives ?? []));
   const [risks, setRisks] = useState<Risk[]>(demo ? [] : reviveRisks(initialRisks ?? []));
+  const [policies, setPolicies] = useState<Policy[]>(demo ? [] : revivePolicies(initialPolicies ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -1591,6 +1625,31 @@ export function AppProvider({
   const setRiskStatus = (id: string, status: string) => riskAction("status", { id, status });
   const deleteRisk = (id: string) => riskAction("delete", { id });
 
+  /* ---------- GRC : Politiques de sécurité ---------- */
+  const policyById = (id: string): Policy | null => policies.find((p) => p.id === id) ?? null;
+  const policyAction = async (op: "create" | "update" | "delete" | "diffuse" | "undiffuse", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Gestion des politiques indisponible en mode démo.";
+    const res = await fetch("/api/policies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, ...input }),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      toast(d.error ?? "Erreur.", "error");
+      return d.error ?? "Erreur.";
+    }
+    if (d.policies) setPolicies(revivePolicies(d.policies));
+    if (op === "create") toast("Politique ajoutée.", "success");
+    else if (op === "delete") toast("Politique supprimée.", "success");
+    return null;
+  };
+  const createPolicy = (input: PolicyInput) => policyAction("create", input as Record<string, unknown>);
+  const updatePolicy = (id: string, fields: PolicyInput) => policyAction("update", { id, ...fields });
+  const deletePolicy = (id: string) => policyAction("delete", { id });
+  const setPolicyDiffusion = (id: string, service: string, stage: string, note?: string) => policyAction("diffuse", { id, service, stage, note: note ?? "" });
+  const removePolicyDiffusion = (id: string, service: string) => policyAction("undiffuse", { id, service });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -1867,6 +1926,13 @@ export function AppProvider({
     updateRisk,
     setRiskStatus,
     deleteRisk,
+    policies,
+    policyById,
+    createPolicy,
+    updatePolicy,
+    deletePolicy,
+    setPolicyDiffusion,
+    removePolicyDiffusion,
     openTaskId,
     setOpenTaskId,
     soundEnabled,

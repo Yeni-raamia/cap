@@ -520,6 +520,72 @@ export interface Risk {
   updatedAt: Date;
 }
 
+/* ---------- Module GRC : Politiques de sécurité (diffusion & suivi) ----------
+ * Chaque politique est suivie, par direction/service destinataire, le long du
+ * cycle : Diffusée → Consultée → Comprise → Applicable (ou « Non applicable »). */
+export const POLICY_STATUTS = ["Brouillon", "En vigueur", "Révisée", "Retirée"];
+/** Étapes ordonnées du cycle de diffusion (progression 0→3). */
+export const POLICY_STAGES = ["Diffusée", "Consultée", "Comprise", "Applicable"];
+/** Étape spéciale terminale : la politique ne concerne pas ce service. */
+export const POLICY_STAGE_NA = "Non applicable";
+export const POLICY_STAGE_ALL = [...POLICY_STAGES, POLICY_STAGE_NA];
+export const POLICY_DOMAINS = [
+  "Gouvernance",
+  "Contrôle d'accès",
+  "Protection des données",
+  "Continuité d'activité",
+  "Sécurité physique",
+  "RH / Sensibilisation",
+  "Fournisseurs / tiers",
+  "Développement / SI",
+];
+/** Badge (fond + texte) par étape du cycle. */
+export const POLICY_STAGE_TONE: Record<string, string> = {
+  Diffusée: "bg-slate-100 text-slate-600 border-slate-200",
+  Consultée: "bg-sky-100 text-sky-700 border-sky-200",
+  Comprise: "bg-violet-100 text-violet-700 border-violet-200",
+  Applicable: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  "Non applicable": "bg-slate-100 text-slate-400 border-slate-200",
+};
+/** Index d'étape (0–3) ; -1 pour « Non applicable ». */
+export const policyStageIndex = (stage: string): number => POLICY_STAGES.indexOf(stage);
+
+export interface PolicyDiffusion {
+  id: string;
+  policyId: string;
+  service: string; // direction / service destinataire
+  stage: string; // POLICY_STAGE_ALL
+  note: string;
+  updatedAt: Date;
+}
+export interface Policy {
+  id: string;
+  ref: string;
+  title: string;
+  reference: string; // cadre / article (ISO, CIS, NIST, interne…)
+  domain: string;
+  version: string;
+  status: string;
+  summary: string;
+  url: string; // lien facultatif vers le document
+  ownerId: string;
+  publishedAt: Date | null;
+  reviewDate: Date | null;
+  diffusions: PolicyDiffusion[];
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Taux d'applicabilité d'une politique : part des services arrivés à « Applicable »
+ *  (les services « Non applicable » sont exclus du dénominateur). */
+export function policyCoverage(p: Policy): { applicable: number; total: number; pct: number } {
+  const concerned = p.diffusions.filter((d) => d.stage !== POLICY_STAGE_NA);
+  const applicable = concerned.filter((d) => d.stage === "Applicable").length;
+  const total = concerned.length;
+  return { applicable, total, pct: total ? Math.round((applicable / total) * 100) : 0 };
+}
+
 /** Listes de référence par défaut (seed + repli si la base est vide). */
 export const DEFAULT_REF_LISTS: RefLists = {
   appreciations: APPRECIATIONS,

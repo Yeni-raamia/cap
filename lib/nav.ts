@@ -20,6 +20,7 @@ export const NAV: NavItem[] = [
   { id: "negligences", href: "/negligences", label: "Négligences", icon: "AlertOctagon", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "nonconformites", href: "/non-conformites", label: "Non-conformités", icon: "FileWarning", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "risques", href: "/risques", label: "Registre des risques", icon: "ShieldAlert", roles: ["manager", "directeur", "admin", "dsi"] },
+  { id: "politiques", href: "/politiques", label: "Politiques", icon: "ScrollText", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "stats", href: "/stats", label: "Statistiques", icon: "BarChart3", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "classement", href: "/classement", label: "Classement", icon: "Trophy", roles: ["agent", "manager", "directeur", "admin"] },
   { id: "rappels", href: "/rappels", label: "Rappels", icon: "Bell", roles: ["agent", "manager", "directeur", "admin"] },
