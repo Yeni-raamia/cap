@@ -8,6 +8,15 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.25.0] - 2026-08-05
+
+### Ajouté
+- **Notifications cliquables** : un clic sur une notification/rappel **redirige vers le sujet concerné** (ex. la fiche projet d'une proposition) en plus de l'archiver, pour agir immédiatement.
+
+### Amélioré
+- **Propositions à valider** (côté propriétaire) : la section est repositionnée **juste sous la barre de progression** et mise **en surbrillance pulsée** (anneau + pastille clignotante) pour ne plus passer inaperçue. Boutons « Intégrer » / « Refuser » plus lisibles, avec l'auteur et l'échéance mis en avant.
+- **Proposer une tâche** (côté proposant) : formulaire repensé, plus clair et explicite (champs libellés, explication du circuit) ; chacun voit désormais **le statut de ses propres propositions** (en attente / intégrée / refusée, avec le motif de refus).
+
 ## [1.24.0] - 2026-08-05
 
 ### Ajouté

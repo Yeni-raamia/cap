@@ -50,6 +50,7 @@ export async function POST(request: Request) {
         kind: "projet",
         message: `${user.nom} demande la clôture du projet « ${projName} » — à valider.`,
         channel: ["in-app"],
+        link: `/projets/${id}`,
       })
     );
     logActivity(user.id, "projet.cloture.demande", projName);
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
           ? `Clôture du projet « ${projName} » validée par ${user.nom}.`
           : `Clôture du projet « ${projName} » refusée par ${user.nom}${note ? ` : ${note}` : ""}.`,
         channel: ["in-app"],
+        link: `/projets/${id}`,
       });
     }
     logActivity(user.id, approve ? "projet.cloture.validation" : "projet.cloture.refus", projName);

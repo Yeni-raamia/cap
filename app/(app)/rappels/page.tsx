@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Archive, ArrowUp, Bell, CalendarCheck, CalendarClock, CalendarDays, CheckCheck, CheckSquare, FolderKanban, Mail, MessageSquare, RotateCcw, ShieldAlert } from "lucide-react";
-import { fmt, isPublished, type Item, type NotifKind } from "@/lib/domain";
+import { fmt, isPublished, type Item, type Notif, type NotifKind } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { PageHero } from "@/components/PageHero";
@@ -36,6 +37,7 @@ export default function RappelsPage() {
     markNotificationsRead, markNotificationRead, openItem,
   } = useApp();
   const [notifTab, setNotifTab] = useState<"actives" | "archivees">("actives");
+  const router = useRouter();
 
   // Vue d'équipe : rappels calculés sur les suivis publiés uniquement.
   const items = allItems.filter(isPublished);
@@ -48,13 +50,16 @@ export default function RappelsPage() {
   const archived = notifications.filter((n) => n.read);
   const shown = notifTab === "actives" ? active : archived;
 
-  // Ouvrir le suivi lié (si présent) et archiver la notification active.
-  const onNotifClick = (itemId: string | null, id: string, read: boolean) => {
-    if (itemId) {
-      const it = items.find((x) => x.id === itemId);
+  // Rediriger vers le sujet du rappel (lien explicite, sinon le suivi lié) puis
+  // archiver la notification active.
+  const onNotifClick = (n: Notif) => {
+    if (n.link) {
+      router.push(n.link);
+    } else if (n.itemId) {
+      const it = allItems.find((x) => x.id === n.itemId);
       if (it) openItem(it);
     }
-    if (!read) markNotificationRead(id);
+    if (!n.read) markNotificationRead(n.id);
   };
 
   const Row = ({ i, tone }: { i: Item; tone: "rose" | "amber" }) => {
@@ -141,7 +146,7 @@ export default function RappelsPage() {
                 return (
                   <button
                     key={n.id}
-                    onClick={() => onNotifClick(n.itemId, n.id, n.read)}
+                    onClick={() => onNotifClick(n)}
                     className={`w-full text-left flex items-center gap-3 px-4 py-3 border-b border-slate-100 last:border-0 hover:bg-slate-50 ${
                       n.read ? "opacity-70" : ""
                     }`}

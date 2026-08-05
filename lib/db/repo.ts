@@ -905,6 +905,7 @@ interface NotifRow {
   message: string;
   channel: string;
   read: number;
+  link: string | null;
   created_at: string;
 }
 
@@ -917,6 +918,7 @@ function mapNotif(r: NotifRow): Notif {
     message: r.message,
     channel: r.channel.split(",").filter(Boolean),
     read: r.read === 1,
+    link: r.link ?? null,
     createdAt: new Date(r.created_at),
   };
 }
@@ -938,10 +940,12 @@ export function insertNotification(input: {
   kind: NotifKind;
   message: string;
   channel: string[];
+  /** Cible de navigation au clic (route interne, ex. « /projets/<id> »). */
+  link?: string | null;
 }): void {
   getDb()
     .prepare(
-      "insert into notifications (id, user_id, item_id, kind, message, channel) values (?,?,?,?,?,?)"
+      "insert into notifications (id, user_id, item_id, kind, message, channel, link) values (?,?,?,?,?,?,?)"
     )
     .run(
       randomUUID(),
@@ -949,7 +953,8 @@ export function insertNotification(input: {
       input.itemId,
       input.kind,
       input.message,
-      input.channel.join(",")
+      input.channel.join(","),
+      input.link ?? null
     );
 }
 

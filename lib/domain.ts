@@ -819,6 +819,8 @@ export interface Notif {
   channel: string[];
   read: boolean;
   createdAt: Date;
+  /** Cible de navigation au clic (route interne, ex. « /projets/<id> »). */
+  link?: string | null;
 }
 
 /* ---------- Module Projet ---------- */

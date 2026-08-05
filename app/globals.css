@@ -102,6 +102,18 @@ button:not(:disabled):active,
   animation: slideInRight 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
+/* ---------- Surbrillance « à valider » : anneau indigo pulsé (attention) ---------- */
+@keyframes attentionGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.5); }
+  50% { box-shadow: 0 0 0 7px rgba(99, 102, 241, 0); }
+}
+.animate-attention {
+  animation: attentionGlow 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-attention { animation: none; }
+}
+
 /* ---------- Barre de défilement fine et discrète ---------- */
 * {
   scrollbar-width: thin;

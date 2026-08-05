@@ -10,6 +10,7 @@ import {
   CalendarClock,
   Check,
   Gavel,
+  GitMerge,
   GitPullRequest,
   Globe,
   ListChecks,
@@ -115,6 +116,8 @@ export default function ProjetDetailPage() {
     !demo && (me.role === "manager" || me.role === "directeur" || me.role === "admin" || project.ownerId === me.id || project.memberIds.includes(me.id));
   const isOwner = !demo && project.ownerId === me.id;
   const pendingProposals = project.proposals.filter((p) => p.status === "en_attente");
+  // Propositions de l'utilisateur courant (pour lui montrer leur suivi).
+  const myProposals = demo ? [] : project.proposals.filter((p) => p.proposedBy === me.id);
   // Workflow de statut : le directeur/admin valide ; le manager/responsable propose.
   const isDirector = !demo && (me.role === "directeur" || me.role === "admin");
   const canProposeStatus =
@@ -319,6 +322,62 @@ export default function ProjetDetailPage() {
           </div>
         </div>
       </Card>
+
+      {/* Propositions à valider (Lot 3) — juste sous la barre de progression, en
+          surbrillance pulsée pour attirer l'œil du propriétaire. */}
+      {isOwner && pendingProposals.length > 0 && (
+        <div className="animate-attention rounded-2xl border-2 border-indigo-300 bg-indigo-50/70 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-3 bg-indigo-100/80 border-b border-indigo-200">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-500 opacity-75 animate-ping" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-indigo-600" />
+            </span>
+            <GitPullRequest size={16} className="text-indigo-600" />
+            <h2 className="text-[13px] font-bold text-indigo-900 uppercase tracking-wide">Propositions à valider</h2>
+            <span className="text-[12px] font-bold text-white bg-indigo-600 rounded-full px-2 py-0.5 min-w-[1.4rem] text-center">
+              {pendingProposals.length}
+            </span>
+            <span className="ml-auto text-[11px] text-indigo-700 hidden sm:inline">Action requise du propriétaire</span>
+          </div>
+          <div className="divide-y divide-indigo-100">
+            {pendingProposals.map((p) => (
+              <div key={p.id} className="p-4 bg-white/70">
+                <div className="flex items-start gap-3 flex-wrap">
+                  <div className="flex-1 min-w-[12rem] space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[14px] font-semibold text-slate-800">{p.title}</span>
+                      {p.dueDate && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">
+                          <CalendarClock size={11} /> {fmt(p.dueDate)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                      <Avatar init={profileById(p.proposedBy).init} size="h-5 w-5" />
+                      Proposée par {profileById(p.proposedBy).nom} · {fmt(p.createdAt)}
+                    </div>
+                    {p.description && <p className="text-[12px] text-slate-600 whitespace-pre-wrap pt-0.5">{p.description}</p>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => run(decideProjectProposal(p.id, true))}
+                      className="inline-flex items-center gap-1 text-[12px] font-semibold text-white bg-emerald-600 rounded-lg px-3 py-2 hover:bg-emerald-700 shadow-sm"
+                    >
+                      <GitMerge size={14} /> Intégrer
+                    </button>
+                    <button
+                      onClick={() => run(decideProjectProposal(p.id, false))}
+                      className="inline-flex items-center gap-1 text-[12px] font-medium text-rose-600 border border-rose-200 bg-white rounded-lg px-3 py-2 hover:bg-rose-50"
+                    >
+                      <X size={14} /> Refuser
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Cycle de vie : archivage & suppression (avec approbation) */}
       {(() => {
@@ -679,92 +738,94 @@ export default function ProjetDetailPage() {
               </button>
             </div>
           )}
-          {/* Proposition de tâche (Lot 3) — visible pour ceux qui ne peuvent pas éditer le tableau. */}
+          {/* Proposition de tâche (Lot 3) — pour ceux qui ne sont pas membres du projet. */}
           {!canEditBoard && !demo && (
-            <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/60 space-y-2">
-              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
-                <GitPullRequest size={13} /> Proposer une tâche (soumise au propriétaire)
+            <div className="border-t border-slate-100 bg-gradient-to-b from-indigo-50/80 to-white">
+              <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+                <div className="h-7 w-7 rounded-lg bg-indigo-100 text-indigo-600 grid place-items-center shrink-0">
+                  <GitPullRequest size={15} />
+                </div>
+                <div>
+                  <div className="text-[13px] font-semibold text-slate-800">Proposer une tâche</div>
+                  <div className="text-[11px] text-slate-500">
+                    Vous n&apos;êtes pas membre : votre tâche sera soumise au propriétaire, qui l&apos;intègre ou la refuse.
+                  </div>
+                </div>
               </div>
-              <input
-                value={propTitle}
-                onChange={(e) => setPropTitle(e.target.value)}
-                placeholder="Tâche proposée…"
-                className="w-full text-[13px] border border-slate-200 rounded-lg px-2 py-1.5"
-              />
-              <textarea
-                value={propDesc}
-                onChange={(e) => setPropDesc(e.target.value)}
-                placeholder="Précisions (facultatif)…"
-                rows={2}
-                className="w-full text-[12px] border border-slate-200 rounded-lg px-2 py-1.5"
-              />
-              <div className="flex items-center gap-2 flex-wrap">
-                <input
-                  type="date"
-                  value={propDue}
-                  onChange={(e) => setPropDue(e.target.value)}
-                  aria-label="Échéance proposée"
-                  className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
-                />
-                <button
-                  onClick={async () => {
-                    if (!propTitle.trim()) return;
-                    const e = await proposeProjectTask(project.id, {
-                      title: propTitle.trim(),
-                      description: propDesc.trim(),
-                      dueDate: propDue || null,
-                    });
-                    if (!e) { setPropTitle(""); setPropDesc(""); setPropDue(""); }
-                  }}
-                  disabled={!propTitle.trim()}
-                  className="inline-flex items-center gap-1 text-[12px] font-medium text-white bg-indigo-600 rounded-lg px-3 py-1.5 disabled:opacity-40"
-                >
-                  <GitPullRequest size={14} /> Proposer
-                </button>
+              {myProposals.length > 0 && (
+                <div className="px-4 pb-1 pt-1 space-y-1">
+                  {myProposals.map((p) => {
+                    const tone =
+                      p.status === "approuvee"
+                        ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                        : p.status === "refusee"
+                        ? "bg-rose-100 text-rose-700 border-rose-200"
+                        : "bg-amber-100 text-amber-700 border-amber-200";
+                    const label = p.status === "approuvee" ? "Intégrée" : p.status === "refusee" ? "Refusée" : "En attente";
+                    return (
+                      <div key={p.id} className="flex items-center gap-2 text-[12px] text-slate-600">
+                        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${tone}`}>{label}</span>
+                        <span className="truncate">{p.title}</span>
+                        {p.status === "refusee" && p.decisionNote && (
+                          <span className="text-[11px] text-slate-400 truncate">· {p.decisionNote}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="px-4 pb-4 pt-1 space-y-2">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-500 mb-1">Intitulé de la tâche</label>
+                  <input
+                    value={propTitle}
+                    onChange={(e) => setPropTitle(e.target.value)}
+                    placeholder="Ex. Vérifier la rotation des sauvegardes…"
+                    className="w-full text-[13px] border border-slate-200 rounded-lg px-2.5 py-2 focus:border-indigo-400 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-500 mb-1">Précisions <span className="text-slate-400">(facultatif)</span></label>
+                  <textarea
+                    value={propDesc}
+                    onChange={(e) => setPropDesc(e.target.value)}
+                    placeholder="Contexte, pourquoi c'est utile…"
+                    rows={2}
+                    className="w-full text-[12px] border border-slate-200 rounded-lg px-2.5 py-2 focus:border-indigo-400 outline-none"
+                  />
+                </div>
+                <div className="flex items-end justify-between gap-2 flex-wrap">
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-500 mb-1">Échéance suggérée <span className="text-slate-400">(facultatif)</span></label>
+                    <input
+                      type="date"
+                      value={propDue}
+                      onChange={(e) => setPropDue(e.target.value)}
+                      aria-label="Échéance proposée"
+                      className="text-[12px] border border-slate-200 rounded-lg px-2.5 py-2 text-slate-700 focus:border-indigo-400 outline-none"
+                    />
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!propTitle.trim()) return;
+                      const e = await proposeProjectTask(project.id, {
+                        title: propTitle.trim(),
+                        description: propDesc.trim(),
+                        dueDate: propDue || null,
+                      });
+                      if (!e) { setPropTitle(""); setPropDesc(""); setPropDue(""); }
+                    }}
+                    disabled={!propTitle.trim()}
+                    className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-indigo-600 rounded-lg px-4 py-2 hover:bg-indigo-700 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <GitPullRequest size={15} /> Envoyer la proposition
+                  </button>
+                </div>
               </div>
             </div>
           )}
         </Card>
       </div>
-
-      {/* Propositions en attente (Lot 3) — le propriétaire approuve ou refuse. */}
-      {isOwner && pendingProposals.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <GitPullRequest size={15} className="text-indigo-500" />
-            <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Propositions à valider</h2>
-            <span className="text-[11px] text-indigo-700 bg-indigo-100 rounded-full px-2">{pendingProposals.length}</span>
-          </div>
-          <Card className="divide-y divide-slate-100">
-            {pendingProposals.map((p) => (
-              <div key={p.id} className="p-4 space-y-1.5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[13px] font-medium text-slate-800">{p.title}</span>
-                  {p.dueDate && <span className="text-[11px] text-slate-400">· échéance {fmt(p.dueDate)}</span>}
-                </div>
-                <div className="text-[11px] text-slate-500">
-                  Proposée par {profileById(p.proposedBy).nom} · {fmt(p.createdAt)}
-                </div>
-                {p.description && <p className="text-[12px] text-slate-600 whitespace-pre-wrap">{p.description}</p>}
-                <div className="flex items-center gap-2 pt-1">
-                  <button
-                    onClick={() => run(decideProjectProposal(p.id, true))}
-                    className="inline-flex items-center gap-1 text-[12px] font-medium text-white bg-emerald-600 rounded-lg px-3 py-1.5 hover:bg-emerald-700"
-                  >
-                    <Check size={13} /> Intégrer
-                  </button>
-                  <button
-                    onClick={() => run(decideProjectProposal(p.id, false))}
-                    className="inline-flex items-center gap-1 text-[12px] font-medium text-rose-600 border border-rose-200 rounded-lg px-3 py-1.5 hover:bg-rose-50"
-                  >
-                    <X size={13} /> Refuser
-                  </button>
-                </div>
-              </div>
-            ))}
-          </Card>
-        </div>
-      )}
 
       <div className="grid md:grid-cols-2 gap-4">
         {/* Équipe */}

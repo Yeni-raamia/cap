@@ -49,6 +49,7 @@ export async function POST(request: Request) {
         kind: "projet",
         message: `${user.nom} propose une tâche « ${title} » sur le projet « ${projName} » — à approuver.`,
         channel: ["in-app"],
+        link: `/projets/${projectId}`,
       });
     }
     logActivity(user.id, "projet.proposition", `${projName} · ${title}`);
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
           ? `Votre proposition « ${pending.title} » a été intégrée au projet « ${projName} » par ${user.nom}.`
           : `Votre proposition « ${pending.title} » (projet « ${projName} ») a été refusée par ${user.nom}${note ? ` : ${note}` : ""}.`,
         channel: ["in-app"],
+        link: `/projets/${pending.projectId}`,
       });
     }
     logActivity(user.id, approve ? "projet.proposition.merge" : "projet.proposition.refus", `${projName} · ${pending.title}`);

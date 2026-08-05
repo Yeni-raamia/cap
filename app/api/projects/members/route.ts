@@ -30,6 +30,7 @@ export async function POST(request: Request) {
         kind: "projet",
         message: `${user.nom} vous a assigné au projet « ${projName} ».`,
         channel: ["in-app"],
+        link: `/projets/${projectId}`,
       });
     }
   } else if (action === "remove") removeMember(projectId, profileId);

@@ -50,6 +50,7 @@ export async function POST(request: Request) {
         kind: "projet",
         message: `${user.nom} propose de passer « ${projName} » en statut « ${status} » — à valider.`,
         channel: ["in-app"],
+        link: `/projets/${id}`,
       })
     );
     logActivity(user.id, "projet.statut.proposition", `${projName} → ${status}`);
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
           ? `Statut « ${target} » validé pour « ${projName} » par ${user.nom}.`
           : `Changement de statut « ${target} » refusé pour « ${projName} » par ${user.nom}.`,
         channel: ["in-app"],
+        link: `/projets/${id}`,
       });
     }
     logActivity(user.id, approve ? "projet.statut.validation" : "projet.statut.refus", `${projName} → ${target}`);

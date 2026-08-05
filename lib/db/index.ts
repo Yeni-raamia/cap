@@ -126,6 +126,7 @@ create table if not exists events (
 create table if not exists notifications (
   id text primary key, user_id text not null, item_id text, kind text not null, message text not null,
   channel text not null default 'in-app', read integer not null default 0,
+  link text,
   created_at text not null default (datetime('now'))
 );
 create table if not exists sessions (
@@ -360,6 +361,10 @@ function ensureColumns(db: Database.Database) {
   const ntcols = (db.prepare("pragma table_info(notifications)").all() as { name: string }[]).map((c) => c.name);
   if (!ntcols.includes("conversation_id")) {
     db.exec("alter table notifications add column conversation_id text");
+  }
+  // Cible de navigation d'une notification (ex. « /projets/<id> ») — clic = redirection.
+  if (!ntcols.includes("link")) {
+    db.exec("alter table notifications add column link text");
   }
   const pjcols = (db.prepare("pragma table_info(projects)").all() as { name: string }[]).map((c) => c.name);
   if (!pjcols.includes("pending_status")) {

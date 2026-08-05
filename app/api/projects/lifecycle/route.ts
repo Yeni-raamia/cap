@@ -56,6 +56,7 @@ export async function POST(request: Request) {
           kind: "projet",
           message: `${user.nom} demande la suppression du projet « ${projName} » — à approuver.`,
           channel: ["in-app"],
+        link: `/projets/${id}`,
         })
       );
     logActivity(user.id, "projet.suppression.demande", `${projName} — ${reason}`);
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
         kind: "projet",
         message: `Votre demande de suppression du projet « ${projName} » a été approuvée par ${user.nom}.`,
         channel: ["in-app"],
+        link: `/projets/${id}`,
       });
     }
     logActivity(user.id, "projet.suppression", projName);
@@ -95,6 +97,7 @@ export async function POST(request: Request) {
         kind: "projet",
         message: `Votre demande de suppression du projet « ${projName} » a été refusée par ${user.nom}${note ? ` : ${note}` : ""}.`,
         channel: ["in-app"],
+        link: `/projets/${id}`,
       });
     }
     logActivity(user.id, "projet.suppression.refus", projName);
