@@ -1127,6 +1127,24 @@ export const OBJECTIVE_STATUT_LABEL: Record<ObjectiveStatus, string> = {
 /** Palette de couleurs pour les objectifs (accents de la timeline). */
 export const OBJECTIVE_COLORS = ["#10b981", "#0ea5e9", "#8b5cf6", "#f59e0b", "#f43f5e", "#14b8a6", "#6366f1", "#ec4899"];
 
+/** Niveau de criticité d'un objectif, avec label de couleur associé. */
+export type ObjectiveCriticality = "Basse" | "Moyenne" | "Haute" | "Critique";
+export const OBJECTIVE_CRITICALITIES: ObjectiveCriticality[] = ["Basse", "Moyenne", "Haute", "Critique"];
+/** Classes de badge (fond + texte + bordure) par niveau de criticité. */
+export const OBJECTIVE_CRITICALITY_TONE: Record<ObjectiveCriticality, string> = {
+  Basse: "bg-slate-100 text-slate-600 border-slate-200",
+  Moyenne: "bg-sky-100 text-sky-700 border-sky-200",
+  Haute: "bg-amber-100 text-amber-700 border-amber-200",
+  Critique: "bg-rose-100 text-rose-700 border-rose-200",
+};
+/** Pastille de couleur pleine par niveau (pour les puces). */
+export const OBJECTIVE_CRITICALITY_DOT: Record<ObjectiveCriticality, string> = {
+  Basse: "bg-slate-400",
+  Moyenne: "bg-sky-500",
+  Haute: "bg-amber-500",
+  Critique: "bg-rose-500",
+};
+
 export interface Milestone {
   id: string;
   label: string;
@@ -1137,7 +1155,11 @@ export interface Milestone {
 export interface Objective {
   id: string;
   title: string;
+  /** Sous-titre court (accroche), sous le titre. */
+  subtitle: string;
   description: string;
+  /** Niveau de criticité (label de couleur). */
+  criticality: ObjectiveCriticality;
   startDate: Date;
   endDate: Date;
   ownerId: string;

@@ -9,6 +9,11 @@ et le projet suit un versionnage sémantique.
 Chantiers structurels restants (audit du module Tâches) : historique/journal des
 changements par tâche, réordonnancement par glisser-déposer, motif de blocage.
 
+## [1.31.0] - 2026-08-05
+
+### Ajouté
+- **Plan de l'année — criticité & sous-titre des objectifs** : à la création (et à l'édition) d'un objectif, on renseigne désormais un **niveau de criticité** (Basse / Moyenne / Haute / Critique) affiché comme un **label de couleur** (pastille + badge), et un **sous-titre** (accroche courte sous le titre). La criticité et le sous-titre apparaissent sur les cartes du plan et dans la fiche de l'objectif.
+
 ## [1.30.0] - 2026-08-05
 
 ### Ajouté

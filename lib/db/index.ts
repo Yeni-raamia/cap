@@ -102,7 +102,8 @@ create table if not exists objectives (
   start_date text not null, end_date text not null, owner_id text,
   color text not null default '#10b981', status text not null default 'planifie',
   downgrade_reason text not null default '', downgraded_by text, downgraded_at text,
-  created_by text, created_at text not null default (datetime('now'))
+  created_by text, created_at text not null default (datetime('now')),
+  subtitle text not null default '', criticality text not null default 'Moyenne'
 );
 create table if not exists objective_projects ( objective_id text not null, project_id text not null );
 create table if not exists objective_tasks ( objective_id text not null, task_id text not null );
@@ -402,6 +403,12 @@ function ensureColumns(db: Database.Database) {
     db.exec("alter table project_tasks add column description text not null default ''");
     db.exec("alter table project_tasks add column priority text not null default 'Normale'");
     db.exec("alter table project_tasks add column completed_at text");
+  }
+  // Objectifs annuels : sous-titre + niveau de criticité (label de couleur).
+  const objcols = (db.prepare("pragma table_info(objectives)").all() as { name: string }[]).map((c) => c.name);
+  if (objcols.length > 0 && !objcols.includes("subtitle")) {
+    db.exec("alter table objectives add column subtitle text not null default ''");
+    db.exec("alter table objectives add column criticality text not null default 'Moyenne'");
   }
   const mcols = (db.prepare("pragma table_info(messages)").all() as { name: string }[]).map((c) => c.name);
   if (mcols.length > 0 && !mcols.includes("reply_to")) {

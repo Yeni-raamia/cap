@@ -7,6 +7,8 @@ import {
   objectiveHealth,
   objectiveProgress,
   OBJECTIVE_COLORS,
+  OBJECTIVE_CRITICALITY_DOT,
+  OBJECTIVE_CRITICALITY_TONE,
   OBJECTIVE_STATUT_LABEL,
   type Objective,
   type ObjectiveHealth,
@@ -273,7 +275,13 @@ function ObjectiveCard({ o, progress, health, onOpen }: { o: Objective; progress
         <span className="mt-1 h-3 w-3 rounded-full shrink-0" style={{ background: o.color }} />
         <div className="flex-1 min-w-0">
           <div className={`text-[14px] font-bold truncate ${o.status === "declasse" ? "text-slate-400 line-through" : "text-slate-800"}`}>{o.title}</div>
-          <div className="text-[11.5px] text-slate-400 mt-0.5">{fmt(o.startDate)} → {fmt(o.endDate)}</div>
+          {o.subtitle && <div className="text-[12px] text-slate-500 truncate">{o.subtitle}</div>}
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            <span className={`inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-1.5 py-0.5 border ${OBJECTIVE_CRITICALITY_TONE[o.criticality]}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${OBJECTIVE_CRITICALITY_DOT[o.criticality]}`} /> {o.criticality}
+            </span>
+            <span className="text-[11.5px] text-slate-400">{fmt(o.startDate)} → {fmt(o.endDate)}</span>
+          </div>
         </div>
         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium bg-slate-100 dark:bg-slate-800 ${hc.text}`}>{o.status === "declasse" ? OBJECTIVE_STATUT_LABEL.declasse : hc.label}</span>
       </div>

@@ -3,7 +3,10 @@
  * ================================================================== */
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
-import type { Milestone, Objective, ObjectiveStatus } from "@/lib/domain";
+import { OBJECTIVE_CRITICALITIES, type Milestone, type Objective, type ObjectiveCriticality, type ObjectiveStatus } from "@/lib/domain";
+
+const asCriticality = (v: unknown): ObjectiveCriticality =>
+  OBJECTIVE_CRITICALITIES.includes(v as ObjectiveCriticality) ? (v as ObjectiveCriticality) : "Moyenne";
 
 export interface MilestoneInput { label: string; date: string; done?: boolean }
 
@@ -12,7 +15,9 @@ const now = () => new Date().toISOString();
 interface ObjRow {
   id: string;
   title: string;
+  subtitle: string;
   description: string;
+  criticality: string;
   start_date: string;
   end_date: string;
   owner_id: string | null;
@@ -35,7 +40,9 @@ export function listObjectives(): Objective[] {
   return rows.map((r) => ({
     id: r.id,
     title: r.title,
+    subtitle: r.subtitle ?? "",
     description: r.description,
+    criticality: asCriticality(r.criticality),
     startDate: new Date(r.start_date),
     endDate: new Date(r.end_date),
     ownerId: r.owner_id ?? "",
@@ -61,7 +68,9 @@ export function objectiveExists(id: string): boolean {
 
 export function createObjective(input: {
   title: string;
+  subtitle?: string;
   description?: string;
+  criticality?: string;
   startDate: string;
   endDate: string;
   ownerId: string;
@@ -75,8 +84,19 @@ export function createObjective(input: {
   const id = randomUUID();
   const db = getDb();
   db.prepare(
-    "insert into objectives (id, title, description, start_date, end_date, owner_id, color, status, created_by) values (?,?,?,?,?,?,?, 'planifie', ?)"
-  ).run(id, input.title, input.description ?? "", input.startDate, input.endDate, input.ownerId, input.color ?? "#10b981", input.createdBy);
+    "insert into objectives (id, title, subtitle, description, criticality, start_date, end_date, owner_id, color, status, created_by) values (?,?,?,?,?,?,?,?,?, 'planifie', ?)"
+  ).run(
+    id,
+    input.title,
+    input.subtitle ?? "",
+    input.description ?? "",
+    asCriticality(input.criticality),
+    input.startDate,
+    input.endDate,
+    input.ownerId,
+    input.color ?? "#10b981",
+    input.createdBy
+  );
   setLinks(id, "objective_projects", "project_id", input.projectIds ?? []);
   setLinks(id, "objective_tasks", "task_id", input.taskIds ?? []);
   setLinks(id, "objective_members", "profile_id", input.memberIds ?? []);
@@ -102,7 +122,9 @@ export function updateObjective(
   id: string,
   fields: {
     title?: string;
+    subtitle?: string;
     description?: string;
+    criticality?: string;
     startDate?: string;
     endDate?: string;
     ownerId?: string;
@@ -118,10 +140,12 @@ export function updateObjective(
   const cur = db.prepare("select * from objectives where id=?").get(id) as ObjRow | undefined;
   if (!cur) return;
   db.prepare(
-    "update objectives set title=?, description=?, start_date=?, end_date=?, owner_id=?, color=?, status=? where id=?"
+    "update objectives set title=?, subtitle=?, description=?, criticality=?, start_date=?, end_date=?, owner_id=?, color=?, status=? where id=?"
   ).run(
     fields.title ?? cur.title,
+    fields.subtitle !== undefined ? fields.subtitle : cur.subtitle ?? "",
     fields.description ?? cur.description,
+    fields.criticality !== undefined ? asCriticality(fields.criticality) : asCriticality(cur.criticality),
     fields.startDate ?? cur.start_date,
     fields.endDate ?? cur.end_date,
     fields.ownerId ?? cur.owner_id,

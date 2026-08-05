@@ -46,7 +46,9 @@ export async function POST(request: Request) {
     if (new Date(end) < new Date(start)) return NextResponse.json({ error: "La date de fin doit suivre la date de début." }, { status: 400 });
     createObjective({
       title,
+      subtitle: String(body?.subtitle || ""),
       description: String(body?.description || ""),
+      criticality: typeof body?.criticality === "string" ? body.criticality : undefined,
       startDate: start,
       endDate: end,
       ownerId: typeof body?.ownerId === "string" && body.ownerId ? body.ownerId : user.id,
@@ -67,7 +69,9 @@ export async function POST(request: Request) {
   if (op === "update") {
     updateObjective(id, {
       title: typeof body?.title === "string" ? body.title.trim() : undefined,
+      subtitle: typeof body?.subtitle === "string" ? body.subtitle : undefined,
       description: typeof body?.description === "string" ? body.description : undefined,
+      criticality: typeof body?.criticality === "string" ? body.criticality : undefined,
       startDate: body?.startDate !== undefined ? toIso(body.startDate) ?? undefined : undefined,
       endDate: body?.endDate !== undefined ? toIso(body.endDate) ?? undefined : undefined,
       ownerId: typeof body?.ownerId === "string" ? body.ownerId : undefined,

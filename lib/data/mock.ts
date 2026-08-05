@@ -25,6 +25,8 @@ export function seedObjectives(): Objective[] {
   const y = new Date().getFullYear();
   const d = (m: number, day: number) => new Date(y, m, day);
   const base = (o: Partial<Objective> & { id: string; title: string; startDate: Date; endDate: Date; color: string }): Objective => ({
+    subtitle: "",
+    criticality: "Moyenne",
     description: "",
     ownerId: "u1",
     status: "en_cours",

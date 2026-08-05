@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Flag, Target, Trash2, TrendingDown, X } from "lucide-react";
-import { fmt, objectiveProgress, OBJECTIVE_COLORS, type Objective } from "@/lib/domain";
+import { fmt, objectiveProgress, OBJECTIVE_COLORS, OBJECTIVE_CRITICALITIES, OBJECTIVE_CRITICALITY_DOT, OBJECTIVE_CRITICALITY_TONE, type Objective, type ObjectiveCriticality } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
 import { Ring } from "./dataviz";
@@ -14,6 +14,8 @@ export function ObjectiveModal({ objective, creating, onClose }: { objective: Ob
   const canManage = !demo && ["manager", "directeur", "admin"].includes(me.role);
 
   const [title, setTitle] = useState(objective?.title ?? "");
+  const [subtitle, setSubtitle] = useState(objective?.subtitle ?? "");
+  const [criticality, setCriticality] = useState<ObjectiveCriticality>(objective?.criticality ?? "Moyenne");
   const [desc, setDesc] = useState(objective?.description ?? "");
   const [start, setStart] = useState(toDateInput(objective?.startDate) || toDateInput(new Date(now.getFullYear(), now.getMonth(), 1)));
   const [end, setEnd] = useState(toDateInput(objective?.endDate) || toDateInput(new Date(now.getFullYear(), now.getMonth() + 3, 0)));
@@ -45,7 +47,7 @@ export function ObjectiveModal({ objective, creating, onClose }: { objective: Ob
   };
 
   const save = () => {
-    const payload = { title: title.trim(), description: desc, startDate: start, endDate: end, color, ownerId, projectIds, taskIds, memberIds, milestones: milestones.filter((m) => m.label.trim() && m.date) };
+    const payload = { title: title.trim(), subtitle: subtitle.trim(), description: desc, criticality, startDate: start, endDate: end, color, ownerId, projectIds, taskIds, memberIds, milestones: milestones.filter((m) => m.label.trim() && m.date) };
     if (creating) run(objectiveAction("create", payload));
     else if (objective) run(objectiveAction("update", { id: objective.id, ...payload }));
   };
@@ -58,11 +60,22 @@ export function ObjectiveModal({ objective, creating, onClose }: { objective: Ob
           <span className="mt-1 h-4 w-4 rounded-full shrink-0" style={{ background: color }} />
           <div className="flex-1 min-w-0">
             {editable ? (
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Intitulé de l'objectif…" className="w-full text-[15px] font-semibold text-slate-800 dark:text-slate-100 bg-transparent outline-none border-b border-transparent focus:border-slate-200" />
+              <>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Intitulé de l'objectif…" className="w-full text-[15px] font-semibold text-slate-800 dark:text-slate-100 bg-transparent outline-none border-b border-transparent focus:border-slate-200" />
+                <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Sous-titre (accroche courte)…" className="w-full text-[12px] text-slate-500 dark:text-slate-400 bg-transparent outline-none border-b border-transparent focus:border-slate-200 mt-1" />
+              </>
             ) : (
-              <div className="text-[15px] font-semibold text-slate-800">{objective?.title}</div>
+              <>
+                <div className="text-[15px] font-semibold text-slate-800">{objective?.title}</div>
+                {objective?.subtitle && <div className="text-[12px] text-slate-500 dark:text-slate-400">{objective.subtitle}</div>}
+              </>
             )}
-            {objective && <div className="text-[11px] text-slate-400 mt-0.5">{fmt(objective.startDate)} → {fmt(objective.endDate)}</div>}
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className={`inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 border ${OBJECTIVE_CRITICALITY_TONE[criticality]}`}>
+                <span className={`h-2 w-2 rounded-full ${OBJECTIVE_CRITICALITY_DOT[criticality]}`} /> {criticality}
+              </span>
+              {objective && <span className="text-[11px] text-slate-400">{fmt(objective.startDate)} → {fmt(objective.endDate)}</span>}
+            </div>
           </div>
           {objective && objective.status !== "declasse" && <Ring value={progress} size={44} color={color}><span className="text-[10px] font-bold text-slate-700">{progress}%</span></Ring>}
           <button onClick={onClose} aria-label="Fermer" className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
@@ -90,6 +103,19 @@ export function ObjectiveModal({ objective, creating, onClose }: { objective: Ob
                 </select>
               ) : (
                 <div className="flex items-center gap-1.5 py-1.5 text-[13px] text-slate-700">{objective && <><Avatar init={profileById(objective.ownerId).init} size="h-5 w-5" /> {profileById(objective.ownerId).nom}</>}</div>
+              )}
+            </Field>
+            <Field label="Criticité">
+              {editable ? (
+                <select value={criticality} onChange={(e) => setCriticality(e.target.value as ObjectiveCriticality)} className="w-full text-[13px] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-900">
+                  {OBJECTIVE_CRITICALITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              ) : (
+                <div className="py-1.5">
+                  <span className={`inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2 py-0.5 border ${OBJECTIVE_CRITICALITY_TONE[criticality]}`}>
+                    <span className={`h-2 w-2 rounded-full ${OBJECTIVE_CRITICALITY_DOT[criticality]}`} /> {criticality}
+                  </span>
+                </div>
               )}
             </Field>
             {editable && (

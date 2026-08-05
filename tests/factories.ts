@@ -120,6 +120,8 @@ export function mkObjective(over: Partial<Objective> = {}): Objective {
   const base: Objective = {
     id: "o1",
     title: "Objectif",
+    subtitle: "",
+    criticality: "Moyenne",
     description: "",
     startDate: new Date("2026-01-01T00:00:00Z"),
     endDate: new Date("2026-12-31T00:00:00Z"),
