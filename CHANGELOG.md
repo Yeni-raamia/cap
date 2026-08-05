@@ -9,6 +9,13 @@ et le projet suit un versionnage sémantique.
 Chantiers structurels restants (audit du module Tâches) : historique/journal des
 changements par tâche, réordonnancement par glisser-déposer, motif de blocage.
 
+## [1.32.0] - 2026-08-05
+
+### Ajouté
+- **Mettre un fil de discussion en sourdine** : bouton « Notifié / En sourdine » sur chaque fil (suivi, projet, réunion…). En écrivant dans un fil on en devenait « abonné » à vie — on recevait une notification à chaque nouveau message de n'importe qui, sans pouvoir s'en défaire. On peut désormais **couper les notifications d'un fil précis** (préférence personnelle) ; le mute archive aussi les notifications non lues de ce fil.
+- **Bulles de notification (push)** : à chaque nouvelle notification, une **bulle** apparaît en bas à droite (icône cloche + clic pour aller directement sur le sujet). **Activées par défaut**, **désactivables** d'un clic dans la barre du haut (icône cloche), indépendamment du son.
+- **Sons distincts** : un **ping doux à deux notes** pour les messages, un **motif à trois notes plus vif** pour les autres notifications (au lieu d'un bip unique).
+
 ## [1.31.0] - 2026-08-05
 
 ### Ajouté

@@ -6,6 +6,7 @@ import {
   canAccessConversation,
   ensureEntityConversation,
   findEntityConversation,
+  isConversationMuted,
   listConversationsFor,
   listMessages,
   markConvNotificationsRead,
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
 
   markRead(convId, user.id);
   markConvNotificationsRead(user.id, convId);
-  return NextResponse.json({ conversationId: convId, messages: listMessages(convId), notifications: listNotificationsFor(user.id) });
+  return NextResponse.json({ conversationId: convId, messages: listMessages(convId), muted: isConversationMuted(convId, user.id), notifications: listNotificationsFor(user.id) });
 }
 
 export async function POST(request: Request) {

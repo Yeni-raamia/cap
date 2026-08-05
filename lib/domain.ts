@@ -1559,6 +1559,8 @@ export interface ConversationSummary {
   lastPreview: string;
   lastAuthor: string | null;
   unread: number;
+  /** L'utilisateur courant a coupé les notifications de ce fil. */
+  muted?: boolean;
 }
 
 /* ---------- Couleurs de teinte (réutilisées par les atomes UI) ---------- */

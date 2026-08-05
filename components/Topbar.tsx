@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, LogOut, Moon, Search, Sun, Volume2, VolumeX } from "lucide-react";
+import { Bell, BellOff, BellRing, LogOut, Moon, Search, Sun, Volume2, VolumeX } from "lucide-react";
 import { canAccess, navForUser } from "@/lib/nav";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
@@ -10,7 +10,7 @@ import { Avatar } from "./atoms";
 const openPalette = () => window.dispatchEvent(new Event("cap:cmdk"));
 
 export function Topbar() {
-  const { demo, me, meId, setMeId, profiles, alerts, signOut, soundEnabled, setSoundEnabled, theme, toggleTheme } = useApp();
+  const { demo, me, meId, setMeId, profiles, alerts, signOut, soundEnabled, setSoundEnabled, pushEnabled, setPushEnabled, theme, toggleTheme } = useApp();
   const router = useRouter();
 
   return (
@@ -39,6 +39,14 @@ export function Topbar() {
         className={soundEnabled ? "text-slate-500 hover:text-slate-700" : "text-slate-300 hover:text-slate-500"}
       >
         {soundEnabled ? <Volume2 size={19} /> : <VolumeX size={19} />}
+      </button>
+      <button
+        onClick={() => setPushEnabled(!pushEnabled)}
+        aria-label={pushEnabled ? "Désactiver les bulles de notification" : "Activer les bulles de notification"}
+        title={pushEnabled ? "Bulles de notification activées" : "Bulles de notification désactivées"}
+        className={pushEnabled ? "text-slate-500 hover:text-slate-700" : "text-slate-300 hover:text-slate-500"}
+      >
+        {pushEnabled ? <BellRing size={19} /> : <BellOff size={19} />}
       </button>
       <button
         onClick={() => router.push("/rappels")}

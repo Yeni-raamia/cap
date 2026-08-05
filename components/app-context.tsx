@@ -103,6 +103,10 @@ export interface Toast {
   id: number;
   message: string;
   kind: ToastKind;
+  /** Bulle « push » (notification entrante) : icône cloche + cliquable. */
+  push?: boolean;
+  /** Cible de navigation au clic (route interne). */
+  href?: string | null;
 }
 type CatalogueAction =
   | { op: "add" | "update"; kind: "metier"; code: string; label: string; tone: string }
@@ -210,7 +214,8 @@ interface AppCtx {
   // Messagerie
   conversations: ConversationSummary[];
   messagesUnread: number;
-  loadMessages: (t: MsgTarget) => Promise<{ conversationId: string | null; messages: Message[] }>;
+  loadMessages: (t: MsgTarget) => Promise<{ conversationId: string | null; messages: Message[]; muted: boolean }>;
+  muteConversation: (t: MsgTarget, muted: boolean) => Promise<boolean>;
   sendMessage: (t: MsgTarget, body: string, replyTo?: string | null) => Promise<Message[]>;
   reactToMessage: (messageId: string, emoji: string) => Promise<Message[] | null>;
   createGroup: (title: string, memberIds: string[]) => Promise<string | null>;
@@ -248,6 +253,8 @@ interface AppCtx {
   // Son des notifications
   soundEnabled: boolean;
   setSoundEnabled: (v: boolean) => void;
+  pushEnabled: boolean;
+  setPushEnabled: (v: boolean) => void;
   // Compte en lecture seule (DSI ou marqué par l'admin)
   readOnly: boolean;
   // Thème clair / sombre
@@ -365,24 +372,39 @@ const reviveObjective = (o: Objective): Objective => ({
 });
 const reviveObjectives = (arr: Objective[]): Objective[] => arr.map(reviveObjective);
 
-/* Bip sonore court via Web Audio (aucun fichier requis, marche hors-ligne). */
-function playBeep() {
+/* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
+ * Deux timbres distincts : un ping doux pour les messages, un motif à trois
+ * notes plus captivant pour les autres notifications. */
+function playChime(kind: "message" | "other" = "other") {
   try {
     const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AC) return;
     const ctx = new AC();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.36);
-    osc.onended = () => ctx.close().catch(() => {});
+    const t0 = ctx.currentTime;
+    const note = (freq: number, start: number, dur: number, peak = 0.22, type: OscillatorType = "sine") => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t0 + start);
+      gain.gain.exponentialRampToValueAtTime(peak, t0 + start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t0 + start);
+      osc.stop(t0 + start + dur + 0.02);
+    };
+    if (kind === "message") {
+      // Ping doux à deux notes montantes (E5 → B5).
+      note(659, 0, 0.16);
+      note(988, 0.11, 0.2);
+    } else {
+      // Arpège à trois notes, plus vif et captivant (G5 → C6 → E6), timbre triangle.
+      note(784, 0, 0.14, 0.2, "triangle");
+      note(1047, 0.11, 0.14, 0.2, "triangle");
+      note(1319, 0.22, 0.3, 0.26, "triangle");
+    }
+    setTimeout(() => ctx.close().catch(() => {}), kind === "message" ? 500 : 700);
   } catch {
     /* audio indisponible : silencieux */
   }
@@ -463,6 +485,7 @@ export function AppProvider({
   const [objectives, setObjectives] = useState<Objective[]>(demo ? seedObjectives() : reviveObjectives(initialObjectives ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
+  const [pushEnabled, setPushEnabledState] = useState(true);
   const [theme, setThemeState] = useState<"light" | "dark">("light");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastSeq = useRef(0);
@@ -488,9 +511,10 @@ export function AppProvider({
       setItems(seedItems());
       setProfiles(PROFILES);
     }
-    // Préférence de son (bip des notifications), persistée localement.
+    // Préférences de notification (son + bulles push), persistées localement.
     try {
       setSoundEnabledState(localStorage.getItem("cap_sound") !== "0");
+      setPushEnabledState(localStorage.getItem("cap_push") !== "0");
     } catch {
       /* localStorage indisponible */
     }
@@ -532,6 +556,12 @@ export function AppProvider({
     setToasts((prev) => [...prev.slice(-3), { id, message, kind }]);
     setTimeout(() => dismissToast(id), kind === "error" ? 5000 : 3500);
   };
+  // Bulle « push » pour une notification entrante (cloche + clic → sujet).
+  const pushToast = (message: string, href?: string | null) => {
+    const id = ++toastSeq.current;
+    setToasts((prev) => [...prev.slice(-3), { id, message, kind: "info", push: true, href: href ?? null }]);
+    setTimeout(() => dismissToast(id), 6000);
+  };
 
   const setSoundEnabled = (v: boolean) => {
     setSoundEnabledState(v);
@@ -540,18 +570,39 @@ export function AppProvider({
     } catch {
       /* ignore */
     }
-    if (v) playBeep(); // retour immédiat à l'activation
+    if (v) playChime("other"); // retour immédiat à l'activation
+  };
+  const setPushEnabled = (v: boolean) => {
+    setPushEnabledState(v);
+    try {
+      localStorage.setItem("cap_push", v ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
   };
 
-  // Bip sonore au nouvel arrivage de notification (en local uniquement).
-  const prevUnreadRef = useRef<number | null>(null);
+  // Nouvelles notifications → son distinct (message vs autre) + bulles push.
+  // On repère les notifications réellement nouvelles par leur id (pas juste le
+  // compteur), pour ignorer les changements de statut « lu ».
+  const seenNotifRef = useRef<Set<string> | null>(null);
   useEffect(() => {
     if (demo) return;
-    const unread = notifications.filter((n) => !n.read).length;
-    const prev = prevUnreadRef.current;
-    if (prev !== null && unread > prev && soundEnabled) playBeep();
-    prevUnreadRef.current = unread;
-  }, [notifications, soundEnabled, demo]);
+    const ids = new Set(notifications.map((n) => n.id));
+    if (seenNotifRef.current === null) {
+      seenNotifRef.current = ids; // premier chargement : aucune alerte
+      return;
+    }
+    const fresh = notifications.filter((n) => !n.read && !seenNotifRef.current!.has(n.id));
+    seenNotifRef.current = ids;
+    if (fresh.length === 0) return;
+    const hasMessage = fresh.some((n) => n.kind === "message");
+    if (soundEnabled) playChime(hasMessage ? "message" : "other");
+    if (pushEnabled) {
+      fresh.slice(0, 3).forEach((n) => pushToast(n.message, n.link));
+      if (fresh.length > 3) toast(`+ ${fresh.length - 3} autres notifications`, "info");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notifications, soundEnabled, pushEnabled, demo]);
 
   const now = nowState ?? EPOCH;
   const me: Profile = demo
@@ -1499,14 +1550,35 @@ export function AppProvider({
     }
   };
 
-  const loadMessages = async (t: MsgTarget): Promise<{ conversationId: string | null; messages: Message[] }> => {
-    if (demo) return { conversationId: null, messages: [] };
+  const loadMessages = async (t: MsgTarget): Promise<{ conversationId: string | null; messages: Message[]; muted: boolean }> => {
+    if (demo) return { conversationId: null, messages: [], muted: false };
     const q = t.convId ? `convId=${t.convId}` : `refType=${t.refType}&refId=${t.refId}`;
     const r = await fetch(`/api/messages?${q}`, { cache: "no-store" });
     const d = await r.json();
     if (d.notifications) setNotifications(reviveNotifs(d.notifications));
     refreshConversations();
-    return { conversationId: d.conversationId ?? null, messages: d.messages ? reviveMsgs(d.messages) : [] };
+    return { conversationId: d.conversationId ?? null, messages: d.messages ? reviveMsgs(d.messages) : [], muted: Boolean(d.muted) };
+  };
+
+  // Couper / réactiver les notifications d'un fil (préférence personnelle).
+  const muteConversation = async (t: MsgTarget, muted: boolean): Promise<boolean> => {
+    if (demo) return false;
+    try {
+      const r = await fetch("/api/messages/mute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ convId: t.convId, refType: t.refType, refId: t.refId, muted }),
+      });
+      const d = await r.json();
+      if (!r.ok) { toast(d.error ?? "Action échouée.", "error"); return false; }
+      if (d.conversations) setConversations(reviveConvs(d.conversations));
+      if (d.notifications) setNotifications(reviveNotifs(d.notifications));
+      toast(muted ? "Fil mis en sourdine." : "Notifications du fil réactivées.", "success");
+      return true;
+    } catch {
+      toast("Action échouée.", "error");
+      return false;
+    }
   };
 
   const sendMessage = async (t: MsgTarget, body: string, replyTo?: string | null): Promise<Message[]> => {
@@ -1702,6 +1774,7 @@ export function AppProvider({
     conversations,
     messagesUnread,
     loadMessages,
+    muteConversation,
     sendMessage,
     reactToMessage,
     createGroup,
@@ -1735,6 +1808,8 @@ export function AppProvider({
     setOpenTaskId,
     soundEnabled,
     setSoundEnabled,
+    pushEnabled,
+    setPushEnabled,
     readOnly: isReadOnly(me),
     theme,
     toggleTheme,

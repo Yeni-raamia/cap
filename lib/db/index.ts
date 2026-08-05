@@ -234,6 +234,10 @@ create table if not exists conversation_reads (
   conversation_id text not null, profile_id text not null, last_read_at text not null default (datetime('now')),
   primary key (conversation_id, profile_id)
 );
+create table if not exists conversation_mutes (
+  conversation_id text not null, profile_id text not null,
+  primary key (conversation_id, profile_id)
+);
 create index if not exists idx_msg_conv on messages(conversation_id);
 create index if not exists idx_convmem_conv on conversation_members(conversation_id);
 create index if not exists idx_conv_ref on conversations(ref_type, ref_id);

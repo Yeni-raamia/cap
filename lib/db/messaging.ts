@@ -190,6 +190,24 @@ export function toggleReaction(messageId: string, profileId: string, emoji: stri
   }
 }
 
+/* ---------- Sourdine par conversation (par utilisateur) ---------- */
+export function isConversationMuted(convId: string, userId: string): boolean {
+  return Boolean(getDb().prepare("select 1 from conversation_mutes where conversation_id=? and profile_id=?").get(convId, userId));
+}
+export function setConversationMute(convId: string, userId: string, muted: boolean): void {
+  const db = getDb();
+  if (muted) {
+    db.prepare("insert or ignore into conversation_mutes (conversation_id, profile_id) values (?,?)").run(convId, userId);
+    // Une conversation mise en sourdine : on archive ses notifications non lues.
+    db.prepare("update notifications set read=1 where user_id=? and conversation_id=? and read=0").run(userId, convId);
+  } else {
+    db.prepare("delete from conversation_mutes where conversation_id=? and profile_id=?").run(convId, userId);
+  }
+}
+function mutedUserIds(convId: string): Set<string> {
+  return new Set((getDb().prepare("select profile_id from conversation_mutes where conversation_id=?").all(convId) as { profile_id: string }[]).map((r) => r.profile_id));
+}
+
 export function markRead(convId: string, userId: string): void {
   getDb()
     .prepare("insert into conversation_reads (conversation_id, profile_id, last_read_at) values (?,?,?) on conflict(conversation_id, profile_id) do update set last_read_at=excluded.last_read_at")
@@ -215,7 +233,9 @@ export function messageRecipients(convId: string, authorId: string): string[] {
       if (r) ids.push(r.owner_id);
     }
   }
-  return [...new Set(ids)].filter((id) => id !== authorId);
+  // Exclure l'auteur et toute personne ayant coupé les notifications de ce fil.
+  const muted = mutedUserIds(convId);
+  return [...new Set(ids)].filter((id) => id !== authorId && !muted.has(id));
 }
 
 /** Notifie les destinataires d'un nouveau message (in-app). */
@@ -288,6 +308,7 @@ export function listConversationsFor(userId: string): ConversationSummary[] {
       lastPreview: last ? last.body.slice(0, 80) : "",
       lastAuthor: last?.author_id ?? null,
       unread,
+      muted: isConversationMuted(c.id, userId),
     });
   }
   return summaries.sort((a, b) => (b.lastAt?.getTime() ?? 0) - (a.lastAt?.getTime() ?? 0));

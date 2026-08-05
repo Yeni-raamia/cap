@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CornerUpLeft, Send, SmilePlus, Trash2, X } from "lucide-react";
+import { Bell, BellOff, CornerUpLeft, Send, SmilePlus, Trash2, X } from "lucide-react";
 import { fmt, REACTION_EMOJIS, type Message } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
@@ -14,9 +14,11 @@ interface Target {
 
 /** Fil de discussion réutilisable (suivi, négligence, projet ou groupe). */
 export function Discussion({ target, height = "h-72" }: { target: Target; height?: string }) {
-  const { demo, me, profileById, loadMessages, sendMessage, reactToMessage, deleteMessage } = useApp();
+  const { demo, me, profileById, loadMessages, muteConversation, sendMessage, reactToMessage, deleteMessage } = useApp();
   const [messages, setMessages] = useState<Message[]>([]);
   const [convId, setConvId] = useState<string | null>(target.convId ?? null);
+  const [muted, setMuted] = useState(false);
+  const [muting, setMuting] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
@@ -33,6 +35,7 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
         if (!alive) return;
         setConvId(d.conversationId);
         setMessages(d.messages);
+        setMuted(d.muted);
       });
     load();
     const iv = setInterval(load, 15000);
@@ -76,8 +79,31 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
     return <div className="text-[12px] text-slate-400 p-3">Messagerie indisponible en mode démo.</div>;
   }
 
+  const toggleMute = async () => {
+    if (muting) return;
+    setMuting(true);
+    const ok = await muteConversation({ ...target, convId: convId ?? target.convId }, !muted);
+    if (ok) setMuted(!muted);
+    setMuting(false);
+  };
+
   return (
     <div className="flex flex-col">
+      <div className="flex items-center justify-end mb-1.5">
+        <button
+          onClick={toggleMute}
+          disabled={muting}
+          title={muted ? "Réactiver les notifications de ce fil" : "Ne plus recevoir les notifications de ce fil"}
+          className={`inline-flex items-center gap-1 text-[11px] rounded-lg px-2 py-1 border transition-colors disabled:opacity-50 ${
+            muted
+              ? "text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100"
+              : "text-slate-500 border-slate-200 hover:bg-slate-50"
+          }`}
+        >
+          {muted ? <BellOff size={13} /> : <Bell size={13} />}
+          {muted ? "En sourdine" : "Notifié"}
+        </button>
+      </div>
       <div className={`${height} overflow-y-auto space-y-3 pr-1`}>
         {messages.length === 0 ? (
           <div className="text-[12px] text-slate-400 text-center py-6">Aucun message. Démarre la discussion.</div>
