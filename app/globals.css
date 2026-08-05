@@ -110,8 +110,16 @@ button:not(:disabled):active,
 .animate-attention {
   animation: attentionGlow 1.6s ease-in-out infinite;
 }
+@keyframes attentionGlowDanger {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.5); }
+  50% { box-shadow: 0 0 0 7px rgba(244, 63, 94, 0); }
+}
+.animate-attention-danger {
+  animation: attentionGlowDanger 1.6s ease-in-out infinite;
+}
 @media (prefers-reduced-motion: reduce) {
-  .animate-attention { animation: none; }
+  .animate-attention,
+  .animate-attention-danger { animation: none; }
 }
 
 /* ---------- Barre de défilement fine et discrète ---------- */

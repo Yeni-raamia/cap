@@ -408,9 +408,15 @@ export default function ProjetDetailPage() {
 
             {/* Suppression : demande + approbation */}
             {del ? (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-[12px]">
+              <div className={`rounded-lg bg-rose-50 p-3 text-[12px] ${isApprover ? "border-2 border-rose-400 animate-attention-danger" : "border border-rose-200"}`}>
                 <div className="flex items-center gap-1.5 font-semibold text-rose-700">
-                  <Trash2 size={14} /> Demande de suppression en attente
+                  {isApprover && (
+                    <span className="relative flex h-2.5 w-2.5 mr-0.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75 animate-ping" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-rose-600" />
+                    </span>
+                  )}
+                  <Trash2 size={14} /> Demande de suppression en attente{isApprover ? " — votre décision est requise" : ""}
                 </div>
                 <p className="text-slate-500 mt-0.5">Demandée par {profileById(del.requestedBy).nom} · {fmt(del.requestedAt)}</p>
                 <p className="text-slate-700 mt-1"><b>Motif :</b> {del.reason}</p>
@@ -651,7 +657,14 @@ export default function ProjetDetailPage() {
                 return (
                   <div key={t.id} className="flex items-center gap-3 px-4 py-2.5">
                     <span className={`text-[10px] px-1.5 py-0.5 rounded ${taskBadge[t.status]}`}>{t.status}</span>
-                    <span className="flex-1 min-w-0 text-[13px] text-slate-800 truncate">{t.title}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] text-slate-800 truncate">{t.title}</div>
+                      {t.proposedBy && (
+                        <div className="flex items-center gap-1 text-[10px] text-indigo-600 mt-0.5">
+                          <GitPullRequest size={10} /> Proposée par {profileById(t.proposedBy).nom}
+                        </div>
+                      )}
+                    </div>
                     {t.dueDate && (
                       <span className={`text-[11px] ${late ? "text-rose-600 font-medium" : "text-slate-400"}`}>
                         {fmt(t.dueDate)}

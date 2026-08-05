@@ -884,6 +884,8 @@ export interface ProjectTask {
   dueDate: Date | null;
   ordre: number;
   createdAt: Date;
+  /** Auteur de la proposition à l'origine de la tâche (Lot 3), ou null si ajout direct. */
+  proposedBy?: string | null;
 }
 
 export interface ProjectNote {

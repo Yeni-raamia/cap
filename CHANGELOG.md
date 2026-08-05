@@ -8,6 +8,15 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.26.0] - 2026-08-05
+
+### Ajouté
+- **Notification d'assignation de tâche de projet** : quand le propriétaire (ou un membre) assigne une tâche d'un projet à quelqu'un, la personne assignée est désormais **notifiée** (avec lien direct vers le projet). Cela s'appliquait déjà aux tâches du module Productivité ; c'est désormais aussi le cas pour les tâches de projet.
+- **Origine « Proposée par »** : une tâche issue d'une proposition affiche le **nom de la personne qui l'a proposée** directement dans la liste des tâches du projet.
+
+### Amélioré / Corrigé
+- **Demande de suppression de projet** : pour un manager/directeur/admin, la demande en attente est désormais **mise en évidence (surbrillance rouge pulsée)** avec la mention « votre décision est requise », et les boutons **Approuver / Refuser** sont bien présents. Combinée aux notifications cliquables (v1.25.0), la décision se prend directement depuis la fiche projet.
+
 ## [1.25.0] - 2026-08-05
 
 ### Ajouté

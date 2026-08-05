@@ -56,7 +56,8 @@ create table if not exists projects (
 create table if not exists project_tasks (
   id text primary key, project_id text not null, title text not null,
   assignee_id text, status text not null default 'à faire', due_date text,
-  ordre integer not null default 0, created_at text not null default (datetime('now'))
+  ordre integer not null default 0, created_at text not null default (datetime('now')),
+  proposed_by text
 );
 create table if not exists project_members (
   id text primary key, project_id text not null, profile_id text not null
@@ -389,6 +390,11 @@ function ensureColumns(db: Database.Database) {
   }
   if (tkcols.length > 0 && !tkcols.includes("published")) {
     db.exec("alter table tasks add column published integer not null default 1");
+  }
+  // Tâches de projet : auteur de la proposition à l'origine (Lot 3), le cas échéant.
+  const ptcols = (db.prepare("pragma table_info(project_tasks)").all() as { name: string }[]).map((c) => c.name);
+  if (ptcols.length > 0 && !ptcols.includes("proposed_by")) {
+    db.exec("alter table project_tasks add column proposed_by text");
   }
   const mcols = (db.prepare("pragma table_info(messages)").all() as { name: string }[]).map((c) => c.name);
   if (mcols.length > 0 && !mcols.includes("reply_to")) {
