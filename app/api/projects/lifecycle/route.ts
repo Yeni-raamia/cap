@@ -8,6 +8,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
+import { canContributeProject } from "@/lib/auth/project-guard";
 import {
   clearProjectDeletion,
   deleteProject,
@@ -36,6 +37,9 @@ export async function POST(request: Request) {
   const projName = proj.name;
 
   if (op === "archive") {
+    if (!canContributeProject(id, user)) {
+      return NextResponse.json({ error: "Réservé au propriétaire et aux membres du projet." }, { status: 403 });
+    }
     const archived = Boolean(body?.archived);
     setProjectArchived(id, archived);
     logActivity(user.id, "projet.archive", `${archived ? "archivé" : "désarchivé"} : ${projName}`);
@@ -43,6 +47,9 @@ export async function POST(request: Request) {
   }
 
   if (op === "request_delete") {
+    if (!canContributeProject(id, user)) {
+      return NextResponse.json({ error: "Réservé au propriétaire et aux membres du projet." }, { status: 403 });
+    }
     const reason = String(body?.reason || "").trim();
     if (!reason) return NextResponse.json({ error: "Un motif de suppression est requis." }, { status: 400 });
     requestProjectDeletion(id, user.id, reason);
@@ -76,7 +83,7 @@ export async function POST(request: Request) {
         kind: "projet",
         message: `Votre demande de suppression du projet « ${projName} » a été approuvée par ${user.nom}.`,
         channel: ["in-app"],
-        link: `/projets/${id}`,
+        link: `/projets`, // le projet n'existe plus → renvoyer vers la liste
       });
     }
     logActivity(user.id, "projet.suppression", projName);

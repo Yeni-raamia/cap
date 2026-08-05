@@ -393,14 +393,14 @@ export function taskProjectId(taskId: string): string | null {
   return r?.project_id ?? null;
 }
 
-/** Infos utiles d'une tâche de projet (pour notifier lors d'une (ré)assignation). */
+/** Infos utiles d'une tâche de projet (pour notifier lors d'une (ré)assignation ou d'un changement de statut). */
 export function getProjectTaskInfo(
   taskId: string
-): { projectId: string; title: string; assigneeId: string | null } | null {
+): { projectId: string; title: string; assigneeId: string | null; status: TaskStatus } | null {
   const r = getDb()
-    .prepare("select project_id, title, assignee_id from project_tasks where id = ?")
-    .get(taskId) as { project_id: string; title: string; assignee_id: string | null } | undefined;
-  return r ? { projectId: r.project_id, title: r.title, assigneeId: r.assignee_id } : null;
+    .prepare("select project_id, title, assignee_id, status from project_tasks where id = ?")
+    .get(taskId) as { project_id: string; title: string; assignee_id: string | null; status: TaskStatus } | undefined;
+  return r ? { projectId: r.project_id, title: r.title, assigneeId: r.assignee_id, status: r.status } : null;
 }
 
 /* ---------- Membres ---------- */

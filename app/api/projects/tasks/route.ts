@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
 import { canEditProjectBoard } from "@/lib/auth/project-guard";
-import { addTask, deleteTask, getProjectTaskInfo, listProjects, updateTask } from "@/lib/db/projects";
+import { addTask, deleteTask, getProjectOwner, getProjectTaskInfo, listProjects, updateTask } from "@/lib/db/projects";
 import { insertNotification } from "@/lib/db/repo";
 import { TASK_STATUTS, type TaskStatus } from "@/lib/domain";
 
@@ -66,6 +66,22 @@ export async function POST(request: Request) {
         if (newAssignee && newAssignee !== info.assigneeId) {
           const title = (typeof body?.title === "string" && body.title.trim()) || info.title;
           notifyAssignee(newAssignee, user.nom, user.id, projectId, projName(projectId), title);
+        }
+      }
+      // Tâche terminée / bloquée → prévenir le propriétaire du projet.
+      if (status && status !== info.status && (status === "fait" || status === "bloqué")) {
+        const owner = getProjectOwner(projectId);
+        if (owner && owner !== user.id) {
+          insertNotification({
+            userId: owner,
+            itemId: null,
+            kind: "tache",
+            message: status === "fait"
+              ? `${user.nom} a terminé la tâche « ${info.title} » du projet « ${projName(projectId)} ».`
+              : `${user.nom} a marqué « bloquée » la tâche « ${info.title} » du projet « ${projName(projectId)} ».`,
+            channel: ["in-app"],
+            link: `/projets/${projectId}`,
+          });
         }
       }
     }

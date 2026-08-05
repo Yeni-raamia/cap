@@ -1,15 +1,22 @@
-/* Permissions du module Projet (serveur). */
+/* Permissions du module Projet (serveur). Ces gardes reflètent exactement ce que
+   l'UI expose (voir app/(app)/projets/[id]/page.tsx : canManage / canContribute /
+   canEditBoard), afin qu'un appel API ne puisse pas contourner l'interface. */
 import type { Profile } from "@/lib/domain";
 import { getProjectOwner, isProjectMember } from "@/lib/db/projects";
 
-/** Gestion structurelle du projet : tout utilisateur authentifié. */
-export function canManageProject(_projectId: string, _user: Profile): boolean {
-  return true;
+const isStaff = (role: string) => role === "directeur" || role === "admin";
+
+/** Gestion structurelle (renommer, échéance, membres, archivage) : propriétaire, directeur ou admin. */
+export function canManageProject(projectId: string, user: Profile): boolean {
+  if (isStaff(user.role)) return true;
+  return getProjectOwner(projectId) === user.id;
 }
 
-/** Contribution générale (notes, demande de clôture) : tout utilisateur authentifié. */
-export function canContributeProject(_projectId: string, _user: Profile): boolean {
-  return true;
+/** Contribution (notes, rattachement, demande de clôture/suppression) : propriétaire, membre, directeur ou admin. */
+export function canContributeProject(projectId: string, user: Profile): boolean {
+  if (isStaff(user.role)) return true;
+  if (getProjectOwner(projectId) === user.id) return true;
+  return isProjectMember(projectId, user.id);
 }
 
 /**

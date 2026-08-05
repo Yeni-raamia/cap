@@ -8,6 +8,19 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.27.0] - 2026-08-05
+
+### Sécurité
+- **Droits sur les projets renforcés** : les vérifications côté serveur pour renommer un projet, gérer ses membres, l'archiver, y poster une note, y rattacher un suivi ou demander sa suppression/clôture étaient **inopérantes** (elles laissaient tout passer). N'importe quel membre de l'équipe pouvait, via l'API, **s'ajouter lui-même à un projet** (et gagner l'accès à son tableau de tâches), **en retirer d'autres**, ou **modifier n'importe quel projet**. Les gardes appliquent désormais exactement les règles de l'interface (propriétaire / membre / directeur / admin). Aucun changement visible pour les utilisations légitimes.
+
+### Ajouté
+- **Notifications de fin de tâche** : quand une tâche est marquée « terminée » (ou « bloquée »), le **créateur** (tâche du module Productivité) ou le **propriétaire du projet** (tâche de projet) est désormais prévenu.
+- **Retrait de membre notifié** : une personne retirée d'un projet en est informée.
+- **Rappels sur les tâches de projet en retard** : le moteur de rappels couvre désormais aussi les tâches de projet (échéance dépassée → rappel à la personne assignée), en plus des tâches Productivité.
+
+### Corrigé
+- Les **notifications de tâches** (assignation, retard) mènent désormais au bon écran au clic (elles n'avaient pas de lien de navigation). Le lien de la notification « suppression approuvée » ne pointe plus vers un projet déjà supprimé (404).
+
 ## [1.26.0] - 2026-08-05
 
 ### Ajouté

@@ -33,8 +33,21 @@ export async function POST(request: Request) {
         link: `/projets/${projectId}`,
       });
     }
-  } else if (action === "remove") removeMember(projectId, profileId);
-  else return NextResponse.json({ error: "Action inconnue." }, { status: 400 });
+  } else if (action === "remove") {
+    const wasMember = isProjectMember(projectId, profileId);
+    removeMember(projectId, profileId);
+    if (wasMember && profileId !== user.id) {
+      const projName = listProjects().find((p) => p.id === projectId)?.name ?? "un projet";
+      insertNotification({
+        userId: profileId,
+        itemId: null,
+        kind: "projet",
+        message: `${user.nom} vous a retiré du projet « ${projName} ».`,
+        channel: ["in-app"],
+        link: `/projets/${projectId}`,
+      });
+    }
+  } else return NextResponse.json({ error: "Action inconnue." }, { status: 400 });
 
   return NextResponse.json({ projects: listProjects(user.id) });
 }

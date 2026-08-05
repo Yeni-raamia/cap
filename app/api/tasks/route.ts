@@ -58,6 +58,7 @@ export async function POST(request: Request) {
         kind: "tache",
         message: `${user.nom} vous a assigné une tâche : « ${title} ».`,
         channel: ["in-app"],
+        link: "/productivite",
       });
     }
     logActivity(user.id, "tache.creation", title);
@@ -97,6 +98,20 @@ export async function POST(request: Request) {
         kind: "tache",
         message: `${user.nom} vous a assigné une tâche : « ${cur.title} ».`,
         channel: ["in-app"],
+        link: "/productivite",
+      });
+    }
+    // Prévenir le créateur/délégateur quand la tâche est terminée ou bloquée.
+    if (status && status !== cur.status && (status === "fait" || status === "bloqué") && cur.createdBy && cur.createdBy !== user.id) {
+      insertNotification({
+        userId: cur.createdBy,
+        itemId: null,
+        kind: "tache",
+        message: status === "fait"
+          ? `${user.nom} a terminé la tâche : « ${cur.title} ».`
+          : `${user.nom} a marqué « bloquée » la tâche : « ${cur.title} ».`,
+        channel: ["in-app"],
+        link: "/productivite",
       });
     }
     return NextResponse.json({ tasks: listTasks(user.id) });

@@ -9,6 +9,7 @@
  * ================================================================== */
 import { isOverDuration, isPublished, isTaskLate, reminderState } from "@/lib/domain";
 import { listTasks } from "@/lib/db/tasks";
+import { listProjects } from "@/lib/db/projects";
 import { listMeetings } from "@/lib/db/meetings";
 import {
   getCatalogue,
@@ -110,10 +111,23 @@ export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<Re
     if (!t.assigneeId || !isTaskLate(t, now)) continue;
     if (notifExistsToday(t.assigneeId, t.id, "tache")) continue;
     const message = `Tâche en retard : « ${t.title} » — échéance dépassée.`;
-    insertNotification({ userId: t.assigneeId, itemId: t.id, kind: "tache", message, channel });
+    insertNotification({ userId: t.assigneeId, itemId: t.id, kind: "tache", message, channel, link: "/productivite" });
     echeances++;
     const to = getEmailById(t.assigneeId);
     if (emailOn && to) emails.push({ to, subject: "Cap · Tâche en retard", text: message });
+  }
+
+  // Tâches de PROJET en retard : même logique, rappel à la personne assignée.
+  for (const proj of listProjects()) {
+    for (const t of proj.tasks) {
+      if (!t.assigneeId || t.status === "fait" || !t.dueDate || t.dueDate.getTime() >= now.getTime()) continue;
+      if (notifExistsToday(t.assigneeId, t.id, "tache")) continue;
+      const message = `Tâche de projet en retard : « ${t.title} » (${proj.name}) — échéance dépassée.`;
+      insertNotification({ userId: t.assigneeId, itemId: t.id, kind: "tache", message, channel, link: `/projets/${proj.id}` });
+      echeances++;
+      const to = getEmailById(t.assigneeId);
+      if (emailOn && to) emails.push({ to, subject: "Cap · Tâche de projet en retard", text: message });
+    }
   }
 
   // Échéances d'objectifs annuels (Plan de l'année) : rappel au responsable
