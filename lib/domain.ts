@@ -453,6 +453,73 @@ export const DEFAULT_POLICIES: string[] = [
   "NIST CSF RC — Rétablir",
 ];
 
+/* ---------- Module GRC : Registre des risques ----------
+ * Évaluation par matrice Probabilité × Impact (échelles 1–5) → niveau de risque
+ * calculé et coloré. Un risque se relie aux autres modules (suivis, projets,
+ * non-conformités, négligences, objectifs) pour croiser l'information. */
+export const RISK_PROBA_LABELS = ["Très faible", "Faible", "Moyenne", "Élevée", "Très élevée"]; // index 0 → niveau 1
+export const RISK_IMPACT_LABELS = ["Négligeable", "Mineur", "Modéré", "Majeur", "Critique"];
+export type RiskLevel = "Faible" | "Moyen" | "Élevé" | "Critique";
+export const RISK_STATUTS = ["Identifié", "En traitement", "Réduit", "Accepté", "Transféré", "Clôturé"];
+export const RISK_TREATMENTS = ["Réduire", "Accepter", "Transférer", "Éviter"];
+export const RISK_CATEGORIES = [
+  "Technique / SI",
+  "Organisationnel",
+  "Humain",
+  "Physique",
+  "Juridique / conformité",
+  "Fournisseur / tiers",
+  "Continuité d'activité",
+];
+/** Type de la cible d'un lien de risque (croisement inter-modules). */
+export type RiskLinkKind = "item" | "project" | "negligence" | "nonconformite" | "objective";
+export interface RiskLink {
+  kind: RiskLinkKind;
+  refId: string;
+}
+
+/** Niveau de risque à partir des échelles probabilité × impact (1–5). */
+export function riskLevel(probability: number, impact: number): RiskLevel {
+  const s = probability * impact;
+  if (s >= 15) return "Critique";
+  if (s >= 8) return "Élevé";
+  if (s >= 4) return "Moyen";
+  return "Faible";
+}
+/** Badge (fond + texte) par niveau de risque. */
+export const RISK_LEVEL_TONE: Record<RiskLevel, string> = {
+  Faible: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  Moyen: "bg-amber-100 text-amber-700 border-amber-200",
+  Élevé: "bg-orange-100 text-orange-700 border-orange-200",
+  Critique: "bg-rose-100 text-rose-700 border-rose-200",
+};
+/** Couleur de cellule (fond) par niveau, pour la matrice de risques. */
+export const RISK_LEVEL_CELL: Record<RiskLevel, string> = {
+  Faible: "bg-emerald-200/70 text-emerald-900",
+  Moyen: "bg-amber-200/70 text-amber-900",
+  Élevé: "bg-orange-300/70 text-orange-900",
+  Critique: "bg-rose-300/80 text-rose-900",
+};
+
+export interface Risk {
+  id: string;
+  ref: string;
+  title: string;
+  description: string;
+  category: string;
+  probability: number; // 1–5
+  impact: number; // 1–5
+  treatment: string; // stratégie : Réduire / Accepter / Transférer / Éviter
+  treatmentPlan: string; // plan d'action / mesures
+  status: string;
+  ownerId: string;
+  reviewDate: Date | null; // date de revue / réévaluation
+  links: RiskLink[]; // croisements vers d'autres modules
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /** Listes de référence par défaut (seed + repli si la base est vide). */
 export const DEFAULT_REF_LISTS: RefLists = {
   appreciations: APPRECIATIONS,

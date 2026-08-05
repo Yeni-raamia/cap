@@ -215,6 +215,18 @@ create table if not exists nonconformite_decisions (
   id text primary key, nonconformite_id text not null, decision text not null
 );
 create index if not exists idx_ncdec_nc on nonconformite_decisions(nonconformite_id);
+create table if not exists risks (
+  id text primary key, ref text not null,
+  title text not null default '', description text not null default '', category text not null default '',
+  probability integer not null default 3, impact integer not null default 3,
+  treatment text not null default 'Réduire', treatment_plan text not null default '',
+  status text not null default 'Identifié', owner_id text, review_date text, created_by text,
+  created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
+create table if not exists risk_links (
+  risk_id text not null, kind text not null, ref_id text not null
+);
+create index if not exists idx_risklinks_risk on risk_links(risk_id);
 create table if not exists conversations (
   id text primary key, title text not null default '', kind text not null default 'group',
   ref_type text, ref_id text, created_by text, created_at text not null default (datetime('now'))

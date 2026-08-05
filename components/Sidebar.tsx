@@ -18,6 +18,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Settings,
+  ShieldAlert,
   Sparkles,
   Trophy,
   Users,
@@ -45,6 +46,7 @@ const ICONS: Record<string, LucideIcon> = {
   MessageSquare,
   Settings,
   Share2,
+  ShieldAlert,
 };
 
 export function Sidebar() {

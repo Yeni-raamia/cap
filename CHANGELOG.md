@@ -6,8 +6,18 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-Chantiers structurels restants (audit du module Tâches) : historique/journal des
-changements par tâche, réordonnancement par glisser-déposer, motif de blocage.
+Module GRC — lots suivants : gestion & diffusion des politiques (par service),
+rondes & contrôles terrain, plan de travail GRC + tableau de bord, badges cyber.
+Chantiers Tâches restants : historique/journal, réordonnancement, motif de blocage.
+
+## [1.33.0] - 2026-08-05
+
+### Ajouté
+- **Module GRC — Registre des risques** (Gouvernance-Risque-Conformité, lot 1) :
+  - **Évaluation par matrice Probabilité × Impact** (échelles 1–5) → niveau **Faible / Moyen / Élevé / Critique** calculé et coloré ; **matrice heatmap 5×5** cliquable pour filtrer.
+  - Traitement (**Réduire / Accepter / Transférer / Éviter**), plan d'action, statut (Identifié → En traitement → Réduit / Accepté / Transféré / Clôturé), catégorie, responsable, **date de revue**, référence automatique (`RISK-AAAA-NNNN`).
+  - **Croisements inter-modules** : un risque se relie aux suivis, projets, non-conformités, négligences et objectifs → apparaît dans le **graphe de relations** (nœud « Risque »).
+  - Recherche & filtres (niveau, statut, catégorie). Accès : manager / directeur / admin / dsi (attribuable par l'admin) ; suppression réservée aux manager/directeur/admin.
 
 ## [1.32.0] - 2026-08-05
 

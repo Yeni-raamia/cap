@@ -14,6 +14,7 @@ import type {
   Objective,
   Profile,
   Project,
+  Risk,
   Task,
 } from "./domain";
 
@@ -26,7 +27,8 @@ export type GraphNodeKind =
   | "objective"
   | "meeting"
   | "member"
-  | "contact";
+  | "contact"
+  | "risque";
 
 export interface GraphNode {
   id: string; // `${kind}:${rawId}`
@@ -55,6 +57,7 @@ export interface GraphData {
   meetings: Meeting[];
   profiles: Profile[];
   contacts: Contact[];
+  risks: Risk[];
 }
 
 /** Construit le graphe complet (tous les nœuds et tous les liens connus). */
@@ -74,6 +77,7 @@ export function buildGraph(d: GraphData): Graph {
   d.meetings.forEach((m) => add("meeting", m.id, m.title));
   d.profiles.forEach((p) => add("member", p.id, p.nom));
   d.contacts.forEach((c) => add("contact", c.id, contactDisplayName(c) || c.email || "Contact"));
+  d.risks.forEach((r) => add("risque", r.id, r.ref || r.title || "Risque"));
 
   const edges: GraphEdge[] = [];
   const seen = new Set<string>();
@@ -92,6 +96,18 @@ export function buildGraph(d: GraphData): Graph {
   // Négligences / non-conformités ↔ suivi
   d.negligences.forEach((n) => n.itemId && link(nid("negligence", n.id), nid("item", n.itemId)));
   d.nonConformites.forEach((n) => n.itemId && link(nid("nonconformite", n.id), nid("item", n.itemId)));
+  // Risques ↔ éléments reliés (croisement inter-modules) + responsable
+  const riskLinkKind: Record<string, GraphNodeKind> = {
+    item: "item",
+    project: "project",
+    negligence: "negligence",
+    nonconformite: "nonconformite",
+    objective: "objective",
+  };
+  d.risks.forEach((r) => {
+    if (r.ownerId) link(nid("risque", r.id), nid("member", r.ownerId));
+    r.links.forEach((l) => riskLinkKind[l.kind] && link(nid("risque", r.id), nid(riskLinkKind[l.kind], l.refId)));
+  });
   // Projets ↔ membres (responsable + équipe)
   d.projects.forEach((p) => {
     link(nid("project", p.id), nid("member", p.ownerId));

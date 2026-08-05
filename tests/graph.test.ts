@@ -13,6 +13,7 @@ function emptyData(): GraphData {
     meetings: [],
     profiles: [],
     contacts: [],
+    risks: [],
   };
 }
 

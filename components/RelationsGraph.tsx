@@ -14,6 +14,7 @@ export const NODE_COLOR: Record<GraphNodeKind, string> = {
   meeting: "#f59e0b",
   member: "#0d9488",
   contact: "#64748b",
+  risque: "#dc2626",
 };
 export const NODE_LABEL: Record<GraphNodeKind, string> = {
   item: "Suivi",
@@ -25,6 +26,7 @@ export const NODE_LABEL: Record<GraphNodeKind, string> = {
   meeting: "Réunion",
   member: "Membre",
   contact: "Contact",
+  risque: "Risque",
 };
 
 const W = 900;

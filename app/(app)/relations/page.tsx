@@ -20,7 +20,7 @@ export default function RelationsPage() {
 }
 
 function RelationsInner() {
-  const { items: allItems, projects: allProjects, tasks: allTasks, negligences, nonConformites, objectives, meetings, profiles, contacts, openItem } = useApp();
+  const { items: allItems, projects: allProjects, tasks: allTasks, negligences, nonConformites, objectives, meetings, profiles, contacts, risks, openItem } = useApp();
   const searchParams = useSearchParams();
 
   // Graphe d'équipe : on n'y fait figurer que les éléments publiés (les brouillons
@@ -30,8 +30,8 @@ function RelationsInner() {
   const tasks = useMemo(() => allTasks.filter(isPublished), [allTasks]);
 
   const graph = useMemo(
-    () => buildGraph({ items, projects, tasks, negligences, nonConformites, objectives, meetings, profiles, contacts }),
-    [items, projects, tasks, negligences, nonConformites, objectives, meetings, profiles, contacts]
+    () => buildGraph({ items, projects, tasks, negligences, nonConformites, objectives, meetings, profiles, contacts, risks }),
+    [items, projects, tasks, negligences, nonConformites, objectives, meetings, profiles, contacts, risks]
   );
   const byId = useMemo(() => new Map(graph.nodes.map((n) => [n.id, n])), [graph]);
 

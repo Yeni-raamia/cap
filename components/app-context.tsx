@@ -55,6 +55,8 @@ import {
   type Project,
   type ProjectStatus,
   type ReminderState,
+  type Risk,
+  type RiskLink,
   type Role,
   type Score,
   type Task,
@@ -128,6 +130,20 @@ interface NegligenceForm {
   description?: string;
 }
 type NonConformiteForm = NegligenceForm & { policy?: string };
+export interface RiskInput {
+  id?: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  probability?: number;
+  impact?: number;
+  treatment?: string;
+  treatmentPlan?: string;
+  status?: string;
+  ownerId?: string;
+  reviewDate?: string | null;
+  links?: RiskLink[];
+}
 type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service" | "policy";
 type RefListActionPayload =
   | { op: "add"; listKey: RefListKey; label: string; icon?: string }
@@ -247,6 +263,13 @@ interface AppCtx {
   // Plan de l'année (objectifs)
   objectives: Objective[];
   objectiveAction: (op: "create" | "update" | "downgrade" | "achieve" | "delete", input: Record<string, unknown>) => Promise<string | null>;
+  // GRC : registre des risques
+  risks: Risk[];
+  riskById: (id: string) => Risk | null;
+  createRisk: (input: RiskInput) => Promise<string | null>;
+  updateRisk: (id: string, fields: RiskInput) => Promise<string | null>;
+  setRiskStatus: (id: string, status: string) => Promise<string | null>;
+  deleteRisk: (id: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -371,6 +394,13 @@ const reviveObjective = (o: Objective): Objective => ({
   milestones: (o.milestones ?? []).map((m) => ({ ...m, date: new Date(m.date) })),
 });
 const reviveObjectives = (arr: Objective[]): Objective[] => arr.map(reviveObjective);
+const reviveRisk = (r: Risk): Risk => ({
+  ...r,
+  reviewDate: r.reviewDate ? new Date(r.reviewDate) : null,
+  createdAt: new Date(r.createdAt),
+  updatedAt: new Date(r.updatedAt),
+});
+const reviveRisks = (arr: Risk[]): Risk[] => arr.map(reviveRisk);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -429,6 +459,7 @@ export function AppProvider({
   initialTemplates,
   initialContacts,
   initialMeetings,
+  initialRisks,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -448,6 +479,7 @@ export function AppProvider({
   initialTemplates?: EmailTemplate[];
   initialContacts?: Contact[];
   initialMeetings?: Meeting[];
+  initialRisks?: Risk[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -483,6 +515,7 @@ export function AppProvider({
   );
   const [tasks, setTasks] = useState<Task[]>(demo ? [] : reviveTasks(initialTasks ?? []));
   const [objectives, setObjectives] = useState<Objective[]>(demo ? seedObjectives() : reviveObjectives(initialObjectives ?? []));
+  const [risks, setRisks] = useState<Risk[]>(demo ? [] : reviveRisks(initialRisks ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -1534,6 +1567,30 @@ export function AppProvider({
     return null;
   };
 
+  /* ---------- GRC : Registre des risques ---------- */
+  const riskById = (id: string): Risk | null => risks.find((r) => r.id === id) ?? null;
+  const riskAction = async (op: "create" | "update" | "status" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Registre des risques indisponible en mode démo.";
+    const res = await fetch("/api/risks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, ...input }),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      toast(d.error ?? "Erreur.", "error");
+      return d.error ?? "Erreur.";
+    }
+    if (d.risks) setRisks(reviveRisks(d.risks));
+    if (op === "create") toast("Risque ajouté au registre.", "success");
+    else if (op === "delete") toast("Risque supprimé.", "success");
+    return null;
+  };
+  const createRisk = (input: RiskInput) => riskAction("create", input as Record<string, unknown>);
+  const updateRisk = (id: string, fields: RiskInput) => riskAction("update", { id, ...fields });
+  const setRiskStatus = (id: string, status: string) => riskAction("status", { id, status });
+  const deleteRisk = (id: string) => riskAction("delete", { id });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -1804,6 +1861,12 @@ export function AppProvider({
     subtaskAction,
     objectives,
     objectiveAction,
+    risks,
+    riskById,
+    createRisk,
+    updateRisk,
+    setRiskStatus,
+    deleteRisk,
     openTaskId,
     setOpenTaskId,
     soundEnabled,
