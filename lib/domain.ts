@@ -941,6 +941,17 @@ export interface Project {
 }
 
 /**
+ * Interrupteur de la fonctionnalité « espace privé / publication » (Lot 2).
+ *
+ * `false` (par défaut) : la fonctionnalité est DÉSACTIVÉE — toute création est
+ * publiée d'emblée et l'application se comporte comme avant le Lot 2 (tout est
+ * visible par l'équipe). Tout le code de visibilité reste en place mais devient
+ * inerte (les filtres laissent tout passer, les badges/boutons « Publier » ne
+ * s'affichent pas). Passer à `true` pour réactiver le privé par défaut.
+ */
+export const PRIVATE_SPACE_ENABLED = false;
+
+/**
  * Vrai si l'élément est visible par l'équipe (publié). L'absence de champ vaut
  * « publié » (rétrocompatibilité : données de démo et anciens enregistrements).
  */

@@ -8,6 +8,11 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.23.1] - 2026-08-05
+
+### Modifié
+- **Espace privé / publication désactivé** (le temps de décider de son intérêt). L'application se comporte de nouveau **comme avant** : tout élément créé est visible par l'équipe, sans notion de brouillon privé. Tout le code du Lot 2 reste en place mais inerte, réactivable en passant `PRIVATE_SPACE_ENABLED` à `true` dans `lib/domain.ts`. Les quelques éléments passés en privé pendant l'essai ont été republié.
+
 ## [1.23.0] - 2026-08-05
 
 ### Ajouté

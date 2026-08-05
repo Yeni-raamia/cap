@@ -3,6 +3,7 @@
  * ================================================================== */
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
+import { PRIVATE_SPACE_ENABLED } from "@/lib/domain";
 import type {
   ClosureRequest,
   ClosureStatus,
@@ -270,7 +271,8 @@ export function createProject(input: {
       "En cours",
       input.deadline ?? null,
       input.sourceItemId ?? null,
-      input.published ? 1 : 0
+      // Espace privé désactivé → toujours publié (comportement d'avant le Lot 2).
+      (PRIVATE_SPACE_ENABLED ? !!input.published : true) ? 1 : 0
     );
   // Le propriétaire + les personnes assignées sont membres.
   const ins = getDb().prepare("insert into project_members (id, project_id, profile_id) values (?,?,?)");

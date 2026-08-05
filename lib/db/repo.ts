@@ -5,7 +5,7 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
 import { createProjectForItem } from "./projects";
-import { buildRef, PROJECT_METIER } from "@/lib/domain";
+import { buildRef, PRIVATE_SPACE_ENABLED, PROJECT_METIER } from "@/lib/domain";
 import { describeUserAgent } from "@/lib/auth/user-agent";
 import type {
   BlocageAction,
@@ -617,6 +617,9 @@ export function createItem(input: {
     .map((x) => x.trim())
     .filter(Boolean);
 
+  // Espace privé désactivé → toujours publié (comportement d'avant le Lot 2).
+  const pub = PRIVATE_SPACE_ENABLED ? !!input.published : true;
+
   const tx = db.transaction(() => {
     // CASE : le numéro (TheHive) est fourni par l'utilisateur ; sinon, numéro
     // auto attribué côté serveur pour éviter toute collision de référence.
@@ -637,7 +640,7 @@ export function createItem(input: {
       now,
       now,
       input.dueDurationDays ?? null,
-      input.published ? 1 : 0
+      pub ? 1 : 0
     );
     if (input.dest.trim()) {
       db.prepare("insert into item_people (id, item_id, name, kind, service, email) values (?,?,?,?,?,?)").run(
@@ -658,7 +661,7 @@ export function createItem(input: {
   tx();
   // Suivi de métier PRJ : créer automatiquement le projet lié (même visibilité).
   if (input.parsed.metier === PROJECT_METIER) {
-    createProjectForItem(id, input.parsed.objet, input.ownerId, !!input.published);
+    createProjectForItem(id, input.parsed.objet, input.ownerId, pub);
   }
   return getItem(id)!;
 }

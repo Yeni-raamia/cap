@@ -10,6 +10,7 @@ import {
   nextRefNumber,
   parseEmail,
   parseSubject,
+  PRIVATE_SPACE_ENABLED,
   type ParsedSubject,
   type Priorite,
 } from "@/lib/domain";
@@ -418,20 +419,23 @@ Coller un e-mail
           </span>
         </label>
 
-        <label className="flex items-start gap-2 mt-2 text-[12px] text-slate-600 cursor-pointer bg-emerald-50/60 border border-emerald-200 rounded-lg px-3 py-2">
-          <input
-            type="checkbox"
-            checked={publishNow}
-            onChange={(e) => setPublishNow(e.target.checked)}
-            className="h-3.5 w-3.5 accent-emerald-600 mt-0.5"
-          />
-          <span>
-            <span className="font-medium text-slate-700">Publier tout de suite (visible par l&apos;équipe)</span>
-            <span className="block text-[11px] text-slate-500">
-              Par défaut, un nouveau suivi est <strong>privé</strong> (visible de vous seul) et reste dans « Mon espace ». Vous pourrez le publier plus tard.
+        {/* Espace privé (Lot 2) — masqué tant que PRIVATE_SPACE_ENABLED est false. */}
+        {PRIVATE_SPACE_ENABLED && (
+          <label className="flex items-start gap-2 mt-2 text-[12px] text-slate-600 cursor-pointer bg-emerald-50/60 border border-emerald-200 rounded-lg px-3 py-2">
+            <input
+              type="checkbox"
+              checked={publishNow}
+              onChange={(e) => setPublishNow(e.target.checked)}
+              className="h-3.5 w-3.5 accent-emerald-600 mt-0.5"
+            />
+            <span>
+              <span className="font-medium text-slate-700">Publier tout de suite (visible par l&apos;équipe)</span>
+              <span className="block text-[11px] text-slate-500">
+                Par défaut, un nouveau suivi est <strong>privé</strong> (visible de vous seul) et reste dans « Mon espace ». Vous pourrez le publier plus tard.
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
+        )}
 
         <div className="flex gap-2 mt-4">
           <button

@@ -3,7 +3,7 @@
  * ================================================================== */
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
-import type { Subtask, Task, TaskPriority, TaskStatus } from "@/lib/domain";
+import { PRIVATE_SPACE_ENABLED, type Subtask, type Task, type TaskPriority, type TaskStatus } from "@/lib/domain";
 
 const now = () => new Date().toISOString();
 
@@ -102,7 +102,8 @@ export function createTask(input: {
       input.priority ?? "Normale",
       input.startDate ?? null,
       input.dueDate ?? null,
-      input.published ? 1 : 0
+      // Espace privé désactivé → toujours publié (comportement d'avant le Lot 2).
+      (PRIVATE_SPACE_ENABLED ? !!input.published : true) ? 1 : 0
     );
   return id;
 }
