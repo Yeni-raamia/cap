@@ -95,6 +95,8 @@ export interface Item {
   dueDurationDays?: number | null;
   /** Marqué explicitement « En retard » par un utilisateur. */
   markedLate?: boolean;
+  /** Visibilité : `false` = privé (créateur seul), `true`/absent = publié (équipe). */
+  published?: boolean;
 }
 
 export interface Profile {
@@ -852,6 +854,8 @@ export interface Task {
   createdAt: Date;
   completedAt: Date | null;
   subtasks: Subtask[];
+  /** Visibilité : `false` = privé (créateur seul), `true`/absent = publié (équipe). */
+  published?: boolean;
 }
 
 /** Élément d'une checklist de sous-tâches. */
@@ -932,7 +936,19 @@ export interface Project {
   archived: boolean;
   /** Demande de suppression en attente d'approbation (ou null). */
   deletionRequest: ProjectDeletionRequest | null;
+  /** Visibilité : `false` = privé (créateur seul), `true`/absent = publié (équipe). */
+  published?: boolean;
 }
+
+/**
+ * Vrai si l'élément est visible par l'équipe (publié). L'absence de champ vaut
+ * « publié » (rétrocompatibilité : données de démo et anciens enregistrements).
+ */
+export const isPublished = (x: { published?: boolean }): boolean => x.published !== false;
+
+/** Vrai si `viewerId` a le droit de voir l'élément (publié, ou son créateur/propriétaire). */
+export const canView = (x: { published?: boolean; ownerId?: string; createdBy?: string | null }, viewerId: string): boolean =>
+  x.published !== false || x.ownerId === viewerId || x.createdBy === viewerId;
 
 export interface ProjectMetrics {
   total: number;

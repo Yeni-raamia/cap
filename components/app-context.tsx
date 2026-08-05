@@ -168,8 +168,12 @@ interface AppCtx {
   bulkAct: (ids: string[], action: Action) => Promise<{ applied: number; skipped: number } | null>;
   setItemLate: (item: Item, late: boolean) => Promise<boolean>;
   sendRelanceEmail: (item: Item, templateId: string) => Promise<boolean>;
-  create: (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite?: boolean, dueDurationDays?: number | null, destEmail?: string) => void;
+  create: (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite?: boolean, dueDurationDays?: number | null, destEmail?: string, published?: boolean) => void;
   setRelanceDate: (item: Item, date: string | null) => void;
+  /** Publier (irréversible) un suivi / projet / tâche : le rend visible par l'équipe. */
+  publishItem: (id: string) => Promise<boolean>;
+  publishProject: (id: string) => Promise<boolean>;
+  publishTask: (id: string) => Promise<boolean>;
   updateItem: (
     item: Item,
     fields: { objet?: string; priorite?: Priorite; pointsCles?: string[]; personnes?: Person[]; dueDurationDays?: number | null }
@@ -826,6 +830,76 @@ export function AppProvider({
     }
   };
 
+  // Publication (irréversible) : rend un élément privé visible par toute l'équipe.
+  const publishItem = async (id: string): Promise<boolean> => {
+    if (demo) {
+      setItems((prev) => prev.map((i) => (i.id === id ? { ...i, published: true } : i)));
+      return true;
+    }
+    try {
+      const res = await fetch("/api/items/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: id }),
+      });
+      const d = await res.json();
+      if (!res.ok) { toast(d.error ?? "Publication échouée.", "error"); return false; }
+      if (d.items) setItems(reviveItems(d.items));
+      toast("Publié : visible par l'équipe.", "success");
+      return true;
+    } catch (e) {
+      console.error("Publication échouée :", e);
+      toast("Publication échouée.", "error");
+      return false;
+    }
+  };
+
+  const publishProject = async (id: string): Promise<boolean> => {
+    if (demo) {
+      setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, published: true } : p)));
+      return true;
+    }
+    try {
+      const res = await fetch("/api/projects/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: id }),
+      });
+      const d = await res.json();
+      if (!res.ok) { toast(d.error ?? "Publication échouée.", "error"); return false; }
+      if (d.projects) setProjects(reviveProjects(d.projects));
+      toast("Projet publié : visible par l'équipe.", "success");
+      return true;
+    } catch (e) {
+      console.error("Publication échouée :", e);
+      toast("Publication échouée.", "error");
+      return false;
+    }
+  };
+
+  const publishTask = async (id: string): Promise<boolean> => {
+    if (demo) {
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, published: true } : t)));
+      return true;
+    }
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "publish", id }),
+      });
+      const d = await res.json();
+      if (!res.ok) { toast(d.error ?? "Publication échouée.", "error"); return false; }
+      if (d.tasks) setTasks(reviveTasks(d.tasks));
+      toast("Tâche publiée : visible par l'équipe.", "success");
+      return true;
+    } catch (e) {
+      console.error("Publication échouée :", e);
+      toast("Publication échouée.", "error");
+      return false;
+    }
+  };
+
   /** Envoi réel d'une relance au destinataire par e-mail (modèle appliqué). */
   const sendRelanceEmail = async (item: Item, templateId: string): Promise<boolean> => {
     if (demo) {
@@ -853,7 +927,7 @@ export function AppProvider({
     }
   };
 
-  const create = (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite = false, dueDurationDays: number | null = null, destEmail = "") => {
+  const create = (parsed: ParsedSubject, prio: Priorite, dest: string, destService: string, points: string, nonConformite = false, dueDurationDays: number | null = null, destEmail = "", published = false) => {
     setShowNew(false);
     if (demo) {
       setItems((prev) => mockCreate(prev, parsed, prio, dest, destService, points, meId));
@@ -862,7 +936,7 @@ export function AppProvider({
     fetch("/api/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ parsed, prio, dest, destService, points, nonConformite, dueDurationDays, destEmail }),
+      body: JSON.stringify({ parsed, prio, dest, destService, points, nonConformite, dueDurationDays, destEmail, published }),
     })
       .then((r) => r.json())
       .then((d) => {
@@ -1564,6 +1638,9 @@ export function AppProvider({
     act,
     create,
     setRelanceDate,
+    publishItem,
+    publishProject,
+    publishTask,
     updateItem,
     bulkAct,
     setItemLate,

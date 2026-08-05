@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AlertTriangle, Filter, Flag, ListChecks, Phone, ShieldAlert } from "lucide-react";
-import { blocageActionLabel, fmt, type Item } from "@/lib/domain";
+import { blocageActionLabel, fmt, isPublished, type Item } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
 import { PageHero } from "@/components/PageHero";
@@ -10,7 +10,9 @@ import { PageHero } from "@/components/PageHero";
 type ViewMode = "detaillee" | "compacte" | "cause" | "appreciation";
 
 export default function BlocagesPage() {
-  const { items, rs, openItem, profileById, refLists } = useApp();
+  const { items: allItems, rs, openItem, profileById, refLists } = useApp();
+  // Vue d'équipe : seuls les suivis publiés.
+  const items = useMemo(() => allItems.filter(isPublished), [allItems]);
 
   const [view, setView] = useState<ViewMode>("compacte");
   const [search, setSearch] = useState("");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -33,7 +33,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { isLateByDuration, NEGLIGENCE_GRAVITES, STATUTS, type NonConformite, type Negligence, type Statut } from "@/lib/domain";
+import { isLateByDuration, isPublished, NEGLIGENCE_GRAVITES, STATUTS, type NonConformite, type Negligence, type Statut } from "@/lib/domain";
 import { computeBreakdowns, computeProjectStats } from "@/lib/stats";
 import { BarChart3, Columns2, GripVertical, Plus, RectangleHorizontal, RotateCcw, Settings2, X } from "lucide-react";
 
@@ -121,7 +121,10 @@ function SortableBlock({
 }
 
 export default function StatsPage() {
-  const { items, profiles, catalogue, now, projects, theme, negligences, nonConformites, me } = useApp();
+  const { items: allItems, profiles, catalogue, now, projects: allProjects, theme, negligences, nonConformites, me } = useApp();
+  // Statistiques d'équipe : sur les éléments publiés uniquement.
+  const items = useMemo(() => allItems.filter(isPublished), [allItems]);
+  const projects = useMemo(() => allProjects.filter(isPublished), [allProjects]);
   const dark = theme === "dark";
   const grid = dark ? "#1e293b" : "#eef2f6";
   const tick = { fontSize: 11, fill: dark ? "#94a3b8" : "#64748b" };

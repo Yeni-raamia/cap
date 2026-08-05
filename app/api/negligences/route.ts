@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       negId = createNegligenceRecord({ itemId: null, objet, service, concerne, gravite, risque, impact, description, createdBy: user.id });
     }
     logActivity(user.id, "negligence_open", objet || getItem(targetItem ?? "")?.ref || "");
-    return NextResponse.json({ negligences: listNegligences(), items: listItems(), negligence: getNegligence(negId) });
+    return NextResponse.json({ negligences: listNegligences(), items: listItems(user.id), negligence: getNegligence(negId) });
   }
 
   const id: string = body?.id;

@@ -35,5 +35,5 @@ export async function POST(request: Request) {
   } else if (action === "remove") removeMember(projectId, profileId);
   else return NextResponse.json({ error: "Action inconnue." }, { status: 400 });
 
-  return NextResponse.json({ projects: listProjects() });
+  return NextResponse.json({ projects: listProjects(user.id) });
 }

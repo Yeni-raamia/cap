@@ -55,5 +55,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Opération inconnue." }, { status: 400 });
   }
 
-  return NextResponse.json({ items: listItems(), negligences: listNegligences() });
+  return NextResponse.json({ items: listItems(user.id), negligences: listNegligences() });
 }

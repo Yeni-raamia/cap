@@ -22,5 +22,5 @@ export async function POST(request: Request) {
   }
 
   attachItem(itemId, projectId);
-  return NextResponse.json({ projects: listProjects(), items: listItems() });
+  return NextResponse.json({ projects: listProjects(user.id), items: listItems(user.id) });
 }

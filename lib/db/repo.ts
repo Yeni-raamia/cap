@@ -433,6 +433,7 @@ interface ItemRow {
   appreciation: string | null;
   due_duration_days: number | null;
   marked_late: number;
+  published: number;
 }
 interface BlocageActionRow {
   id: string;
@@ -458,9 +459,14 @@ interface PersonRow {
   email: string | null;
 }
 
-export function listItems(): Item[] {
+// `viewerId` fourni → ne renvoie que les suivis publiés OU appartenant au demandeur
+// (le privé des autres ne quitte jamais le serveur). Sans `viewerId` : tout (moteur de
+// rappels, admin), l'appelant reste responsable du filtrage.
+export function listItems(viewerId?: string): Item[] {
   const db = getDb();
-  const items = db.prepare("select * from items order by date_maj desc").all() as ItemRow[];
+  const items = (viewerId
+    ? db.prepare("select * from items where published = 1 or owner_id = ? order by date_maj desc").all(viewerId)
+    : db.prepare("select * from items order by date_maj desc").all()) as ItemRow[];
   const events = db.prepare("select * from events").all() as EventRow[];
   const people = db.prepare("select * from item_people").all() as PersonRow[];
   const actions = db.prepare("select * from blocage_actions").all() as BlocageActionRow[];
@@ -543,6 +549,7 @@ function mapItem(
     attachmentsCount,
     dueDurationDays: r.due_duration_days ?? null,
     markedLate: r.marked_late === 1,
+    published: r.published !== 0,
   };
 }
 
@@ -599,6 +606,8 @@ export function createItem(input: {
   pointsRaw: string;
   ownerId: string;
   dueDurationDays?: number | null;
+  /** Publier immédiatement (visible par l'équipe). Défaut : privé (créateur seul). */
+  published?: boolean;
 }): Item {
   const db = getDb();
   const now = new Date().toISOString();
@@ -613,8 +622,8 @@ export function createItem(input: {
     // auto attribué côté serveur pour éviter toute collision de référence.
     const ref = input.parsed.metier === "CASE" ? input.parsed.ref : nextItemRef(db, input.parsed.metier);
     db.prepare(
-      "insert into items (id, ref, metier_code, type_code, objet, priorite, statut, owner_id, points_cles, date_creation, date_maj, due_duration_days) " +
-        "values (?,?,?,?,?,?,?,?,?,?,?,?)"
+      "insert into items (id, ref, metier_code, type_code, objet, priorite, statut, owner_id, points_cles, date_creation, date_maj, due_duration_days, published) " +
+        "values (?,?,?,?,?,?,?,?,?,?,?,?,?)"
     ).run(
       id,
       ref,
@@ -627,7 +636,8 @@ export function createItem(input: {
       JSON.stringify(points.length ? points : ["—"]),
       now,
       now,
-      input.dueDurationDays ?? null
+      input.dueDurationDays ?? null,
+      input.published ? 1 : 0
     );
     if (input.dest.trim()) {
       db.prepare("insert into item_people (id, item_id, name, kind, service, email) values (?,?,?,?,?,?)").run(
@@ -646,9 +656,9 @@ export function createItem(input: {
     insEv.run(randomUUID(), id, "envoi", "Envoyé", input.ownerId, now);
   });
   tx();
-  // Suivi de métier PRJ : créer automatiquement le projet lié.
+  // Suivi de métier PRJ : créer automatiquement le projet lié (même visibilité).
   if (input.parsed.metier === PROJECT_METIER) {
-    createProjectForItem(id, input.parsed.objet, input.ownerId);
+    createProjectForItem(id, input.parsed.objet, input.ownerId, !!input.published);
   }
   return getItem(id)!;
 }
@@ -835,6 +845,22 @@ export function recordRelanceEmail(itemId: string, meId: string, toEmail: string
     `Relance ${count} envoyée par e-mail à ${toEmail}`,
     meId,
     now
+  );
+}
+
+/** Publie un suivi (irréversible) : le rend visible par toute l'équipe. */
+export function publishItem(itemId: string, meId: string): void {
+  const db = getDb();
+  const r = db.prepare("select published from items where id = ?").get(itemId) as { published: number } | undefined;
+  if (!r || r.published === 1) return; // déjà publié : no-op (publication irréversible)
+  db.prepare("update items set published = 1 where id = ?").run(itemId);
+  db.prepare("insert into events (id, item_id, kind, label, author_id, created_at) values (?,?,?,?,?,?)").run(
+    randomUUID(),
+    itemId,
+    "statut",
+    "Publié (visible par l'équipe)",
+    meId,
+    new Date().toISOString()
   );
 }
 

@@ -23,6 +23,8 @@ export async function POST(request: Request) {
   const points = typeof body?.points === "string" ? body.points : "";
   const dueDurationDays =
     typeof body?.dueDurationDays === "number" && body.dueDurationDays > 0 ? Math.floor(body.dueDurationDays) : null;
+  // Visibilité : privé par défaut ; publié seulement si demandé explicitement.
+  const published = body?.published === true;
 
   const catalogue = getCatalogue();
   if (
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
   }
 
   // L'objet appartient toujours à son créateur.
-  const item = createItem({ parsed, prio, dest, destService, destEmail, pointsRaw: points, ownerId: user.id, dueDurationDays });
+  const item = createItem({ parsed, prio, dest, destService, destEmail, pointsRaw: points, ownerId: user.id, dueDurationDays, published });
   logActivity(user.id, "item_create", `${parsed.ref} — ${parsed.objet}`);
 
   // Case « non-conformité à la politique de sécurité » : ouvre la fiche liée.
@@ -46,5 +48,5 @@ export async function POST(request: Request) {
   }
 
   // On renvoie aussi les projets : un suivi PRJ crée son projet à la volée.
-  return NextResponse.json({ items: listItems(), projects: listProjects(), nonconformites: listNonConformites() });
+  return NextResponse.json({ items: listItems(user.id), projects: listProjects(user.id), nonconformites: listNonConformites() });
 }

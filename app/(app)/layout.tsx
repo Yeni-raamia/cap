@@ -36,17 +36,19 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   // Sauvegarde planifiée (si activée en administration) — sans bloquer le rendu.
   maybeRunBackupInBackground();
 
-  const items = listItems();
+  // Visibilité (Lot 2) : le privé d'autrui ne quitte jamais le serveur — on ne
+  // charge que les éléments publiés ou appartenant au demandeur.
+  const items = listItems(user.id);
   const profiles = listProfiles();
   const notifications = listNotificationsFor(user.id);
   const catalogue = getCatalogue();
-  const projects = listProjects();
+  const projects = listProjects(user.id);
   const settings = getSettings();
   const refLists = getRefLists();
   const negligences = listNegligences();
   const nonConformites = listNonConformites();
   const conversations = listConversationsFor(user.id);
-  const tasks = listTasks();
+  const tasks = listTasks(user.id);
   const objectives = listObjectives();
   const templates = listTemplates();
   const contacts = listContacts();

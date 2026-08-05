@@ -38,5 +38,5 @@ export async function POST(request: Request) {
   if (!ok) return NextResponse.json({ error: "Suivi introuvable." }, { status: 404 });
 
   logActivity(user.id, "email_import", `${getItem(itemId)?.ref ?? itemId} ← ${p.fromEmail || p.from}`);
-  return NextResponse.json({ items: listItems() });
+  return NextResponse.json({ items: listItems(user.id) });
 }

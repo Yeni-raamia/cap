@@ -73,5 +73,5 @@ export async function POST(request: Request) {
   });
 
   logActivity(user.id, "item_create", `${item.ref} (import e-mail)`);
-  return NextResponse.json({ items: listItems(), item });
+  return NextResponse.json({ items: listItems(user.id), item });
 }

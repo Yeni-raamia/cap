@@ -60,5 +60,5 @@ export async function POST(request: Request) {
 
   recordRelanceEmail(itemId, user.id, to);
   logActivity(user.id, "item_relance_email", `${item.ref} → ${to}`);
-  return NextResponse.json({ items: listItems(), sent: true, to });
+  return NextResponse.json({ items: listItems(user.id), sent: true, to });
 }

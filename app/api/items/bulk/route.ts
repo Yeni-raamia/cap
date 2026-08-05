@@ -43,5 +43,5 @@ export async function POST(request: Request) {
   }
 
   logActivity(user.id, `item_bulk_${action}`, `${applied} suivi(s)${skipped ? `, ${skipped} ignoré(s)` : ""}`);
-  return NextResponse.json({ items: listItems(), applied, skipped });
+  return NextResponse.json({ items: listItems(user.id), applied, skipped });
 }

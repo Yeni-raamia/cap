@@ -20,6 +20,7 @@ interface TaskRow {
   due_date: string | null;
   completed_at: string | null;
   created_at: string;
+  published: number;
 }
 interface SubtaskRow {
   id: string;
@@ -51,13 +52,18 @@ function mapTask(r: TaskRow, subs: SubtaskRow[]): Task {
     completedAt: r.completed_at ? new Date(r.completed_at) : null,
     createdAt: new Date(r.created_at),
     subtasks: subs.filter((s) => s.task_id === r.id).map(mapSubtask),
+    published: r.published !== 0,
   };
 }
 
-export function listTasks(): Task[] {
+// `viewerId` fourni → ne renvoie que les tâches publiées, créées par le demandeur,
+// ou qui lui sont assignées. Sans `viewerId` : tout (moteur de rappels, admin).
+export function listTasks(viewerId?: string): Task[] {
   const rows = getDb().prepare("select * from tasks order by created_at desc").all() as TaskRow[];
   const subs = getDb().prepare("select * from task_subtasks order by ordre, created_at").all() as SubtaskRow[];
-  return rows.map((r) => mapTask(r, subs));
+  const mapped = rows.map((r) => mapTask(r, subs));
+  if (!viewerId) return mapped;
+  return mapped.filter((t) => t.published !== false || t.createdBy === viewerId || t.assigneeId === viewerId);
 }
 
 export function getTask(id: string): Task | null {
@@ -76,12 +82,14 @@ export function createTask(input: {
   priority?: TaskPriority;
   startDate?: string | null;
   dueDate?: string | null;
+  /** Publier immédiatement (visible par l'équipe). Défaut : privé (créateur seul). */
+  published?: boolean;
 }): string {
   const id = randomUUID();
   getDb()
     .prepare(
-      "insert into tasks (id, title, description, assignee_id, created_by, project_id, status, priority, start_date, due_date) " +
-        "values (?,?,?,?,?,?,?,?,?,?)"
+      "insert into tasks (id, title, description, assignee_id, created_by, project_id, status, priority, start_date, due_date, published) " +
+        "values (?,?,?,?,?,?,?,?,?,?,?)"
     )
     .run(
       id,
@@ -93,9 +101,15 @@ export function createTask(input: {
       "à faire",
       input.priority ?? "Normale",
       input.startDate ?? null,
-      input.dueDate ?? null
+      input.dueDate ?? null,
+      input.published ? 1 : 0
     );
   return id;
+}
+
+/** Publie une tâche (irréversible) : la rend visible par toute l'équipe. */
+export function publishTask(id: string): void {
+  getDb().prepare("update tasks set published = 1 where id = ? and published = 0").run(id);
 }
 
 export function updateTask(

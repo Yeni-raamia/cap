@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       })
     );
     logActivity(user.id, "projet.statut.proposition", `${projName} → ${status}`);
-    return NextResponse.json({ projects: listProjects() });
+    return NextResponse.json({ projects: listProjects(user.id) });
   }
 
   if (op === "decide") {
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       });
     }
     logActivity(user.id, approve ? "projet.statut.validation" : "projet.statut.refus", `${projName} → ${target}`);
-    return NextResponse.json({ projects: listProjects() });
+    return NextResponse.json({ projects: listProjects(user.id) });
   }
 
   return NextResponse.json({ error: "Opération inconnue." }, { status: 400 });

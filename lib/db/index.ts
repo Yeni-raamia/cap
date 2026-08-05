@@ -36,7 +36,8 @@ create table if not exists items (
   owner_id text not null, points_cles text not null default '[]', blocage_cause text,
   relances_count integer not null default 0,
   date_creation text not null default (datetime('now')), date_maj text not null default (datetime('now')),
-  closed_at text, date_relance_prevue text, project_id text, appreciation text
+  closed_at text, date_relance_prevue text, project_id text, appreciation text,
+  published integer not null default 1
 );
 create table if not exists blocage_actions (
   id text primary key, item_id text not null, kind text not null, concerne text not null default '',
@@ -49,7 +50,8 @@ create table if not exists projects (
   deadline text, source_item_id text, created_at text not null default (datetime('now')),
   pending_status text, pending_by text,
   archived integer not null default 0,
-  del_requested_by text, del_reason text, del_requested_at text
+  del_requested_by text, del_reason text, del_requested_at text,
+  published integer not null default 1
 );
 create table if not exists project_tasks (
   id text primary key, project_id text not null, title text not null,
@@ -67,7 +69,8 @@ create table if not exists tasks (
   id text primary key, title text not null, description text not null default '',
   assignee_id text, created_by text, project_id text,
   status text not null default 'à faire', priority text not null default 'Normale',
-  start_date text, due_date text, completed_at text, created_at text not null default (datetime('now'))
+  start_date text, due_date text, completed_at text, created_at text not null default (datetime('now')),
+  published integer not null default 1
 );
 create index if not exists idx_tasks_assignee on tasks(assignee_id);
 create index if not exists idx_tasks_project2 on tasks(project_id);
@@ -364,9 +367,15 @@ function ensureColumns(db: Database.Database) {
     db.exec("alter table projects add column del_reason text");
     db.exec("alter table projects add column del_requested_at text");
   }
+  if (!pjcols.includes("published")) {
+    db.exec("alter table projects add column published integer not null default 1");
+  }
   const tkcols = (db.prepare("pragma table_info(tasks)").all() as { name: string }[]).map((c) => c.name);
   if (tkcols.length > 0 && !tkcols.includes("start_date")) {
     db.exec("alter table tasks add column start_date text");
+  }
+  if (tkcols.length > 0 && !tkcols.includes("published")) {
+    db.exec("alter table tasks add column published integer not null default 1");
   }
   const mcols = (db.prepare("pragma table_info(messages)").all() as { name: string }[]).map((c) => c.name);
   if (mcols.length > 0 && !mcols.includes("reply_to")) {
@@ -377,6 +386,12 @@ function ensureColumns(db: Database.Database) {
   if (!itcols.includes("due_duration_days")) {
     db.exec("alter table items add column due_duration_days integer");
     db.exec("alter table items add column marked_late integer not null default 0");
+  }
+  // Visibilité (Lot 2 — espace privé / publication). Défaut 1 = les éléments
+  // déjà existants sont considérés publiés (rétrocompatible) ; les nouveaux
+  // éléments sont créés en privé explicitement par le code (createItem, etc.).
+  if (!itcols.includes("published")) {
+    db.exec("alter table items add column published integer not null default 1");
   }
   // Non-conformités : politique / article / contrôle violé.
   const nccols = (db.prepare("pragma table_info(nonconformites)").all() as { name: string }[]).map((c) => c.name);

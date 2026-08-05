@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ExternalLink, RotateCcw, Search, Share2 } from "lucide-react";
 import { buildGraph, egoSubgraph, type GraphNode } from "@/lib/graph";
+import { isPublished } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
 import { PageHero } from "@/components/PageHero";
@@ -19,8 +20,14 @@ export default function RelationsPage() {
 }
 
 function RelationsInner() {
-  const { items, projects, tasks, negligences, nonConformites, objectives, meetings, profiles, contacts, openItem } = useApp();
+  const { items: allItems, projects: allProjects, tasks: allTasks, negligences, nonConformites, objectives, meetings, profiles, contacts, openItem } = useApp();
   const searchParams = useSearchParams();
+
+  // Graphe d'équipe : on n'y fait figurer que les éléments publiés (les brouillons
+  // privés ne sont pas partagés).
+  const items = useMemo(() => allItems.filter(isPublished), [allItems]);
+  const projects = useMemo(() => allProjects.filter(isPublished), [allProjects]);
+  const tasks = useMemo(() => allTasks.filter(isPublished), [allTasks]);
 
   const graph = useMemo(
     () => buildGraph({ items, projects, tasks, negligences, nonConformites, objectives, meetings, profiles, contacts }),

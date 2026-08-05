@@ -31,5 +31,5 @@ export async function POST(request: Request) {
     status,
     deadline: body?.deadline !== undefined ? toIso(body.deadline) : undefined,
   });
-  return NextResponse.json({ projects: listProjects() });
+  return NextResponse.json({ projects: listProjects(user.id) });
 }

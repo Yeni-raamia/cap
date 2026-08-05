@@ -18,6 +18,7 @@ import {
 import {
   fmt,
   isProjectArchived,
+  isPublished,
   projectMetrics,
   PROJECT_STATUTS,
   type Profile,
@@ -39,7 +40,11 @@ const statusBadge: Record<ProjectStatus, string> = {
 type ViewMode = "cartes" | "liste" | "kanban" | "groupe";
 
 export default function ProjetsPage() {
-  const { demo, projects, items, now, profileById, profiles, createProject } = useApp();
+  const { demo, projects: allProjects, items: allItems, now, profileById, profiles, createProject } = useApp();
+  // Liste d'équipe : projets et suivis publiés uniquement (les brouillons privés
+  // restent dans « Mon espace »).
+  const projects = useMemo(() => allProjects.filter(isPublished), [allProjects]);
+  const items = useMemo(() => allItems.filter(isPublished), [allItems]);
   const [showNew, setShowNew] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { AlertOctagon, Inbox, ShieldAlert, TrendingUp, Users } from "lucide-react";
-import { STATUTS, toneBg, type Statut } from "@/lib/domain";
+import { isPublished, STATUTS, toneBg, type Statut } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { CountUp, Heatmap, Sparkline } from "@/components/dataviz";
 import { PageHero } from "@/components/PageHero";
@@ -11,7 +11,10 @@ import { SuiviExplorer } from "@/components/SuiviExplorer";
 const iso = (d: Date) => new Date(d).toISOString().slice(0, 10);
 
 export default function VueGlobalePage() {
-  const { items, now, rs, catalogue } = useApp();
+  const { items: allItems, now, rs, catalogue } = useApp();
+  // Vue d'équipe : on n'affiche que les suivis publiés (les brouillons privés
+  // restent dans « Mon espace »).
+  const items = useMemo(() => allItems.filter(isPublished), [allItems]);
 
   const sup = useMemo(() => {
     const active = items.filter((i) => i.statut !== "Clôturé");

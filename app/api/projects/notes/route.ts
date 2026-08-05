@@ -18,5 +18,5 @@ export async function POST(request: Request) {
   }
 
   addNote(projectId, user.id, noteBody);
-  return NextResponse.json({ projects: listProjects() });
+  return NextResponse.json({ projects: listProjects(user.id) });
 }

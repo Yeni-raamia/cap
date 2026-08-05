@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarClock, Check, ListTodo, Plus, Trash2, X } from "lucide-react";
+import { CalendarClock, Check, Globe, ListTodo, Lock, Plus, Trash2, X } from "lucide-react";
 import {
   fmt,
   isTaskLate,
@@ -24,7 +24,7 @@ const STATUS_STYLE: Record<TaskStatus, string> = {
 const toDateInput = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 
 export function TaskModal() {
-  const { openTaskId, setOpenTaskId, tasks, profiles, projects, me, now, taskAction, subtaskAction, profileById } = useApp();
+  const { openTaskId, setOpenTaskId, tasks, profiles, projects, me, now, taskAction, subtaskAction, publishTask, profileById } = useApp();
   const task = tasks.find((t) => t.id === openTaskId) ?? null;
 
   const [title, setTitle] = useState("");
@@ -85,8 +85,27 @@ export function TaskModal() {
               {author && <span>Créée par {author.nom}</span>}
               {proj && <Link href={`/projets/${proj.id}`} onClick={close} className="text-emerald-700 hover:underline">· {proj.name}</Link>}
               {late && <span className="text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">En retard</span>}
+              {task.published === false && (
+                <span title="Tâche privée — visible de vous (et de la personne assignée) tant qu'elle n'est pas publiée." className="inline-flex items-center gap-1 text-amber-800 font-medium bg-amber-100 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                  <Lock size={10} /> Privé
+                </span>
+              )}
             </div>
           </div>
+          {task.published === false && (task.createdBy === me.id || ["manager", "directeur", "admin"].includes(me.role)) && (
+            <button
+              onClick={async () => {
+                if (typeof window !== "undefined" && !window.confirm(
+                  "Publier cette tâche la rendra visible par toute l'équipe. Cette action est définitive. Continuer ?"
+                )) return;
+                await publishTask(task.id);
+              }}
+              title="Publier : rendre visible par l'équipe (définitif)"
+              className="shrink-0 inline-flex items-center gap-1 text-[12px] font-medium text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-lg px-2.5 py-1.5"
+            >
+              <Globe size={13} /> Publier
+            </button>
+          )}
           <button onClick={close} aria-label="Fermer" className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
         </div>
 

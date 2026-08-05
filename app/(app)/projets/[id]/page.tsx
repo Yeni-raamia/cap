@@ -10,7 +10,9 @@ import {
   CalendarClock,
   Check,
   Gavel,
+  Globe,
   ListChecks,
+  Lock,
   MessageSquare,
   Plus,
   Share2,
@@ -62,6 +64,7 @@ export default function ProjetDetailPage() {
     archiveProject,
     requestProjectDeletion,
     decideProjectDeletion,
+    publishProject,
   } = useApp();
   const router = useRouter();
 
@@ -168,11 +171,34 @@ export default function ProjetDetailPage() {
               </div>
             ) : (
               <>
-                <h1 className="text-xl font-semibold text-slate-800">{project.name}</h1>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl font-semibold text-slate-800">{project.name}</h1>
+                  {project.published === false && (
+                    <span
+                      title="Projet privé — visible de vous (et de ses membres) tant qu'il n'est pas publié."
+                      className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200"
+                    >
+                      <Lock size={11} /> Privé
+                    </span>
+                  )}
+                </div>
                 <p className="text-[13px] text-slate-500">{project.description || "—"}</p>
               </>
             )}
           </div>
+          {canManage && project.published === false && (
+            <button
+              onClick={async () => {
+                if (typeof window !== "undefined" && !window.confirm(
+                  "Publier ce projet le rendra visible par toute l'équipe (listes, statistiques, graphe). Cette action est définitive. Continuer ?"
+                )) return;
+                await run(publishProject(project.id).then((ok) => (ok ? null : "Publication échouée.")));
+              }}
+              className="text-[12px] font-medium inline-flex items-center gap-1 text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-lg px-2.5 py-1"
+            >
+              <Globe size={13} /> Publier
+            </button>
+          )}
           {canManage && !editName && (
             <button
               onClick={() => {

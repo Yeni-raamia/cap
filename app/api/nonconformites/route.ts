@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       ncId = createNonConformiteRecord({ itemId: null, objet, service, concerne, policy, gravite, risque, impact, description, createdBy: user.id });
     }
     logActivity(user.id, "nonconf_open", objet || getItem(targetItem ?? "")?.ref || "");
-    return NextResponse.json({ nonconformites: listNonConformites(), items: listItems(), nonconformite: getNonConformite(ncId) });
+    return NextResponse.json({ nonconformites: listNonConformites(), items: listItems(user.id), nonconformite: getNonConformite(ncId) });
   }
 
   const id: string = body?.id;

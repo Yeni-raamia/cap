@@ -41,5 +41,5 @@ export async function POST(request: Request) {
       })
     );
   logActivity(user.id, "projet.creation", name);
-  return NextResponse.json({ projects: listProjects() });
+  return NextResponse.json({ projects: listProjects(user.id) });
 }

@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     const archived = Boolean(body?.archived);
     setProjectArchived(id, archived);
     logActivity(user.id, "projet.archive", `${archived ? "archivé" : "désarchivé"} : ${projName}`);
-    return NextResponse.json({ projects: listProjects() });
+    return NextResponse.json({ projects: listProjects(user.id) });
   }
 
   if (op === "request_delete") {
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
         })
       );
     logActivity(user.id, "projet.suppression.demande", `${projName} — ${reason}`);
-    return NextResponse.json({ projects: listProjects() });
+    return NextResponse.json({ projects: listProjects(user.id) });
   }
 
   if (op === "approve_delete") {
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       });
     }
     logActivity(user.id, "projet.suppression", projName);
-    return NextResponse.json({ projects: listProjects(), items: listItems() });
+    return NextResponse.json({ projects: listProjects(user.id), items: listItems(user.id) });
   }
 
   if (op === "reject_delete") {
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       });
     }
     logActivity(user.id, "projet.suppression.refus", projName);
-    return NextResponse.json({ projects: listProjects() });
+    return NextResponse.json({ projects: listProjects(user.id) });
   }
 
   return NextResponse.json({ error: "Opération inconnue." }, { status: 400 });

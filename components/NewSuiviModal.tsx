@@ -33,6 +33,7 @@ export function NewSuiviModal() {
   const [destEmail, setDestEmail] = useState("");
   const [points, setPoints] = useState("");
   const [nonConformite, setNonConformite] = useState(false);
+  const [publishNow, setPublishNow] = useState(false);
   const [dueDuration, setDuration] = useState("");
 
   // Mode « codes »
@@ -88,6 +89,7 @@ export function NewSuiviModal() {
     setDestEmail("");
     setPoints("");
     setNonConformite(false);
+    setPublishNow(false);
     setDuration("");
     setCopied(false);
   };
@@ -114,7 +116,7 @@ export function NewSuiviModal() {
     }
     if (!parsed) return;
     const dur = dueDuration.trim() ? Number(dueDuration) : null;
-    create(parsed, prio, dest, destService, points, nonConformite, dur && dur > 0 ? dur : null, destEmail.trim());
+    create(parsed, prio, dest, destService, points, nonConformite, dur && dur > 0 ? dur : null, destEmail.trim(), publishNow);
     reset();
   };
 
@@ -412,6 +414,21 @@ Coller un e-mail
             <span className="font-medium text-slate-700">Non-conformité à la politique de sécurité</span>
             <span className="block text-[11px] text-slate-500">
               Ouvre automatiquement une fiche dans le module Non-conformités.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2 mt-2 text-[12px] text-slate-600 cursor-pointer bg-emerald-50/60 border border-emerald-200 rounded-lg px-3 py-2">
+          <input
+            type="checkbox"
+            checked={publishNow}
+            onChange={(e) => setPublishNow(e.target.checked)}
+            className="h-3.5 w-3.5 accent-emerald-600 mt-0.5"
+          />
+          <span>
+            <span className="font-medium text-slate-700">Publier tout de suite (visible par l&apos;équipe)</span>
+            <span className="block text-[11px] text-slate-500">
+              Par défaut, un nouveau suivi est <strong>privé</strong> (visible de vous seul) et reste dans « Mon espace ». Vous pourrez le publier plus tard.
             </span>
           </span>
         </label>

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Activity, CheckSquare, Flame, Gauge, Plus, TrendingUp, X } from "lucide-react";
 import {
   fmt,
+  isPublished,
   isTaskLate,
   isTaskOpen,
   memberProductivity,
@@ -38,7 +39,11 @@ const WINDOWS = [
 ];
 
 export default function ProductivitePage() {
-  const { tasks, profiles, items, projects, me, now, taskAction, profileById, setOpenTaskId } = useApp();
+  const { tasks: allTasks, profiles, items: allItems, projects: allProjects, me, now, taskAction, profileById, setOpenTaskId } = useApp();
+  // Vue d'équipe : sur les éléments publiés uniquement.
+  const tasks = useMemo(() => allTasks.filter(isPublished), [allTasks]);
+  const items = useMemo(() => allItems.filter(isPublished), [allItems]);
+  const projects = useMemo(() => allProjects.filter(isPublished), [allProjects]);
   const [windowDays, setWindowDays] = useState(30);
   const [selected, setSelected] = useState<string | null>(null);
   const [filterMember, setFilterMember] = useState<string>("");

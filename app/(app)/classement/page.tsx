@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Award, Crown, Flame, Lock } from "lucide-react";
-import { computeGame, memberOfMonth, weeklyChallenges, type Badge } from "@/lib/domain";
+import { computeGame, isPublished, memberOfMonth, weeklyChallenges, type Badge } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
 import { CountUp, Ring } from "@/components/dataviz";
@@ -12,7 +12,11 @@ import { PageHero } from "@/components/PageHero";
 const medal = ["🥇", "🥈", "🥉"];
 
 export default function ClassementPage() {
-  const { me, profiles, items, tasks, projects, objectives, now, profileById } = useApp();
+  const { me, profiles, items: allItems, tasks: allTasks, projects: allProjects, objectives, now, profileById } = useApp();
+  // Classement = travail publié uniquement (les brouillons privés ne comptent pas).
+  const items = useMemo(() => allItems.filter(isPublished), [allItems]);
+  const tasks = useMemo(() => allTasks.filter(isPublished), [allTasks]);
+  const projects = useMemo(() => allProjects.filter(isPublished), [allProjects]);
 
   const motmId = useMemo(() => memberOfMonth(profiles.filter((p) => p.id).map((p) => p.id), items, tasks, now), [profiles, items, tasks, now]);
   const challenges = useMemo(() => weeklyChallenges(me.id, items, tasks, now), [me.id, items, tasks, now]);

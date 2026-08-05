@@ -20,5 +20,5 @@ export async function POST(request: Request) {
 
   const updated = renamePerson(oldName, newName);
   logActivity(user.id, "person_rename", `${oldName} → ${newName} (${updated})`);
-  return NextResponse.json({ items: listItems(), updated });
+  return NextResponse.json({ items: listItems(user.id), updated });
 }

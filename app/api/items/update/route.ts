@@ -52,5 +52,5 @@ export async function POST(request: Request) {
 
   updateItem(itemId, user.id, fields);
   logActivity(user.id, "item_update", getItem(itemId)?.ref ?? itemId);
-  return NextResponse.json({ items: listItems() });
+  return NextResponse.json({ items: listItems(user.id) });
 }

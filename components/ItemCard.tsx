@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, CalendarClock, RotateCcw, ShieldAlert } from "lucide-react";
+import { ArrowUp, CalendarClock, Lock, RotateCcw, ShieldAlert } from "lucide-react";
 import { fmt, type Item } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { Avatar, MetierChip, Priority, Token, TypeTag } from "./atoms";
@@ -28,6 +28,14 @@ export function ItemCard({ item }: { item: Item }) {
         <MetierChip code={item.metier} />
         <TypeTag t={item.type} />
         <Token>{item.ref}</Token>
+        {item.published === false && (
+          <span
+            title="Brouillon privé — visible de vous seul."
+            className="inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-1.5 py-0.5 bg-amber-100 text-amber-800 border border-amber-200"
+          >
+            <Lock size={10} /> Privé
+          </span>
+        )}
         <div className="ml-auto">
           <Priority p={item.priorite} />
         </div>

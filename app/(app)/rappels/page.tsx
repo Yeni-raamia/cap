@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Archive, ArrowUp, Bell, CalendarCheck, CalendarClock, CalendarDays, CheckCheck, CheckSquare, FolderKanban, Mail, MessageSquare, RotateCcw, ShieldAlert } from "lucide-react";
-import { fmt, type Item, type NotifKind } from "@/lib/domain";
+import { fmt, isPublished, type Item, type NotifKind } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { PageHero } from "@/components/PageHero";
@@ -32,11 +32,13 @@ const notifTone: Record<NotifKind, string> = {
 
 export default function RappelsPage() {
   const {
-    demo, items, me, emailEnabled: emailOn, rs, profileById, notifications,
+    demo, items: allItems, me, emailEnabled: emailOn, rs, profileById, notifications,
     markNotificationsRead, markNotificationRead, openItem,
   } = useApp();
   const [notifTab, setNotifTab] = useState<"actives" | "archivees">("actives");
 
+  // Vue d'équipe : rappels calculés sur les suivis publiés uniquement.
+  const items = allItems.filter(isPublished);
   const dues = items.filter((i) => rs(i).level === "relance");
   const escal = items.filter((i) => rs(i).level === "escalade");
   const bloques = items.filter((i) => i.statut === "Bloqué").length;

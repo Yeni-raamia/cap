@@ -19,5 +19,5 @@ export async function POST(request: Request) {
   // Normalise une date "YYYY-MM-DD" en ISO (début de journée), ou efface avec null.
   const iso = date ? new Date(`${date}T00:00:00`).toISOString() : null;
   setRelanceDate(itemId, iso);
-  return NextResponse.json({ items: listItems() });
+  return NextResponse.json({ items: listItems(user.id) });
 }

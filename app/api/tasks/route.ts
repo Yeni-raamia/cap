@@ -9,7 +9,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
-import { createTask, deleteTask, getTask, listTasks, updateTask } from "@/lib/db/tasks";
+import { createTask, deleteTask, getTask, listTasks, publishTask, updateTask } from "@/lib/db/tasks";
 import { insertNotification } from "@/lib/db/repo";
 import { logActivity } from "@/lib/db/admin";
 import { TASK_PRIORITIES, TASK_STATUTS, type TaskPriority, type TaskStatus } from "@/lib/domain";
@@ -20,7 +20,7 @@ const canAssignOthers = (role: string) => ["manager", "directeur", "admin"].incl
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
-  return NextResponse.json({ tasks: listTasks() });
+  return NextResponse.json({ tasks: listTasks(user.id) });
 }
 
 export async function POST(request: Request) {
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       });
     }
     logActivity(user.id, "tache.creation", title);
-    return NextResponse.json({ tasks: listTasks() });
+    return NextResponse.json({ tasks: listTasks(user.id) });
   }
 
   if (op === "update") {
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
         channel: ["in-app"],
       });
     }
-    return NextResponse.json({ tasks: listTasks() });
+    return NextResponse.json({ tasks: listTasks(user.id) });
   }
 
   if (op === "delete") {
@@ -110,7 +110,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Droits insuffisants." }, { status: 403 });
     }
     deleteTask(id);
-    return NextResponse.json({ tasks: listTasks() });
+    return NextResponse.json({ tasks: listTasks(user.id) });
+  }
+
+  if (op === "publish") {
+    const id: string = body?.id;
+    const cur = id ? getTask(id) : null;
+    if (!cur) return NextResponse.json({ error: "Tâche introuvable." }, { status: 404 });
+    if (cur.createdBy !== user.id && !canAssignOthers(user.role)) {
+      return NextResponse.json({ error: "Droits insuffisants." }, { status: 403 });
+    }
+    publishTask(id);
+    logActivity(user.id, "tache.publication", cur.title);
+    return NextResponse.json({ tasks: listTasks(user.id) });
   }
 
   return NextResponse.json({ error: "Opération inconnue." }, { status: 400 });

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Check, Link2, Pencil } from "lucide-react";
+import { ArrowLeft, Check, Globe, Link2, Lock, Pencil } from "lucide-react";
 import { copyText } from "@/lib/clipboard";
 import { useApp } from "@/components/app-context";
 import { Card, MetierChip, Token, TypeTag } from "@/components/atoms";
@@ -12,9 +12,10 @@ import { SuiviDetail } from "@/components/SuiviDetail";
 export default function ItemPage() {
   const params = useParams();
   const id = String(params.id);
-  const { items, me } = useApp();
+  const { items, me, publishItem } = useApp();
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const item = items.find((x) => x.id === id);
 
@@ -32,6 +33,16 @@ export default function ItemPage() {
   }
 
   const canEdit = me.role === "agent" ? item.ownerId === me.id : true;
+  const isPrivate = item.published === false;
+
+  const doPublish = async () => {
+    if (typeof window !== "undefined" && !window.confirm(
+      "Publier ce suivi le rendra visible par toute l'équipe (vue globale, statistiques, classement, rappels). Cette action est définitive. Continuer ?"
+    )) return;
+    setPublishing(true);
+    await publishItem(item.id);
+    setPublishing(false);
+  };
 
   const copyLink = () => {
     if (typeof window === "undefined") return;
@@ -56,6 +67,14 @@ export default function ItemPage() {
             <MetierChip code={item.metier} />
             <TypeTag t={item.type} />
             <Token>{item.ref}</Token>
+            {isPrivate && (
+              <span
+                title="Brouillon privé — visible de vous seul tant qu'il n'est pas publié."
+                className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200"
+              >
+                <Lock size={11} /> Privé
+              </span>
+            )}
           </div>
           <h1 className="text-[17px] font-semibold text-slate-800 leading-snug">{item.objet}</h1>
         </div>
@@ -72,6 +91,16 @@ export default function ItemPage() {
           {copied ? <Check size={13} /> : <Link2 size={13} />}
           {copied ? "Lien copié" : "Copier le lien"}
         </button>
+        {canEdit && isPrivate && (
+          <button
+            onClick={doPublish}
+            disabled={publishing}
+            title="Publier : rendre visible par l'équipe (définitif)"
+            className="shrink-0 inline-flex items-center gap-1 text-[12px] border rounded-lg px-2.5 py-1.5 text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50"
+          >
+            <Globe size={13} /> {publishing ? "Publication…" : "Publier"}
+          </button>
+        )}
         {canEdit && (
           <button
             onClick={() => setEditing((v) => !v)}

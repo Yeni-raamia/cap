@@ -7,7 +7,7 @@
  *  Canaux : toujours in-app ; e-mail en plus si Resend est configuré.
  *  Idempotent : pas de doublon non lu le même jour pour le même objet.
  * ================================================================== */
-import { isOverDuration, isTaskLate, reminderState } from "@/lib/domain";
+import { isOverDuration, isPublished, isTaskLate, reminderState } from "@/lib/domain";
 import { listTasks } from "@/lib/db/tasks";
 import { listMeetings } from "@/lib/db/meetings";
 import {
@@ -37,7 +37,9 @@ export interface ReminderSummary {
 
 export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<ReminderSummary> {
   const now = new Date();
-  const items = listItems();
+  // Les brouillons privés (non publiés) ne génèrent ni relance ni escalade vers le
+  // directeur : seuls les éléments publiés sont « suivis » par le moteur.
+  const items = listItems().filter(isPublished);
   const types = getCatalogue().types; // SLA depuis le catalogue (y compris types ajoutés)
   const targets = listEscalationTargets(); // directeurs (ou admins à défaut)
   // E-mail effectif = Resend configuré ET activé dans les paramètres d'admin.
@@ -104,7 +106,7 @@ export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<Re
   }
 
   // Tâches en retard (échéance dépassée) : rappel à la personne assignée.
-  for (const t of listTasks()) {
+  for (const t of listTasks().filter(isPublished)) {
     if (!t.assigneeId || !isTaskLate(t, now)) continue;
     if (notifExistsToday(t.assigneeId, t.id, "tache")) continue;
     const message = `Tâche en retard : « ${t.title} » — échéance dépassée.`;

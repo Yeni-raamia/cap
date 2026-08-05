@@ -28,5 +28,5 @@ export async function POST(request: Request) {
 
   applyAction(itemId, action, cause, user.id);
   logActivity(user.id, `item_${action}`, getItem(itemId)?.ref ?? itemId);
-  return NextResponse.json({ items: listItems() });
+  return NextResponse.json({ items: listItems(user.id) });
 }

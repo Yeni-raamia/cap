@@ -8,6 +8,17 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.23.0] - 2026-08-05
+
+### Ajouté
+- **Espace privé & publication** (visibilité par élément) sur les **suivis de mail, projets et tâches** :
+  - **Privé par défaut** : un nouvel élément n'est visible que de son créateur et reste dans « Mon espace ». Une case « Publier tout de suite » permet de le partager dès la création.
+  - **Publier** le rend visible par toute l'équipe (vue globale, statistiques, classement, rappels, graphe de relations). L'action est **définitive**.
+  - Le **privé d'autrui ne quitte jamais le serveur** : les listes ne renvoient que les éléments publiés ou appartenant au demandeur. Les projets/tâches privés restent visibles de leurs **membres / de la personne assignée** (collaborateurs explicites).
+  - Badge **« Privé »** sur les cartes et les fiches ; bouton **« Publier »** sur la fiche d'un suivi, d'un projet et d'une tâche.
+  - Les brouillons privés **ne déclenchent ni relance ni escalade** et **ne comptent pas** dans les statistiques ni le classement tant qu'ils ne sont pas publiés.
+  - Les éléments **déjà existants** sont considérés comme **publiés** (aucune rupture d'affichage).
+
 ## [1.22.1] - 2026-08-04
 
 ### Corrigé

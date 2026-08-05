@@ -28,6 +28,7 @@ interface ProjectRow {
   del_requested_by: string | null;
   del_reason: string | null;
   del_requested_at: string | null;
+  published: number;
 }
 interface TaskRow {
   id: string;
@@ -106,7 +107,9 @@ function mapClosure(r: ClosureRow): ClosureRequest {
   };
 }
 
-export function listProjects(): Project[] {
+// `viewerId` fourni → ne renvoie que les projets publiés, ceux du demandeur, ou
+// ceux dont il est membre (collaborateur explicite). Sans `viewerId` : tout.
+export function listProjects(viewerId?: string): Project[] {
   const db = getDb();
   const projects = db.prepare("select * from projects order by created_at desc").all() as ProjectRow[];
   const tasks = db.prepare("select * from project_tasks order by ordre, created_at").all() as TaskRow[];
@@ -126,7 +129,7 @@ export function listProjects(): Project[] {
     if (!cByP.has(c.project_id)) cByP.set(c.project_id, c);
   });
 
-  return projects.map((p) => ({
+  const mapped = projects.map((p) => ({
     id: p.id,
     name: p.name,
     description: p.description,
@@ -149,7 +152,10 @@ export function listProjects(): Project[] {
           requestedAt: new Date(p.del_requested_at ?? p.created_at),
         }
       : null,
+    published: p.published !== 0,
   }));
+  if (!viewerId) return mapped;
+  return mapped.filter((p) => p.published || p.ownerId === viewerId || p.memberIds.includes(viewerId));
 }
 
 /* ---------- Archivage & suppression ---------- */
@@ -248,11 +254,13 @@ export function createProject(input: {
   sourceItemId?: string | null;
   deadline?: string | null;
   memberIds?: string[];
+  /** Publier immédiatement (visible par l'équipe). Défaut : privé (créateur seul). */
+  published?: boolean;
 }): string {
   const id = randomUUID();
   getDb()
     .prepare(
-      "insert into projects (id, name, description, owner_id, status, deadline, source_item_id) values (?,?,?,?,?,?,?)"
+      "insert into projects (id, name, description, owner_id, status, deadline, source_item_id, published) values (?,?,?,?,?,?,?,?)"
     )
     .run(
       id,
@@ -261,7 +269,8 @@ export function createProject(input: {
       input.ownerId,
       "En cours",
       input.deadline ?? null,
-      input.sourceItemId ?? null
+      input.sourceItemId ?? null,
+      input.published ? 1 : 0
     );
   // Le propriétaire + les personnes assignées sont membres.
   const ins = getDb().prepare("insert into project_members (id, project_id, profile_id) values (?,?,?)");
@@ -270,11 +279,16 @@ export function createProject(input: {
   return id;
 }
 
-/** Crée automatiquement un projet à partir d'un suivi de métier PRJ. */
-export function createProjectForItem(itemId: string, name: string, ownerId: string): string {
-  const pid = createProject({ name, ownerId, sourceItemId: itemId });
+/** Crée automatiquement un projet à partir d'un suivi de métier PRJ (même visibilité que le suivi). */
+export function createProjectForItem(itemId: string, name: string, ownerId: string, published = false): string {
+  const pid = createProject({ name, ownerId, sourceItemId: itemId, published });
   getDb().prepare("update items set project_id = ? where id = ?").run(pid, itemId);
   return pid;
+}
+
+/** Publie un projet (irréversible) : le rend visible par toute l'équipe. */
+export function publishProject(id: string): void {
+  getDb().prepare("update projects set published = 1 where id = ? and published = 0").run(id);
 }
 
 export function updateProject(
