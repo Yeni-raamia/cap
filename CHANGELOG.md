@@ -9,6 +9,11 @@ et le projet suit un versionnage sémantique.
 Chantiers structurels restants (audit du module Tâches) : historique/journal des
 changements par tâche, réordonnancement par glisser-déposer, motif de blocage.
 
+## [1.30.0] - 2026-08-05
+
+### Ajouté
+- **Radar de profil (gamification)** sur la page Productivité — un graphique en **toile d'araignée à 6 axes** (**Réponses** aux mails, **Tâches** accomplies, **Projets** avancés, **Réactivité** / relances, **Clôtures**, **Ponctualité** / zéro escalade) qui **superpose le membre choisi** (soi-même par défaut) et la **moyenne d'équipe**. Échelle **relative à l'équipe** (le meilleur d'un axe = 100), sélecteur pour comparer n'importe quel membre, et un **indice global** individuel vs équipe.
+
 ## [1.29.0] - 2026-08-05
 
 ### Ajouté

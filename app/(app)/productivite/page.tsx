@@ -18,6 +18,7 @@ import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
 import { Ring } from "@/components/dataviz";
 import { PageHero } from "@/components/PageHero";
+import { ProfilRadar } from "@/components/ProfilRadar";
 
 const STATUS_STYLE: Record<TaskStatus, string> = {
   "à faire": "bg-slate-100 text-slate-600",
@@ -132,6 +133,9 @@ export default function ProductivitePage() {
         <KpiCard icon={Flame} tone="text-rose-600" label="En retard" value={team.late} />
         <KpiCard icon={X} tone="text-rose-600" label="Bloquées" value={team.blocked} />
       </div>
+
+      {/* Radar de profil (gamification) : moi vs moyenne d'équipe */}
+      <ProfilRadar members={activeProfiles} items={items} tasks={tasks} projects={projects} now={now} meId={me.id} />
 
       {/* Podium de rendement */}
       {rows.some((r) => r.prod.doneRecent > 0 || r.prod.tasksOpen > 0) && (

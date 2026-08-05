@@ -1014,6 +1014,107 @@ export function projectMetrics(p: Project, now: Date): ProjectMetrics {
 export const isProjectArchived = (p: Project): boolean =>
   p.archived === true || p.status === "Terminé" || p.status === "Annulé";
 
+/* ---------- Radar de profil (gamification) ----------
+ * Six dimensions de performance, normalisées 0–100 relativement à l'équipe
+ * (le meilleur membre d'un axe = 100). « Ponctualité » est inversée : le plus
+ * d'escalades = 0, aucune = 100. */
+export const RADAR_DIMENSIONS = [
+  { key: "reponses", label: "Réponses", hint: "Mails ayant reçu une réponse" },
+  { key: "taches", label: "Tâches", hint: "Tâches terminées (perso + projet)" },
+  { key: "projets", label: "Projets", hint: "Avancement moyen des projets portés" },
+  { key: "reactivite", label: "Réactivité", hint: "Relances effectuées" },
+  { key: "clotures", label: "Clôtures", hint: "Suivis menés jusqu'à « Clôturé »" },
+  { key: "ponctualite", label: "Ponctualité", hint: "Absence d'escalades / de retard" },
+] as const;
+
+export interface RadarResult {
+  labels: string[];
+  hints: string[];
+  byMember: Record<string, number[]>; // normalisé 0–100, aligné sur labels
+  rawByMember: Record<string, number[]>; // valeurs brutes (info-bulle)
+  average: number[]; // moyenne d'équipe normalisée
+}
+
+export function computeRadar(
+  memberIds: string[],
+  items: Item[],
+  tasks: Task[],
+  projects: Project[],
+  now: Date,
+  types: Record<string, TypeDef> = TYPES
+): RadarResult {
+  // Métriques brutes par membre.
+  const raw: Record<string, { reponses: number; taches: number; projets: number; reactivite: number; clotures: number; retard: number }> = {};
+  const projProg: Record<string, number[]> = {}; // avancements des projets où chaque membre est impliqué
+  memberIds.forEach((id) => (raw[id] = { reponses: 0, taches: 0, projets: 0, reactivite: 0, clotures: 0, retard: 0 }));
+
+  items.forEach((it) => {
+    const r = raw[it.ownerId];
+    if (!r) return;
+    if (it.timeline.some((e) => e.kind === "reponse")) r.reponses++;
+    if (it.statut === "Clôturé") r.clotures++;
+    r.reactivite += it.relancesCount || 0;
+    if (reminderState(it, now, types).level === "escalade") r.retard++;
+  });
+  // Tâches terminées (Productivité + tâches de projet).
+  tasks.forEach((t) => {
+    if (t.status === "fait" && t.assigneeId && raw[t.assigneeId]) raw[t.assigneeId].taches++;
+  });
+  projects.forEach((p) => {
+    p.tasks.forEach((t) => {
+      if (t.status === "fait" && t.assigneeId && raw[t.assigneeId]) raw[t.assigneeId].taches++;
+    });
+    // Avancement des projets portés (propriétaire ou membre) : moyenne par membre.
+    const prog = projectMetrics(p, now).progress;
+    const involved = new Set([p.ownerId, ...p.memberIds]);
+    involved.forEach((id) => {
+      if (raw[id]) projProg[id] = [...(projProg[id] ?? []), prog];
+    });
+  });
+  // Moyenne d'avancement projet par membre.
+  memberIds.forEach((id) => {
+    const arr = projProg[id] ?? [];
+    raw[id].projets = arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+  });
+
+  // Maxima d'équipe pour la normalisation.
+  const maxOf = (sel: (m: (typeof raw)[string]) => number) => Math.max(0, ...memberIds.map((id) => sel(raw[id])));
+  const maxReponses = maxOf((m) => m.reponses);
+  const maxTaches = maxOf((m) => m.taches);
+  const maxProjets = maxOf((m) => m.projets);
+  const maxReactivite = maxOf((m) => m.reactivite);
+  const maxClotures = maxOf((m) => m.clotures);
+  const maxRetard = maxOf((m) => m.retard);
+  const pct = (v: number, max: number) => (max > 0 ? Math.round((v / max) * 100) : 0);
+
+  const byMember: Record<string, number[]> = {};
+  const rawByMember: Record<string, number[]> = {};
+  memberIds.forEach((id) => {
+    const m = raw[id];
+    byMember[id] = [
+      pct(m.reponses, maxReponses),
+      pct(m.taches, maxTaches),
+      pct(m.projets, maxProjets),
+      pct(m.reactivite, maxReactivite),
+      pct(m.clotures, maxClotures),
+      maxRetard > 0 ? Math.round((1 - m.retard / maxRetard) * 100) : 100, // ponctualité (inversée)
+    ];
+    rawByMember[id] = [m.reponses, m.taches, m.projets, m.reactivite, m.clotures, m.retard];
+  });
+
+  const average = RADAR_DIMENSIONS.map((_, i) =>
+    memberIds.length ? Math.round(memberIds.reduce((a, id) => a + byMember[id][i], 0) / memberIds.length) : 0
+  );
+
+  return {
+    labels: RADAR_DIMENSIONS.map((d) => d.label),
+    hints: RADAR_DIMENSIONS.map((d) => d.hint),
+    byMember,
+    rawByMember,
+    average,
+  };
+}
+
 /* ---------- Plan de l'année (objectifs annuels) ---------- */
 export type ObjectiveStatus = "planifie" | "en_cours" | "atteint" | "declasse";
 export const OBJECTIVE_STATUTS: ObjectiveStatus[] = ["planifie", "en_cours", "atteint", "declasse"];
