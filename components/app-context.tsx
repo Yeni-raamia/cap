@@ -224,6 +224,8 @@ interface AppCtx {
   projectTask: (action: "add" | "update" | "delete", payload: TaskPayload) => Promise<string | null>;
   projectMember: (action: "add" | "remove", projectId: string, profileId: string) => Promise<string | null>;
   projectNote: (projectId: string, body: string) => Promise<string | null>;
+  proposeProjectTask: (projectId: string, payload: { title: string; description?: string; dueDate?: string | null }) => Promise<string | null>;
+  decideProjectProposal: (proposalId: string, approve: boolean, note?: string) => Promise<string | null>;
   attachItemToProject: (itemId: string, projectId: string | null) => Promise<string | null>;
   requestProjectStatus: (id: string, status: string) => Promise<string | null>;
   decideProjectStatus: (id: string, approve: boolean) => Promise<string | null>;
@@ -295,6 +297,12 @@ const reviveProject = (p: Project): Project => ({
   deletionRequest: p.deletionRequest
     ? { ...p.deletionRequest, requestedAt: new Date(p.deletionRequest.requestedAt) }
     : null,
+  proposals: (p.proposals ?? []).map((pr) => ({
+    ...pr,
+    dueDate: pr.dueDate ? new Date(pr.dueDate) : null,
+    createdAt: new Date(pr.createdAt),
+    decidedAt: pr.decidedAt ? new Date(pr.decidedAt) : null,
+  })),
 });
 const reviveProjects = (arr: Project[]): Project[] => arr.map(reviveProject);
 const reviveMeeting = (m: Meeting): Meeting => ({
@@ -1357,6 +1365,22 @@ export function AppProvider({
     demo ? DEMO_MSG : postProjects("/api/projects/members", { action, projectId, profileId });
   const projectNote = async (projectId: string, body: string) =>
     demo ? DEMO_MSG : postProjects("/api/projects/notes", { projectId, body });
+  // Propositions de tâches (Lot 3) : proposer (non-membre) puis décider (propriétaire).
+  const proposeProjectTask = async (
+    projectId: string,
+    payload: { title: string; description?: string; dueDate?: string | null }
+  ) => {
+    if (demo) return DEMO_MSG;
+    const e = await postProjects("/api/projects/proposals", { op: "create", projectId, ...payload });
+    if (!e) toast("Proposition envoyée au propriétaire.", "success");
+    return e;
+  };
+  const decideProjectProposal = async (proposalId: string, approve: boolean, note?: string) => {
+    if (demo) return DEMO_MSG;
+    const e = await postProjects("/api/projects/proposals", { op: "decide", proposalId, approve, note });
+    if (!e) toast(approve ? "Proposition intégrée au projet." : "Proposition refusée.", "success");
+    return e;
+  };
   const attachItemToProject = async (itemId: string, projectId: string | null) =>
     demo ? DEMO_MSG : postProjects("/api/projects/attach", { itemId, projectId });
   // Workflow de statut : proposer (manager/responsable) puis valider (directeur).
@@ -1689,6 +1713,8 @@ export function AppProvider({
     projectTask,
     projectMember,
     projectNote,
+    proposeProjectTask,
+    decideProjectProposal,
     attachItemToProject,
     requestProjectStatus,
     decideProjectStatus,

@@ -10,6 +10,7 @@ import {
   CalendarClock,
   Check,
   Gavel,
+  GitPullRequest,
   Globe,
   ListChecks,
   Lock,
@@ -56,6 +57,8 @@ export default function ProjetDetailPage() {
     projectTask,
     projectMember,
     projectNote,
+    proposeProjectTask,
+    decideProjectProposal,
     attachItemToProject,
     requestProjectStatus,
     decideProjectStatus,
@@ -72,6 +75,10 @@ export default function ProjetDetailPage() {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskAssignee, setTaskAssignee] = useState("");
   const [taskDue, setTaskDue] = useState("");
+  // Proposition de tâche (Lot 3) — pour les non-membres.
+  const [propTitle, setPropTitle] = useState("");
+  const [propDesc, setPropDesc] = useState("");
+  const [propDue, setPropDue] = useState("");
   const [note, setNote] = useState("");
   const [addMemberId, setAddMemberId] = useState("");
   const [attachId, setAttachId] = useState("");
@@ -102,6 +109,12 @@ export default function ProjetDetailPage() {
   const owner = profileById(project.ownerId);
   const canManage = !demo && (me.role === "directeur" || me.role === "admin" || project.ownerId === me.id);
   const canContribute = !demo && (canManage || project.memberIds.includes(me.id));
+  // Édition directe du tableau (Lot 3) : propriétaire, membres, manager/dir/admin.
+  // Les autres passent par une proposition.
+  const canEditBoard =
+    !demo && (me.role === "manager" || me.role === "directeur" || me.role === "admin" || project.ownerId === me.id || project.memberIds.includes(me.id));
+  const isOwner = !demo && project.ownerId === me.id;
+  const pendingProposals = project.proposals.filter((p) => p.status === "en_attente");
   // Workflow de statut : le directeur/admin valide ; le manager/responsable propose.
   const isDirector = !demo && (me.role === "directeur" || me.role === "admin");
   const canProposeStatus =
@@ -590,7 +603,7 @@ export default function ProjetDetailPage() {
                     ) : (
                       <span className="text-[10px] text-slate-300 w-6 text-center">—</span>
                     )}
-                    {canContribute && (
+                    {canEditBoard && (
                       <>
                         <select
                           value={t.status}
@@ -616,7 +629,7 @@ export default function ProjetDetailPage() {
               })}
             </div>
           )}
-          {canContribute && (
+          {canEditBoard && (
             <div className="flex items-center gap-2 px-4 py-3 border-t border-slate-100 flex-wrap">
               <input
                 value={taskTitle}
@@ -666,8 +679,92 @@ export default function ProjetDetailPage() {
               </button>
             </div>
           )}
+          {/* Proposition de tâche (Lot 3) — visible pour ceux qui ne peuvent pas éditer le tableau. */}
+          {!canEditBoard && !demo && (
+            <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/60 space-y-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+                <GitPullRequest size={13} /> Proposer une tâche (soumise au propriétaire)
+              </div>
+              <input
+                value={propTitle}
+                onChange={(e) => setPropTitle(e.target.value)}
+                placeholder="Tâche proposée…"
+                className="w-full text-[13px] border border-slate-200 rounded-lg px-2 py-1.5"
+              />
+              <textarea
+                value={propDesc}
+                onChange={(e) => setPropDesc(e.target.value)}
+                placeholder="Précisions (facultatif)…"
+                rows={2}
+                className="w-full text-[12px] border border-slate-200 rounded-lg px-2 py-1.5"
+              />
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="date"
+                  value={propDue}
+                  onChange={(e) => setPropDue(e.target.value)}
+                  aria-label="Échéance proposée"
+                  className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
+                />
+                <button
+                  onClick={async () => {
+                    if (!propTitle.trim()) return;
+                    const e = await proposeProjectTask(project.id, {
+                      title: propTitle.trim(),
+                      description: propDesc.trim(),
+                      dueDate: propDue || null,
+                    });
+                    if (!e) { setPropTitle(""); setPropDesc(""); setPropDue(""); }
+                  }}
+                  disabled={!propTitle.trim()}
+                  className="inline-flex items-center gap-1 text-[12px] font-medium text-white bg-indigo-600 rounded-lg px-3 py-1.5 disabled:opacity-40"
+                >
+                  <GitPullRequest size={14} /> Proposer
+                </button>
+              </div>
+            </div>
+          )}
         </Card>
       </div>
+
+      {/* Propositions en attente (Lot 3) — le propriétaire approuve ou refuse. */}
+      {isOwner && pendingProposals.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <GitPullRequest size={15} className="text-indigo-500" />
+            <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Propositions à valider</h2>
+            <span className="text-[11px] text-indigo-700 bg-indigo-100 rounded-full px-2">{pendingProposals.length}</span>
+          </div>
+          <Card className="divide-y divide-slate-100">
+            {pendingProposals.map((p) => (
+              <div key={p.id} className="p-4 space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[13px] font-medium text-slate-800">{p.title}</span>
+                  {p.dueDate && <span className="text-[11px] text-slate-400">· échéance {fmt(p.dueDate)}</span>}
+                </div>
+                <div className="text-[11px] text-slate-500">
+                  Proposée par {profileById(p.proposedBy).nom} · {fmt(p.createdAt)}
+                </div>
+                {p.description && <p className="text-[12px] text-slate-600 whitespace-pre-wrap">{p.description}</p>}
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={() => run(decideProjectProposal(p.id, true))}
+                    className="inline-flex items-center gap-1 text-[12px] font-medium text-white bg-emerald-600 rounded-lg px-3 py-1.5 hover:bg-emerald-700"
+                  >
+                    <Check size={13} /> Intégrer
+                  </button>
+                  <button
+                    onClick={() => run(decideProjectProposal(p.id, false))}
+                    className="inline-flex items-center gap-1 text-[12px] font-medium text-rose-600 border border-rose-200 rounded-lg px-3 py-1.5 hover:bg-rose-50"
+                  >
+                    <X size={13} /> Refuser
+                  </button>
+                </div>
+              </div>
+            ))}
+          </Card>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-4">
         {/* Équipe */}

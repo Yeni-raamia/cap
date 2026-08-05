@@ -87,6 +87,14 @@ create table if not exists project_closure_requests (
   created_at text not null default (datetime('now')), decided_at text
 );
 create index if not exists idx_closure_project on project_closure_requests(project_id);
+create table if not exists project_task_proposals (
+  id text primary key, project_id text not null,
+  title text not null, description text not null default '', due_date text,
+  proposed_by text, status text not null default 'en_attente',
+  decided_by text, decision_note text not null default '', merged_task_id text,
+  created_at text not null default (datetime('now')), decided_at text
+);
+create index if not exists idx_proposals_project on project_task_proposals(project_id);
 create table if not exists objectives (
   id text primary key, title text not null, description text not null default '',
   start_date text not null, end_date text not null, owner_id text,

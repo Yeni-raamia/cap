@@ -359,6 +359,7 @@ export function seedProjects(): Project[] {
       closure: null,
       archived: false,
       deletionRequest: null,
+      proposals: [],
     },
     {
       id: "demo-p2",
@@ -380,6 +381,7 @@ export function seedProjects(): Project[] {
       closure: null,
       archived: false,
       deletionRequest: null,
+      proposals: [],
     },
   ];
 }

@@ -11,6 +11,8 @@ import type {
   ProjectNote,
   ProjectStatus,
   ProjectTask,
+  ProjectTaskProposal,
+  ProposalStatus,
   TaskStatus,
 } from "@/lib/domain";
 
@@ -108,6 +110,37 @@ function mapClosure(r: ClosureRow): ClosureRequest {
   };
 }
 
+interface ProposalRow {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string;
+  due_date: string | null;
+  proposed_by: string | null;
+  status: ProposalStatus;
+  decided_by: string | null;
+  decision_note: string;
+  merged_task_id: string | null;
+  created_at: string;
+  decided_at: string | null;
+}
+function mapProposal(r: ProposalRow): ProjectTaskProposal {
+  return {
+    id: r.id,
+    projectId: r.project_id,
+    title: r.title,
+    description: r.description,
+    dueDate: r.due_date ? new Date(r.due_date) : null,
+    proposedBy: r.proposed_by ?? "",
+    status: r.status,
+    decidedBy: r.decided_by,
+    decisionNote: r.decision_note,
+    mergedTaskId: r.merged_task_id,
+    createdAt: new Date(r.created_at),
+    decidedAt: r.decided_at ? new Date(r.decided_at) : null,
+  };
+}
+
 // `viewerId` fourni → ne renvoie que les projets publiés, ceux du demandeur, ou
 // ceux dont il est membre (collaborateur explicite). Sans `viewerId` : tout.
 export function listProjects(viewerId?: string): Project[] {
@@ -116,6 +149,9 @@ export function listProjects(viewerId?: string): Project[] {
   const tasks = db.prepare("select * from project_tasks order by ordre, created_at").all() as TaskRow[];
   const members = db.prepare("select * from project_members").all() as MemberRow[];
   const notes = db.prepare("select * from project_notes order by created_at desc").all() as NoteRow[];
+  const proposals = db.prepare("select * from project_task_proposals order by created_at desc").all() as ProposalRow[];
+  const prByP = new Map<string, ProposalRow[]>();
+  proposals.forEach((pr) => prByP.set(pr.project_id, [...(prByP.get(pr.project_id) ?? []), pr]));
 
   const tByP = new Map<string, TaskRow[]>();
   tasks.forEach((t) => tByP.set(t.project_id, [...(tByP.get(t.project_id) ?? []), t]));
@@ -154,6 +190,7 @@ export function listProjects(viewerId?: string): Project[] {
         }
       : null,
     published: p.published !== 0,
+    proposals: (prByP.get(p.id) ?? []).map(mapProposal),
   }));
   if (!viewerId) return mapped;
   return mapped.filter((p) => p.published || p.ownerId === viewerId || p.memberIds.includes(viewerId));
@@ -402,6 +439,63 @@ export function getPendingClosure(projectId: string): { id: string; requestedBy:
     .prepare("select id, requested_by from project_closure_requests where project_id=? and status='en_attente' order by created_at desc limit 1")
     .get(projectId) as { id: string; requested_by: string | null } | undefined;
   return r ? { id: r.id, requestedBy: r.requested_by } : null;
+}
+
+/* ---------- Propositions de tâches (Lot 3) ---------- */
+export function createProposal(input: {
+  projectId: string;
+  title: string;
+  description?: string;
+  dueDate?: string | null;
+  proposedBy: string;
+}): string {
+  const id = randomUUID();
+  getDb()
+    .prepare(
+      "insert into project_task_proposals (id, project_id, title, description, due_date, proposed_by, status) values (?,?,?,?,?,?, 'en_attente')"
+    )
+    .run(id, input.projectId, input.title, input.description ?? "", input.dueDate ?? null, input.proposedBy);
+  return id;
+}
+
+/** La proposition (en attente) et le projet auquel elle appartient, ou null. */
+export function getPendingProposal(
+  proposalId: string
+): { id: string; projectId: string; title: string; description: string; dueDate: string | null; proposedBy: string | null } | null {
+  const r = getDb()
+    .prepare("select id, project_id, title, description, due_date, proposed_by from project_task_proposals where id=? and status='en_attente'")
+    .get(proposalId) as
+    | { id: string; project_id: string; title: string; description: string; due_date: string | null; proposed_by: string | null }
+    | undefined;
+  return r
+    ? { id: r.id, projectId: r.project_id, title: r.title, description: r.description, dueDate: r.due_date, proposedBy: r.proposed_by }
+    : null;
+}
+
+/** Approuve (merge → crée la tâche du projet) ou refuse une proposition en attente.
+ *  Renvoie l'id de la tâche créée à l'approbation, ou null. */
+export function decideProposal(proposalId: string, approve: boolean, decidedBy: string, note: string): string | null {
+  const pending = getPendingProposal(proposalId);
+  if (!pending) return null;
+  let mergedTaskId: string | null = null;
+  const db = getDb();
+  const tx = db.transaction(() => {
+    if (approve) {
+      const max = db
+        .prepare("select coalesce(max(ordre),0)+1 as n from project_tasks where project_id = ?")
+        .get(pending.projectId) as { n: number };
+      mergedTaskId = randomUUID();
+      // La tâche fusionnée est assignée à l'auteur de la proposition.
+      db.prepare(
+        "insert into project_tasks (id, project_id, title, assignee_id, status, due_date, ordre) values (?,?,?,?,?,?,?)"
+      ).run(mergedTaskId, pending.projectId, pending.title, pending.proposedBy ?? null, "à faire", pending.dueDate ?? null, max.n);
+    }
+    db.prepare(
+      "update project_task_proposals set status=?, decided_by=?, decision_note=?, merged_task_id=?, decided_at=? where id=?"
+    ).run(approve ? "approuvee" : "refusee", decidedBy, note, mergedTaskId, new Date().toISOString(), proposalId);
+  });
+  tx();
+  return mergedTaskId;
 }
 
 /** Valide (approve) ou rejette la demande de clôture en attente. */

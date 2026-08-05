@@ -108,6 +108,7 @@ export function mkProject(over: Partial<Project> = {}): Project {
     closure: null,
     archived: false,
     deletionRequest: null,
+    proposals: [],
   };
   return { ...base, ...over };
 }

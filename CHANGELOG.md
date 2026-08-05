@@ -8,6 +8,18 @@ et le projet suit un versionnage sémantique.
 
 _Rien pour l'instant._
 
+## [1.24.0] - 2026-08-05
+
+### Ajouté
+- **Propositions de tâches sur les projets (« pull request »)** — Lot 3 :
+  - Le **propriétaire et les membres** d'un projet ajoutent des tâches directement (comme avant).
+  - Les **autres utilisateurs** ne peuvent plus modifier le tableau directement : ils **proposent une tâche** (titre, précisions, échéance). Le **propriétaire du projet** l'**intègre** (elle devient une tâche du projet, assignée à l'auteur de la proposition) ou la **refuse**.
+  - **Notifications** : le propriétaire est prévenu à chaque nouvelle proposition ; l'auteur est prévenu de la décision (intégrée / refusée).
+  - Section **« Propositions à valider »** sur la fiche projet (propriétaire), et formulaire **« Proposer une tâche »** pour les non-membres.
+
+### Modifié
+- L'ajout et la modification directe des tâches d'un projet sont désormais **réservés au propriétaire, aux membres et aux manager/directeur/admin**. Les notes et le fil de discussion restent ouverts à toute l'équipe.
+
 ## [1.23.1] - 2026-08-05
 
 ### Modifié

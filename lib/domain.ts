@@ -892,6 +892,26 @@ export interface ProjectNote {
   createdAt: Date;
 }
 
+/* ---------- Proposition de tâche (Lot 3 — « pull request ») ----------
+ * Un non-membre propose une tâche sur un projet ; le propriétaire l'approuve
+ * (merge → devient une tâche du projet) ou la refuse. */
+export type ProposalStatus = "en_attente" | "approuvee" | "refusee";
+
+export interface ProjectTaskProposal {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string;
+  dueDate: Date | null;
+  proposedBy: string;
+  status: ProposalStatus;
+  decidedBy: string | null;
+  decisionNote: string;
+  mergedTaskId: string | null; // tâche créée à l'approbation
+  createdAt: Date;
+  decidedAt: Date | null;
+}
+
 /* ---------- Demande de clôture d'un projet ---------- */
 export type ClosureStatus = "en_attente" | "validee" | "rejetee";
 
@@ -938,6 +958,8 @@ export interface Project {
   deletionRequest: ProjectDeletionRequest | null;
   /** Visibilité : `false` = privé (créateur seul), `true`/absent = publié (équipe). */
   published?: boolean;
+  /** Propositions de tâches (Lot 3) — en attente et décidées. */
+  proposals: ProjectTaskProposal[];
 }
 
 /**
