@@ -17,6 +17,12 @@ import {
   setAppreciation as mockSetAppreciation,
   seedProjects,
   seedObjectives,
+  seedAssets,
+  seedRisks,
+  seedPolicies,
+  seedFieldControls,
+  seedCapa,
+  seedPlan,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -706,13 +712,13 @@ export function AppProvider({
   );
   const [tasks, setTasks] = useState<Task[]>(demo ? [] : reviveTasks(initialTasks ?? []));
   const [objectives, setObjectives] = useState<Objective[]>(demo ? seedObjectives() : reviveObjectives(initialObjectives ?? []));
-  const [risks, setRisks] = useState<Risk[]>(demo ? [] : reviveRisks(initialRisks ?? []));
-  const [policies, setPolicies] = useState<Policy[]>(demo ? [] : revivePolicies(initialPolicies ?? []));
-  const [assets, setAssets] = useState<Asset[]>(demo ? [] : reviveAssets(initialAssets ?? []));
+  const [risks, setRisks] = useState<Risk[]>(demo ? seedRisks() : reviveRisks(initialRisks ?? []));
+  const [policies, setPolicies] = useState<Policy[]>(demo ? seedPolicies() : revivePolicies(initialPolicies ?? []));
+  const [assets, setAssets] = useState<Asset[]>(demo ? seedAssets() : reviveAssets(initialAssets ?? []));
   const [controlAssessments, setControlAssessments] = useState<ControlAssessment[]>(demo ? [] : reviveAssessments(initialControlAssessments ?? []));
-  const [fieldControls, setFieldControls] = useState<FieldControl[]>(demo ? [] : reviveFieldControls(initialFieldControls ?? []));
-  const [capaActions, setCapaActions] = useState<CapaAction[]>(demo ? [] : reviveCapas(initialCapaActions ?? []));
-  const [planItems, setPlanItems] = useState<GrcPlanItem[]>(demo ? [] : revivePlans(initialPlanItems ?? []));
+  const [fieldControls, setFieldControls] = useState<FieldControl[]>(demo ? seedFieldControls() : reviveFieldControls(initialFieldControls ?? []));
+  const [capaActions, setCapaActions] = useState<CapaAction[]>(demo ? seedCapa() : reviveCapas(initialCapaActions ?? []));
+  const [planItems, setPlanItems] = useState<GrcPlanItem[]>(demo ? seedPlan() : revivePlans(initialPlanItems ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);

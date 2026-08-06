@@ -10,3 +10,5 @@ export const isDemoMode = DEMO_MODE;
 
 // Exporte l'adaptateur mock (utilisé par le mode démo côté client).
 export * from "./mock";
+// Jeu de démonstration du module GRC (actifs, risques, politiques, contrôles…).
+export * from "./grcDemo";

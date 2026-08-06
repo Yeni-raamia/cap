@@ -1,0 +1,221 @@
+/* ==================================================================
+ *  lib/data/grcDemo.ts — Jeu de démonstration du module GRC (mémoire).
+ *  Données neutres, cohérentes entre onglets, détenues par l'équipe GRC
+ *  de démonstration (u1 RSSI, u3 Gouvernance/Conformité, u6 Audit) afin
+ *  d'illustrer les distinctions, les joyaux et le suivi des politiques.
+ * ================================================================== */
+import type {
+  Asset,
+  CapaAction,
+  CheckItem,
+  FieldControl,
+  FieldControlEvent,
+  GrcPlanItem,
+  Policy,
+  PolicyDiffusion,
+  Risk,
+} from "../domain";
+
+const NOW = () => new Date();
+const day = (offset: number) => new Date(NOW().getTime() + offset * 864e5);
+const Y = () => NOW().getFullYear();
+
+/* ---------- Actifs (registre C/I/D) ---------- */
+export function seedAssets(): Asset[] {
+  const base = (o: Partial<Asset> & { id: string; ref: string; name: string; confidentiality: number; integrity: number; availability: number }): Asset => ({
+    type: "Service / Processus",
+    description: "",
+    ownerId: "u1",
+    service: "DSI",
+    status: "Actif",
+    reviewDate: day(120),
+    createdBy: "u1",
+    createdAt: day(-200),
+    updatedAt: day(-20),
+    ...o,
+  });
+  return [
+    base({ id: "da1", ref: "ACT-2026-001", name: "Annuaire Active Directory", type: "Logiciel / Applicatif", service: "DSI", ownerId: "u1", confidentiality: 4, integrity: 4, availability: 4, description: "Cœur des identités et des accès." }),
+    base({ id: "da2", ref: "ACT-2026-002", name: "SI de paie", type: "Logiciel / Applicatif", service: "RH", ownerId: "u3", confidentiality: 4, integrity: 3, availability: 2, description: "Traitement des rémunérations." }),
+    base({ id: "da3", ref: "ACT-2026-003", name: "Base RH (données personnelles)", type: "Information / Données", service: "RH", ownerId: "u3", confidentiality: 4, integrity: 3, availability: 2, description: "Données à caractère personnel des agents." }),
+    base({ id: "da4", ref: "ACT-2026-004", name: "Messagerie", type: "Service / Processus", service: "DSI", ownerId: "u1", confidentiality: 3, integrity: 3, availability: 3, description: "Courrier électronique de l'organisation." }),
+    base({ id: "da5", ref: "ACT-2026-005", name: "Site web institutionnel", type: "Service / Processus", service: "DSI", ownerId: "u6", confidentiality: 1, integrity: 3, availability: 3, description: "Portail public." }),
+    base({ id: "da6", ref: "ACT-2026-006", name: "Postes de travail", type: "Matériel / Infrastructure", service: "DSI", ownerId: "u1", confidentiality: 2, integrity: 2, availability: 2, description: "Parc bureautique." }),
+  ];
+}
+
+/* ---------- Registre des risques (ISO 27005) ---------- */
+export function seedRisks(): Risk[] {
+  const base = (o: Partial<Risk> & { id: string; ref: string; title: string; probability: number; impact: number; residualProbability: number; residualImpact: number }): Risk => ({
+    description: "",
+    category: "Cyber",
+    assetId: null,
+    threat: "",
+    vulnerability: "",
+    treatment: "Réduire",
+    treatmentPlan: "",
+    controls: [],
+    status: "En traitement",
+    ownerId: "u1",
+    reviewDate: day(90),
+    acceptedBy: null,
+    acceptedAt: null,
+    acceptUntil: null,
+    acceptanceJustification: "",
+    reviews: [],
+    links: [],
+    createdBy: "u1",
+    createdAt: day(-160),
+    updatedAt: day(-15),
+    ...o,
+  });
+  return [
+    base({ id: "dr1", ref: "RSK-2026-001", title: "Compromission de l'annuaire (élévation de privilèges)", assetId: "da1", ownerId: "u1", category: "Cyber", threat: "Attaquant interne/externe", vulnerability: "Comptes à privilèges non cloisonnés", probability: 4, impact: 5, residualProbability: 2, residualImpact: 4, status: "En traitement", controls: [{ frameworkId: "iso27001", controlCode: "A.8.2" }, { frameworkId: "iso27001", controlCode: "A.5.15" }, { frameworkId: "cisv8", controlCode: "6" }] }),
+    // « Dompteur » de u1 : inhérent critique → résiduel faible.
+    base({ id: "dr2", ref: "RSK-2026-002", title: "Fuite de données RH", assetId: "da3", ownerId: "u1", category: "Conformité", threat: "Exfiltration / négligence", vulnerability: "Chiffrement partiel", probability: 4, impact: 5, residualProbability: 1, residualImpact: 2, status: "Réduit", controls: [{ frameworkId: "iso27001", controlCode: "A.8.24" }, { frameworkId: "rgpdnis2", controlCode: "RGPD.32" }] }),
+    base({ id: "dr3", ref: "RSK-2026-003", title: "Indisponibilité du SI de paie", assetId: "da2", ownerId: "u3", category: "Continuité", threat: "Panne / rançongiciel", vulnerability: "PRA non testé", probability: 3, impact: 4, residualProbability: 2, residualImpact: 3, status: "En traitement", controls: [{ frameworkId: "iso27001", controlCode: "A.5.30" }] }),
+    base({ id: "dr4", ref: "RSK-2026-004", title: "Hameçonnage ciblé (messagerie)", assetId: "da4", ownerId: "u6", category: "Cyber", threat: "Phishing", vulnerability: "Sensibilisation hétérogène", probability: 4, impact: 3, residualProbability: 3, residualImpact: 3, status: "En traitement", controls: [{ frameworkId: "iso27001", controlCode: "A.6.3" }] }),
+    // Risque accepté formellement.
+    base({ id: "dr5", ref: "RSK-2026-005", title: "Défiguration du site public", assetId: "da5", ownerId: "u6", category: "Cyber", threat: "Défacement", vulnerability: "CMS non maintenu", probability: 2, impact: 2, residualProbability: 2, residualImpact: 2, status: "Accepté", treatment: "Accepter", acceptedBy: "u1", acceptedAt: day(-30), acceptUntil: day(180), acceptanceJustification: "Impact limité (site vitrine, sauvegardes quotidiennes)." }),
+    base({ id: "dr6", ref: "RSK-2026-006", title: "Poste compromis (rançongiciel)", assetId: "da6", ownerId: "u1", category: "Cyber", threat: "Rançongiciel", vulnerability: "EDR incomplet", probability: 3, impact: 4, residualProbability: 2, residualImpact: 3, status: "En traitement", reviews: [{ id: "rv1", reviewedBy: "u1", reviewedAt: day(-30), inherentP: 3, inherentI: 4, residualP: 2, residualI: 3, note: "Déploiement EDR en cours." }] }),
+  ];
+}
+
+/* ---------- Politiques (diffusion par service) ---------- */
+export function seedPolicies(): Policy[] {
+  const diff = (policyId: string, service: string, stage: string, note = ""): PolicyDiffusion => ({
+    id: `${policyId}-${service}`,
+    policyId,
+    service,
+    stage,
+    note,
+    updatedAt: day(-10),
+  });
+  const base = (o: Partial<Policy> & { id: string; ref: string; title: string; diffusions: PolicyDiffusion[] }): Policy => ({
+    reference: "ISO 27001",
+    domain: "Gouvernance",
+    version: "1.0",
+    status: "En vigueur",
+    summary: "",
+    url: "",
+    ownerId: "u3",
+    publishedAt: day(-90),
+    reviewDate: day(180),
+    createdBy: "u3",
+    createdAt: day(-120),
+    updatedAt: day(-10),
+    ...o,
+  });
+  return [
+    // PSSI — largement appliquée (célébration proche).
+    base({ id: "dp1", ref: "POL-2026-001", title: "Politique de sécurité (PSSI)", reference: "ISO 27001 A.5.1", domain: "Gouvernance", status: "En vigueur", ownerId: "u3", diffusions: [
+      diff("dp1", "DSI", "Applicable"), diff("dp1", "RH", "Applicable"), diff("dp1", "Finance", "Applicable"), diff("dp1", "Juridique", "Comprise"), diff("dp1", "Direction générale", "Applicable"),
+    ] }),
+    // Mot de passe — en cours de diffusion (le « colis » avance).
+    base({ id: "dp2", ref: "POL-2026-002", title: "Politique de mots de passe & MFA", reference: "ISO 27001 A.5.17", domain: "Contrôle d'accès", status: "En vigueur", ownerId: "u3", diffusions: [
+      diff("dp2", "DSI", "Applicable"), diff("dp2", "RH", "Comprise"), diff("dp2", "Finance", "Consultée"), diff("dp2", "Juridique", "Diffusée"), diff("dp2", "Direction générale", "Consultée"),
+    ] }),
+    // Protection des données — mixte.
+    base({ id: "dp3", ref: "POL-2026-003", title: "Protection des données personnelles (RGPD)", reference: "RGPD art. 32", domain: "Protection des données", status: "En vigueur", ownerId: "u3", diffusions: [
+      diff("dp3", "RH", "Applicable"), diff("dp3", "Juridique", "Applicable"), diff("dp3", "DSI", "Comprise"), diff("dp3", "Finance", "Consultée"), diff("dp3", "Direction générale", "Non applicable"),
+    ] }),
+    // Charte utilisateur — brouillon, diffusion à peine amorcée.
+    base({ id: "dp4", ref: "POL-2026-004", title: "Charte de l'utilisateur", reference: "Interne", domain: "RH / Sensibilisation", status: "Brouillon", ownerId: "u6", publishedAt: null, diffusions: [
+      diff("dp4", "DSI", "Diffusée"), diff("dp4", "RH", "Diffusée"),
+    ] }),
+  ];
+}
+
+/* ---------- Contrôles terrain (rondes / inspections) ---------- */
+export function seedFieldControls(): FieldControl[] {
+  const item = (id: string, label: string, result: string, note = ""): CheckItem => ({ id, label, result, note, frameworkId: "", controlCode: "" });
+  const ev = (id: string, kind: FieldControlEvent["kind"], label: string, at: Date, fromStatus = "", toStatus = "", authorId = "u6"): FieldControlEvent => ({ id, kind, label, fromStatus, toStatus, authorId, at });
+  const base = (o: Partial<FieldControl> & { id: string; ref: string; title: string; items: CheckItem[]; events: FieldControlEvent[] }): FieldControl => ({
+    type: "Ronde de sécurité",
+    service: "DSI",
+    location: "",
+    date: day(-15),
+    inspectorId: "u6",
+    status: "Réalisé",
+    summary: "",
+    createdBy: "u6",
+    createdAt: day(-18),
+    updatedAt: day(-14),
+    ...o,
+  });
+  return [
+    base({ id: "dc1", ref: "CTRL-2026-001", title: "Ronde bureaux — étage 2", type: "Ronde de sécurité", service: "RH", location: "Bât. A · étage 2", inspectorId: "u6", status: "Clôturé",
+      items: [item("dc1i1", "Postes verrouillés en l'absence", "Écart", "2 postes déverrouillés"), item("dc1i2", "Documents sensibles rangés", "Écart", "Dossiers RH sur bureau"), item("dc1i3", "Badge d'accès porté", "Conforme")],
+      events: [ev("dc1e1", "creation", "Contrôle créé (Planifié)", day(-18), "", "Planifié"), ev("dc1e2", "statut", "Statut : Planifié → Réalisé", day(-15), "Planifié", "Réalisé"), ev("dc1e3", "action", "Rappel de la clean-desk policy au service RH", day(-14)), ev("dc1e4", "statut", "Statut : Réalisé → Clôturé", day(-12), "Réalisé", "Clôturé")] }),
+    base({ id: "dc2", ref: "CTRL-2026-002", title: "Inspection salle serveurs", type: "Inspection physique", service: "DSI", location: "Local technique", inspectorId: "u6", status: "Réalisé",
+      items: [item("dc2i1", "Accès physique restreint", "Conforme"), item("dc2i2", "Extincteur en état", "Écart", "Vérification périmée"), item("dc2i3", "Climatisation fonctionnelle", "Conforme"), item("dc2i4", "Câblage étiqueté", "Écart", "Baie B non étiquetée")],
+      events: [ev("dc2e1", "creation", "Contrôle créé (Planifié)", day(-20), "", "Planifié"), ev("dc2e2", "statut", "Statut : Planifié → Réalisé", day(-16), "Planifié", "Réalisé")] }),
+    base({ id: "dc3", ref: "CTRL-2026-003", title: "Audit interne — gestion des accès", type: "Audit interne", service: "DSI", inspectorId: "u6", status: "Réalisé",
+      items: [item("dc3i1", "Revue des comptes à privilèges", "Écart", "3 comptes orphelins"), item("dc3i2", "MFA activé sur les accès admin", "Conforme"), item("dc3i3", "Journalisation des accès", "Conforme"), item("dc3i4", "Recertification des habilitations", "Écart", "Campagne non tracée")],
+      events: [ev("dc3e1", "creation", "Contrôle créé (Réalisé)", day(-25), "", "Réalisé"), ev("dc3e2", "action", "Ouverture d'une action corrective (comptes orphelins)", day(-24))] }),
+    base({ id: "dc4", ref: "CTRL-2026-004", title: "Entretien sensibilisation — service Finance", type: "Entretien", service: "Finance", inspectorId: "u6", status: "Réalisé",
+      items: [item("dc4i1", "Connaissance de la procédure de signalement", "Conforme"), item("dc4i2", "Réflexe face à un e-mail suspect", "Écart", "Hésitation constatée"), item("dc4i3", "Verrouillage de session", "Écart", "Non systématique")],
+      events: [ev("dc4e1", "creation", "Contrôle créé (Réalisé)", day(-10), "", "Réalisé")] }),
+    base({ id: "dc5", ref: "CTRL-2026-005", title: "Test d'intrusion physique (tailgating)", type: "Test / exercice", service: "DSI", inspectorId: "u6", status: "Réalisé",
+      items: [item("dc5i1", "Contrôle du sas d'entrée", "Écart", "Tailgating réussi 2 fois"), item("dc5i2", "Réaction du personnel", "Écart", "Aucun signalement")],
+      events: [ev("dc5e1", "creation", "Contrôle créé (Réalisé)", day(-8), "", "Réalisé"), ev("dc5e2", "action", "Débrief avec l'accueil", day(-7))] }),
+    // Contrôle planifié (en cours) mené par le RSSI.
+    base({ id: "dc6", ref: "CTRL-2026-006", title: "Revue documentaire — PRA", type: "Revue documentaire", service: "DSI", inspectorId: "u1", status: "En cours", date: null, createdBy: "u1",
+      items: [item("dc6i1", "PRA à jour", "À vérifier"), item("dc6i2", "Dernier test de bascule", "À vérifier")],
+      events: [ev("dc6e1", "creation", "Contrôle créé (Planifié)", day(-5), "", "Planifié", "u1"), ev("dc6e2", "statut", "Statut : Planifié → En cours", day(-3), "Planifié", "En cours", "u1")] }),
+  ];
+}
+
+/* ---------- Plan d'actions (CAPA) ---------- */
+export function seedCapa(): CapaAction[] {
+  const base = (o: Partial<CapaAction> & { id: string; ref: string; title: string }): CapaAction => ({
+    description: "",
+    type: "Corrective",
+    priority: "Normale",
+    sourceType: "controle",
+    sourceId: null,
+    ownerId: "u6",
+    dueDate: day(20),
+    status: "Ouverte",
+    verification: "",
+    closedAt: null,
+    createdBy: "u6",
+    createdAt: day(-12),
+    updatedAt: day(-6),
+    ...o,
+  });
+  return [
+    base({ id: "dcp1", ref: "CAPA-2026-001", title: "Corriger : Postes déverrouillés (RH)", sourceType: "controle", sourceId: "dc1i1", ownerId: "u6", priority: "Haute", status: "Clôturée", closedAt: day(-8), verification: "Nouvelle ronde : conforme." }),
+    base({ id: "dcp2", ref: "CAPA-2026-002", title: "Vérification périodique des extincteurs", sourceType: "controle", sourceId: "dc2i2", ownerId: "u6", priority: "Normale", status: "Réalisée" }),
+    base({ id: "dcp3", ref: "CAPA-2026-003", title: "Supprimer les comptes orphelins", sourceType: "controle", sourceId: "dc3i1", ownerId: "u3", priority: "Haute", status: "Clôturée", closedAt: day(-5), verification: "Comptes désactivés et tracés." }),
+    // En retard (échéance passée, non clôturée) → illustre la détection.
+    base({ id: "dcp4", ref: "CAPA-2026-004", title: "Renforcer le contrôle du sas (anti-tailgating)", sourceType: "controle", sourceId: "dc5i1", ownerId: "u6", priority: "Critique", status: "En cours", dueDate: day(-4) }),
+    base({ id: "dcp5", ref: "CAPA-2026-005", title: "Campagne de sensibilisation anti-hameçonnage", sourceType: "risque", sourceId: "dr4", ownerId: "u3", type: "Préventive", priority: "Haute", status: "En cours", dueDate: day(35) }),
+  ];
+}
+
+/* ---------- Plan de travail (chantiers) ---------- */
+export function seedPlan(): GrcPlanItem[] {
+  const base = (o: Partial<GrcPlanItem> & { id: string; ref: string; title: string }): GrcPlanItem => ({
+    category: "Conformité",
+    year: Y(),
+    quarter: "T1",
+    ownerId: "u3",
+    priority: "Normale",
+    status: "En cours",
+    progress: 40,
+    dueDate: day(60),
+    description: "",
+    createdBy: "u1",
+    createdAt: day(-60),
+    updatedAt: day(-5),
+    ...o,
+  });
+  return [
+    base({ id: "dpl1", ref: "PLAN-2026-001", title: "Préparer la certification ISO 27001", category: "Conformité", quarter: "T1", ownerId: "u3", priority: "Haute", status: "En cours", progress: 55 }),
+    base({ id: "dpl2", ref: "PLAN-2026-002", title: "Campagne de sensibilisation (4 vagues)", category: "Sensibilisation", quarter: "T2", ownerId: "u6", priority: "Normale", status: "En cours", progress: 30 }),
+    base({ id: "dpl3", ref: "PLAN-2026-003", title: "Revue des accès à privilèges", category: "Audit / Contrôle", quarter: "T1", ownerId: "u6", priority: "Haute", status: "Terminé", progress: 100 }),
+    base({ id: "dpl4", ref: "PLAN-2026-004", title: "Cartographie des risques (mise à jour annuelle)", category: "Gestion des risques", quarter: "T2", ownerId: "u1", priority: "Haute", status: "En cours", progress: 45 }),
+    base({ id: "dpl5", ref: "PLAN-2026-005", title: "Refonte du corpus documentaire (politiques)", category: "Politiques", quarter: "T3", ownerId: "u3", priority: "Normale", status: "À planifier", progress: 0 }),
+  ];
+}

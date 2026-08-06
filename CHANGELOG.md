@@ -6,7 +6,14 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.44.0] - 2026-08-06
+## [1.45.0] - 2026-08-06
+
+### Ajouté
+
+- **Mode démo — jeu de données GRC complet** : le module GRC est désormais pleinement démontrable en mode démonstration (auparavant vide).
+  - **Équipe GRC désignée** : le RSSI, la Gouvernance/Conformité et l'Audit sont marqués « Membre GRC » (les distinctions ne concernent qu'eux).
+  - **Données cohérentes entre onglets** : 6 actifs (avec joyaux critiques), 6 risques ISO 27005 (dont un accepté et un « dompté »), 4 politiques avec diffusions à des étapes variées (dont une quasi 100 % pour illustrer le suivi « colis »), 6 contrôles terrain avec fils de vie et écarts, 5 actions CAPA (dont une clôturée et une en retard), 5 chantiers de plan de travail.
+  - **Distinctions vivantes** : l'Audit ressort champion (Gardien, Œil de lynx, Clé de voûte), la Gouvernance obtient Gardien des politiques, le RSSI obtient Dompteur — avec les autres badges en progression.
 
 ### Ajouté
 
