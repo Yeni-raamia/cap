@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { ClipboardCheck, History, Plus, Send, Trash2, Wrench, X } from "lucide-react";
 import {
+  CAPA_STATUS_TONE,
   CHECK_RESULT_TONE,
   CHECK_RESULTS,
+  controlProgress,
   FIELD_CONTROL_STATUS,
   FIELD_CONTROL_TYPES,
   FIELD_EVENT_TONE,
   fmtLong,
+  isCapaLate,
   type CheckItem,
   type FieldControl,
 } from "@/lib/domain";
@@ -22,8 +25,13 @@ type LocalItem = CheckItem;
 
 /** Fiche d'un contrôle terrain : métadonnées + check-list ; les écarts génèrent des actions. */
 export function FieldControlModal({ control, creating, onClose }: { control: FieldControl | null; creating: boolean; onClose: () => void }) {
-  const { demo, me, profiles, profileById, refLists, fieldControlById, createFieldControl, updateFieldControl, deleteFieldControl, addControlEvent, createCapa } = useApp();
+  const { demo, me, profiles, profileById, refLists, capaActions, fieldControlById, createFieldControl, updateFieldControl, deleteFieldControl, addControlEvent, createCapa } = useApp();
   const canEdit = !demo;
+
+  // Actions à mener : CAPA rattachées à un écart de ce contrôle.
+  const linkedActions = control
+    ? capaActions.filter((a) => a.sourceType === "controle" && a.sourceId && control.items.some((it) => it.id === a.sourceId))
+    : [];
 
   // Fil de vie live (mis à jour dès qu'une action de suivi est ajoutée).
   const live = control ? fieldControlById(control.id) : null;
@@ -51,6 +59,8 @@ export function FieldControlModal({ control, creating, onClose }: { control: Fie
   const [err, setErr] = useState<string | null>(null);
 
   const gaps = items.filter((it) => it.result === "Écart").length;
+  const doneCount = items.filter((it) => it.result !== "À vérifier").length;
+  const progPct = items.length ? Math.round((doneCount / items.length) * 100) : (status === "Réalisé" || status === "Clôturé" ? 100 : 0);
 
   const addItem = () => setItems((prev) => [...prev, { id: tempId(), label: "", result: "À vérifier", note: "", frameworkId: "", controlCode: "" }]);
   const patchItem = (id: string, patch: Partial<LocalItem>) => setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
@@ -101,6 +111,18 @@ export function FieldControlModal({ control, creating, onClose }: { control: Fie
 
         <div className="p-4 space-y-3">
           {err && <div className="text-[12px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{err}</div>}
+
+          {items.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+                <span>Avancement du dépouillement · {doneCount}/{items.length} points</span>
+                <span className="font-mono">{progPct}%</span>
+              </div>
+              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full transition-all ${progPct >= 100 ? "bg-emerald-500" : progPct >= 50 ? "bg-sky-500" : "bg-amber-500"}`} style={{ width: `${progPct}%` }} />
+              </div>
+            </div>
+          )}
 
           <div>
             <label className={labelCls}>Intitulé du contrôle</label>
@@ -165,6 +187,30 @@ export function FieldControlModal({ control, creating, onClose }: { control: Fie
             </div>
             {canEdit && <button onClick={addItem} className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-indigo-700 hover:underline"><Plus size={14} /> Ajouter un point</button>}
           </div>
+
+          {/* Actions à mener : CAPA rattachées aux points bloquants */}
+          {!creating && control && (
+            <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+              <div className="text-[11px] font-medium text-slate-500 uppercase mb-2 flex items-center gap-1.5"><Wrench size={13} /> Actions à mener ({linkedActions.length})</div>
+              {linkedActions.length === 0 ? (
+                <div className="text-[12px] text-slate-400">Aucune action rattachée. Génère-en une depuis un point en écart ci-dessus.</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {linkedActions.map((a) => {
+                    const late = isCapaLate(a, new Date());
+                    return (
+                      <div key={a.id} className="flex items-center gap-2 text-[12px]">
+                        <span className="font-mono text-[10px] text-slate-400">{a.ref}</span>
+                        <span className="flex-1 min-w-0 truncate text-slate-700 dark:text-slate-200">{a.title}</span>
+                        {late && <span className="text-[9px] font-bold text-rose-700 bg-rose-100 rounded-full px-1.5 py-0.5">RETARD</span>}
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${CAPA_STATUS_TONE[a.status] ?? "bg-slate-100 text-slate-500"}`}>{a.status}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className={labelCls}>Conclusion / synthèse</label>

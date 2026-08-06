@@ -744,8 +744,28 @@ export interface FieldControl {
   createdAt: Date;
   updatedAt: Date;
 }
-/** Écarts constatés lors d'un contrôle = points dont le résultat est « Écart ». */
+/** Écarts constatés lors d'un contrôle = points dont le résultat est « Écart » (points bloquants). */
 export const controlGaps = (c: FieldControl): CheckItem[] => c.items.filter((it) => it.result === "Écart");
+
+/** Avancement du dépouillement d'un contrôle : part des points évalués (≠ « À vérifier »). */
+export function controlProgress(c: FieldControl): { done: number; total: number; pct: number } {
+  const total = c.items.length;
+  if (total === 0) return { done: 0, total: 0, pct: c.status === "Clôturé" || c.status === "Réalisé" ? 100 : 0 };
+  const done = c.items.filter((it) => it.result !== "À vérifier").length;
+  return { done, total, pct: Math.round((done / total) * 100) };
+}
+/** Taux de conformité : part des points conformes parmi les points évalués. */
+export function controlConformity(c: FieldControl): number {
+  const evaluated = c.items.filter((it) => it.result !== "À vérifier");
+  if (evaluated.length === 0) return 0;
+  return Math.round((evaluated.filter((it) => it.result === "Conforme").length / evaluated.length) * 100);
+}
+/** Ordre du cycle d'un contrôle + étape suivante (pour les boutons d'avancement). */
+export const FIELD_STATUS_ORDER = ["Planifié", "En cours", "Réalisé", "Clôturé"];
+export function nextFieldStatus(status: string): string | null {
+  const i = FIELD_STATUS_ORDER.indexOf(status);
+  return i >= 0 && i < FIELD_STATUS_ORDER.length - 1 ? FIELD_STATUS_ORDER[i + 1] : null;
+}
 
 /* ---------- Module GRC : Plan d'actions correctives (CAPA) ---------- */
 export const CAPA_TYPES = ["Corrective", "Préventive"];

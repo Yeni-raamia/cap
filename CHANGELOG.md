@@ -6,7 +6,15 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.46.0] - 2026-08-06
+## [1.47.0] - 2026-08-06
+
+### Ajouté
+
+- **Contrôles terrain — pilotage renforcé** (onglet Contrôles terrain) :
+  - **Barre de progression** du dépouillement sur chaque carte de contrôle et dans la fiche (part des points évalués), avec **taux de conformité**.
+  - **Points bloquants** mis en avant (les écarts) et **actions à mener** rattachées (nombre d'actions CAPA ouvertes / en retard) directement sur la carte.
+  - **Bouton d'action rapide** pour faire avancer l'état d'un contrôle (Planifié → En cours → Réalisé → Clôturé) sans ouvrir la fiche — la transition est tracée dans le fil de vie.
+  - Dans la fiche : section **« Actions à mener »** listant les actions correctives rattachées (référence, statut, retard).
 
 ### Ajouté
 
