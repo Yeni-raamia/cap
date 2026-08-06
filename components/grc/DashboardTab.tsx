@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { Boxes, ScrollText, ShieldAlert, ShieldCheck, TrendingUp } from "lucide-react";
+import { AlertTriangle, Boxes, ClipboardCheck, ScrollText, ShieldAlert, ShieldCheck, TrendingUp, Wrench } from "lucide-react";
 import {
   assetCriticality,
+  controlGaps,
+  isCapaLate,
   policyCoverage,
   riskLevel,
   RISK_LEVEL_TONE,
@@ -18,9 +20,14 @@ import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 
 export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
-  const { risks, policies, assets, controlAssessments, profileById } = useApp();
+  const { risks, policies, assets, controlAssessments, fieldControls, capaActions, profileById } = useApp();
 
   const d = useMemo(() => {
+    const now2 = new Date();
+    const gaps = fieldControls.reduce((n, c) => n + controlGaps(c).length, 0);
+    const plannedControls = fieldControls.filter((c) => c.status === "Planifié" || c.status === "En cours").length;
+    const openCapa = capaActions.filter((a) => a.status !== "Clôturée").length;
+    const lateCapa = capaActions.filter((a) => isCapaLate(a, now2)).length;
     // Niveau résiduel (après traitement) — celui qui pilote la décision.
     const withLvl = risks.map((r) => ({ r, level: riskLevel(r.residualProbability, r.residualImpact) }));
     const openRisks = withLvl.filter(({ r }) => r.status !== "Clôturé");
@@ -49,8 +56,8 @@ export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
     });
     const conformityAvg = frameworkScores.length ? Math.round(frameworkScores.reduce((s, x) => s + x.score.conformity, 0) / frameworkScores.length) : 0;
 
-    return { riskByLevel, topRisks, assetByCrit, applicMoy, overdue, openRisks: openRisks.length, frameworkScores, conformityAvg };
-  }, [risks, policies, assets, controlAssessments]);
+    return { riskByLevel, topRisks, assetByCrit, applicMoy, overdue, openRisks: openRisks.length, frameworkScores, conformityAvg, gaps, plannedControls, openCapa, lateCapa };
+  }, [risks, policies, assets, controlAssessments, fieldControls, capaActions]);
 
   const pctTone = (p: number) => (p >= 70 ? "text-emerald-600" : p >= 40 ? "text-amber-600" : "text-rose-600");
 
@@ -79,6 +86,17 @@ export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
               <span className={`w-9 text-right text-[12px] font-mono font-semibold ${pctTone(score.conformity)}`}>{score.conformity}%</span>
             </button>
           ))}
+        </div>
+      </Card>
+
+      {/* Contrôles terrain & plan d'actions (Lot D) */}
+      <Card className="p-4">
+        <div className="text-[13px] font-semibold text-slate-700 mb-3 flex items-center gap-2"><ClipboardCheck size={15} className="text-indigo-500" /> Contrôles terrain &amp; plan d&apos;actions</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <MiniStat icon={ClipboardCheck} tone="text-indigo-600" label="Contrôles planifiés" value={d.plannedControls} onClick={() => onTab("controles")} />
+          <MiniStat icon={AlertTriangle} tone="text-rose-600" label="Écarts relevés" value={d.gaps} onClick={() => onTab("controles")} />
+          <MiniStat icon={Wrench} tone="text-sky-600" label="Actions ouvertes" value={d.openCapa} onClick={() => onTab("actions")} />
+          <MiniStat icon={AlertTriangle} tone="text-amber-600" label="Actions en retard" value={d.lateCapa} onClick={() => onTab("actions")} />
         </div>
       </Card>
 
@@ -123,6 +141,15 @@ export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
         </Card>
       </div>
     </div>
+  );
+}
+
+function MiniStat({ icon: Icon, tone, label, value, onClick }: { icon: typeof Boxes; tone: string; label: string; value: number | string; onClick?: () => void }) {
+  return (
+    <button onClick={onClick} className="text-left rounded-xl border border-slate-100 dark:border-slate-800 p-3 hover:-translate-y-0.5 transition-transform">
+      <div className="flex items-center gap-1.5"><Icon size={14} className={tone} /><span className="text-[11px] text-slate-400">{label}</span></div>
+      <div className="text-xl font-bold text-slate-800 dark:text-slate-100 mt-1">{value}</div>
+    </button>
   );
 }
 

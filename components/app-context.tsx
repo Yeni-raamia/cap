@@ -42,7 +42,9 @@ import {
   type MeetingParticipant,
   type Message,
   type Asset,
+  type CapaAction,
   type ControlAssessment,
+  type FieldControl,
   type Negligence,
   type NonConformite,
   type Objective,
@@ -191,6 +193,32 @@ export interface ControlInput {
   lastAssessedAt?: string | null;
   nextReviewAt?: string | null;
 }
+export interface CheckItemInput { label: string; result?: string; note?: string; frameworkId?: string; controlCode?: string }
+export interface FieldControlInput {
+  id?: string;
+  title?: string;
+  type?: string;
+  service?: string;
+  location?: string;
+  date?: string | null;
+  inspectorId?: string;
+  status?: string;
+  summary?: string;
+  items?: CheckItemInput[];
+}
+export interface CapaInput {
+  id?: string;
+  title?: string;
+  description?: string;
+  type?: string;
+  priority?: string;
+  sourceType?: string;
+  sourceId?: string | null;
+  ownerId?: string;
+  dueDate?: string | null;
+  status?: string;
+  verification?: string;
+}
 type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service" | "policy";
 type RefListActionPayload =
   | { op: "add"; listKey: RefListKey; label: string; icon?: string }
@@ -337,6 +365,19 @@ interface AppCtx {
   controlAssessments: ControlAssessment[];
   assessControl: (frameworkId: string, controlCode: string, fields: ControlInput) => Promise<string | null>;
   resetControl: (frameworkId: string, controlCode: string) => Promise<string | null>;
+  // GRC : contrôles terrain
+  fieldControls: FieldControl[];
+  fieldControlById: (id: string) => FieldControl | null;
+  createFieldControl: (input: FieldControlInput) => Promise<string | null>;
+  updateFieldControl: (id: string, fields: FieldControlInput) => Promise<string | null>;
+  deleteFieldControl: (id: string) => Promise<string | null>;
+  // GRC : plan d'actions (CAPA)
+  capaActions: CapaAction[];
+  capaById: (id: string) => CapaAction | null;
+  createCapa: (input: CapaInput) => Promise<string | null>;
+  updateCapa: (id: string, fields: CapaInput) => Promise<string | null>;
+  setCapaStatus: (id: string, status: string) => Promise<string | null>;
+  deleteCapa: (id: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -494,6 +535,21 @@ const reviveAssessment = (a: ControlAssessment): ControlAssessment => ({
   updatedAt: new Date(a.updatedAt),
 });
 const reviveAssessments = (arr: ControlAssessment[]): ControlAssessment[] => arr.map(reviveAssessment);
+const reviveFieldControl = (c: FieldControl): FieldControl => ({
+  ...c,
+  date: c.date ? new Date(c.date) : null,
+  createdAt: new Date(c.createdAt),
+  updatedAt: new Date(c.updatedAt),
+});
+const reviveFieldControls = (arr: FieldControl[]): FieldControl[] => arr.map(reviveFieldControl);
+const reviveCapa = (a: CapaAction): CapaAction => ({
+  ...a,
+  dueDate: a.dueDate ? new Date(a.dueDate) : null,
+  closedAt: a.closedAt ? new Date(a.closedAt) : null,
+  createdAt: new Date(a.createdAt),
+  updatedAt: new Date(a.updatedAt),
+});
+const reviveCapas = (arr: CapaAction[]): CapaAction[] => arr.map(reviveCapa);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -556,6 +612,8 @@ export function AppProvider({
   initialPolicies,
   initialAssets,
   initialControlAssessments,
+  initialFieldControls,
+  initialCapaActions,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -579,6 +637,8 @@ export function AppProvider({
   initialPolicies?: Policy[];
   initialAssets?: Asset[];
   initialControlAssessments?: ControlAssessment[];
+  initialFieldControls?: FieldControl[];
+  initialCapaActions?: CapaAction[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -618,6 +678,8 @@ export function AppProvider({
   const [policies, setPolicies] = useState<Policy[]>(demo ? [] : revivePolicies(initialPolicies ?? []));
   const [assets, setAssets] = useState<Asset[]>(demo ? [] : reviveAssets(initialAssets ?? []));
   const [controlAssessments, setControlAssessments] = useState<ControlAssessment[]>(demo ? [] : reviveAssessments(initialControlAssessments ?? []));
+  const [fieldControls, setFieldControls] = useState<FieldControl[]>(demo ? [] : reviveFieldControls(initialFieldControls ?? []));
+  const [capaActions, setCapaActions] = useState<CapaAction[]>(demo ? [] : reviveCapas(initialCapaActions ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -1762,6 +1824,39 @@ export function AppProvider({
   const assessControl = (frameworkId: string, controlCode: string, fields: ControlInput) => controlAction("assess", { frameworkId, controlCode, ...fields });
   const resetControl = (frameworkId: string, controlCode: string) => controlAction("reset", { frameworkId, controlCode });
 
+  /* ---------- GRC : Contrôles terrain ---------- */
+  const fieldControlById = (id: string): FieldControl | null => fieldControls.find((c) => c.id === id) ?? null;
+  const fcAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Contrôles terrain indisponibles en mode démo.";
+    const res = await fetch("/api/field-controls", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.fieldControls) setFieldControls(reviveFieldControls(d.fieldControls));
+    if (op === "create") toast("Contrôle terrain créé.", "success");
+    else if (op === "delete") toast("Contrôle supprimé.", "success");
+    return null;
+  };
+  const createFieldControl = (input: FieldControlInput) => fcAction("create", input as Record<string, unknown>);
+  const updateFieldControl = (id: string, fields: FieldControlInput) => fcAction("update", { id, ...fields });
+  const deleteFieldControl = (id: string) => fcAction("delete", { id });
+
+  /* ---------- GRC : Plan d'actions (CAPA) ---------- */
+  const capaById = (id: string): CapaAction | null => capaActions.find((a) => a.id === id) ?? null;
+  const capaAction = async (op: "create" | "update" | "status" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Plan d'actions indisponible en mode démo.";
+    const res = await fetch("/api/capa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.capaActions) setCapaActions(reviveCapas(d.capaActions));
+    if (op === "create") toast("Action ajoutée au plan.", "success");
+    else if (op === "delete") toast("Action supprimée.", "success");
+    return null;
+  };
+  const createCapa = (input: CapaInput) => capaAction("create", input as Record<string, unknown>);
+  const updateCapa = (id: string, fields: CapaInput) => capaAction("update", { id, ...fields });
+  const setCapaStatus = (id: string, status: string) => capaAction("status", { id, status });
+  const deleteCapa = (id: string) => capaAction("delete", { id });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -2055,6 +2150,17 @@ export function AppProvider({
     controlAssessments,
     assessControl,
     resetControl,
+    fieldControls,
+    fieldControlById,
+    createFieldControl,
+    updateFieldControl,
+    deleteFieldControl,
+    capaActions,
+    capaById,
+    createCapa,
+    updateCapa,
+    setCapaStatus,
+    deleteCapa,
     openTaskId,
     setOpenTaskId,
     soundEnabled,

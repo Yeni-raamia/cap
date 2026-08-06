@@ -689,6 +689,81 @@ export interface ControlAssessment {
   updatedAt: Date;
 }
 
+/* ---------- Module GRC : Contrôles terrain (rondes / inspections) ---------- */
+export const FIELD_CONTROL_TYPES = ["Ronde de sécurité", "Inspection physique", "Audit interne", "Revue documentaire", "Entretien", "Test / exercice"];
+export const FIELD_CONTROL_STATUS = ["Planifié", "En cours", "Réalisé", "Clôturé"];
+/** Résultat d'un point de contrôle d'une check-list. */
+export const CHECK_RESULTS = ["À vérifier", "Conforme", "Écart", "Non applicable"];
+export const CHECK_RESULT_TONE: Record<string, string> = {
+  "À vérifier": "bg-slate-100 text-slate-500 border-slate-200",
+  Conforme: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  Écart: "bg-rose-100 text-rose-700 border-rose-200",
+  "Non applicable": "bg-slate-100 text-slate-400 border-slate-200",
+};
+
+export interface CheckItem {
+  id: string;
+  label: string; // point de contrôle
+  result: string; // CHECK_RESULTS
+  note: string;
+  frameworkId: string; // mesure de conformité rattachée (facultatif)
+  controlCode: string;
+}
+export interface FieldControl {
+  id: string;
+  ref: string;
+  title: string;
+  type: string;
+  service: string; // direction / service contrôlé
+  location: string;
+  date: Date | null; // date de réalisation
+  inspectorId: string; // contrôleur / auditeur
+  status: string;
+  summary: string; // conclusion
+  items: CheckItem[];
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Écarts constatés lors d'un contrôle = points dont le résultat est « Écart ». */
+export const controlGaps = (c: FieldControl): CheckItem[] => c.items.filter((it) => it.result === "Écart");
+
+/* ---------- Module GRC : Plan d'actions correctives (CAPA) ---------- */
+export const CAPA_TYPES = ["Corrective", "Préventive"];
+export const CAPA_STATUS = ["Ouverte", "En cours", "Réalisée", "Vérifiée", "Clôturée"];
+export const CAPA_PRIORITIES = ["Basse", "Normale", "Haute", "Critique"];
+/** Origine d'une action : écart de contrôle, non-conformité, risque, ou saisie manuelle. */
+export type CapaSource = "controle" | "nonconformite" | "risque" | "manuel";
+export const CAPA_STATUS_TONE: Record<string, string> = {
+  Ouverte: "bg-slate-100 text-slate-600",
+  "En cours": "bg-sky-100 text-sky-700",
+  Réalisée: "bg-amber-100 text-amber-700",
+  Vérifiée: "bg-violet-100 text-violet-700",
+  Clôturée: "bg-emerald-100 text-emerald-700",
+};
+
+export interface CapaAction {
+  id: string;
+  ref: string;
+  title: string;
+  description: string;
+  type: string; // Corrective / Préventive
+  priority: string;
+  sourceType: CapaSource;
+  sourceId: string | null; // id de l'écart / NC / risque à l'origine
+  ownerId: string;
+  dueDate: Date | null;
+  status: string;
+  verification: string; // vérification d'efficacité
+  closedAt: Date | null;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Une action est « en retard » si son échéance est passée et qu'elle n'est pas clôturée. */
+export const isCapaLate = (a: CapaAction, now: Date): boolean =>
+  Boolean(a.dueDate && a.dueDate.getTime() < now.getTime() && a.status !== "Clôturée" && a.status !== "Vérifiée");
+
 /** Taux d'applicabilité d'une politique : part des services arrivés à « Applicable »
  *  (les services « Non applicable » sont exclus du dénominateur). */
 export function policyCoverage(p: Policy): { applicable: number; total: number; pct: number } {

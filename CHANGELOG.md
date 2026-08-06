@@ -6,7 +6,23 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-Module GRC — lots suivants : Contrôles terrain + CAPA, Plan de travail, badges cyber.
+Module GRC — lots suivants : Plan de travail GRC, badges cyber.
+
+## [1.38.0] - 2026-08-06
+
+### Ajouté
+
+- **Module GRC — Contrôles terrain & Plan d'actions (CAPA)** — deux nouveaux onglets.
+  - **Contrôles terrain** (onglet « Contrôles terrain ») : tracer les **rondes de sécurité, inspections physiques, audits internes, revues documentaires, entretiens et tests/exercices**.
+    - Fiche de contrôle : type, direction/service, lieu, contrôleur, date, statut (Planifié → En cours → Réalisé → Clôturé) et conclusion.
+    - **Check-list** éditable : chaque point porte un résultat (À vérifier / Conforme / **Écart** / Non applicable) et un constat ; le décompte des écarts est mis en avant.
+    - Recherche et filtres par type et par statut ; indicateurs (contrôles, à réaliser, écarts relevés).
+  - **Plan d'actions — CAPA** (onglet « Plan d'actions ») : registre des **actions correctives & préventives**.
+    - Fiche d'action : nature (Corrective / Préventive), priorité, responsable, échéance, statut (Ouverte → En cours → Réalisée → Vérifiée → Clôturée) et **vérification d'efficacité** ; horodatage de clôture.
+    - **Détection des retards** : mise en évidence des actions dont l'échéance est dépassée, filtre « en retard » dédié.
+    - **Traçabilité de l'origine** : une action née d'un écart de contrôle terrain conserve le lien vers son contrôle source.
+  - **Pont Écart → Action** : depuis un écart d'une check-list, générer en un clic une action corrective pré-remplie et rattachée au contrôle.
+  - **Tableau de bord GRC** enrichi : bloc « Contrôles terrain & plan d'actions » (contrôles planifiés, écarts relevés, actions ouvertes, actions en retard) avec accès direct aux onglets.
 
 ## [1.37.0] - 2026-08-06
 

@@ -272,6 +272,25 @@ create table if not exists control_assessments (
   updated_at text not null default (datetime('now'))
 );
 create index if not exists idx_ctrlassess on control_assessments(framework_id, control_code);
+create table if not exists field_controls (
+  id text primary key, ref text not null,
+  title text not null default '', type text not null default '', service text not null default '', location text not null default '',
+  date text, inspector_id text, status text not null default 'Planifié', summary text not null default '', created_by text,
+  created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
+create table if not exists field_control_items (
+  id text primary key, control_id text not null, label text not null default '',
+  result text not null default 'À vérifier', note text not null default '',
+  framework_id text not null default '', control_code text not null default '', ordre integer not null default 0
+);
+create index if not exists idx_fcitems_control on field_control_items(control_id);
+create table if not exists capa_actions (
+  id text primary key, ref text not null,
+  title text not null default '', description text not null default '', type text not null default 'Corrective',
+  priority text not null default 'Normale', source_type text not null default 'manuel', source_id text,
+  owner_id text, due_date text, status text not null default 'Ouverte', verification text not null default '', closed_at text, created_by text,
+  created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists conversations (
   id text primary key, title text not null default '', kind text not null default 'group',
   ref_type text, ref_id text, created_by text, created_at text not null default (datetime('now'))
