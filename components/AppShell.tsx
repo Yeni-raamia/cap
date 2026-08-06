@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ControlAssessment, ConversationSummary, EmailTemplate, FieldControl, Item, Meeting, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Task } from "@/lib/domain";
+import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ControlAssessment, ConversationSummary, EmailTemplate, FieldControl, GrcPlanItem, Item, Meeting, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Task } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -84,6 +84,7 @@ export function AppShell({
   initialControlAssessments,
   initialFieldControls,
   initialCapaActions,
+  initialPlanItems,
 }: {
   children: ReactNode;
   demo?: boolean;
@@ -109,6 +110,7 @@ export function AppShell({
   initialControlAssessments?: ControlAssessment[];
   initialFieldControls?: FieldControl[];
   initialCapaActions?: CapaAction[];
+  initialPlanItems?: GrcPlanItem[];
 }) {
   return (
     <AppProvider
@@ -135,6 +137,7 @@ export function AppShell({
       initialControlAssessments={initialControlAssessments}
       initialFieldControls={initialFieldControls}
       initialCapaActions={initialCapaActions}
+      initialPlanItems={initialPlanItems}
     >
       <Shell>{children}</Shell>
     </AppProvider>

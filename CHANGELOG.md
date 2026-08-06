@@ -6,7 +6,18 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-Module GRC — lots suivants : Plan de travail GRC, badges cyber.
+## [1.39.0] - 2026-08-06
+
+### Ajouté
+
+- **Module GRC — Plan de travail & Distinctions cyber** (Lot E, dernier lot du module) — deux nouveaux onglets.
+  - **Plan de travail** (onglet « Plan de travail ») : piloter les **chantiers de l'équipe GRC**, cadencés par trimestre.
+    - Fiche de chantier : **catégorie** (Conformité, Gestion des risques, Politiques, Sensibilisation, Audit/Contrôle, Gouvernance…), responsable, **année + trimestre**, priorité, statut (À planifier → En cours → En pause → Terminé → Abandonné), **avancement 0–100 %** (curseur) et échéance ; un chantier « Terminé » passe automatiquement à 100 %.
+    - **Vue par trimestre** (T1→T4) avec barres d'avancement, filtre par catégorie et sélecteur d'année ; indicateurs (chantiers, actifs, terminés, en retard, avancement moyen).
+  - **Distinctions cyber** (onglet « Distinctions ») : **gamification** honorifique calculée sur l'activité réelle de l'équipe (rondes, écarts, risques, politiques, actions, non-conformités, chantiers).
+    - **10 badges** : 🛡️ Gardien (rondes), 🕵️ Œil de lynx (écarts), 🔒 Rempart (non-conformités traitées), 🎯 Chasseur de risques, 🐉 Dompteur (risque maîtrisé), 📢 Sentinelle (sensibilisation), 📜 Gardien des politiques, 🧯 Pompier (actions clôturées), 🏅 Zéro faille (aucun retard), 🔑 Clé de voûte (polyvalence GRC).
+    - **Classement d'équipe** par nombre de distinctions + **détail par membre** (badges obtenus / progression vers les paliers restants). Aucune donnée saisie : tout est dérivé.
+  - **Tableau de bord GRC** enrichi : bloc « Plan de travail » (actifs, terminés, en retard, avancement moyen) et bloc « Distinctions cyber » (total décerné + champion), avec accès direct aux onglets.
 
 ## [1.38.0] - 2026-08-06
 

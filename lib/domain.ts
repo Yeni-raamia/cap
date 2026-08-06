@@ -764,6 +764,52 @@ export interface CapaAction {
 export const isCapaLate = (a: CapaAction, now: Date): boolean =>
   Boolean(a.dueDate && a.dueDate.getTime() < now.getTime() && a.status !== "Clôturée" && a.status !== "Vérifiée");
 
+/* ---------- Module GRC : Plan de travail (chantiers de l'équipe) ---------- */
+export const PLAN_CATEGORIES = ["Conformité", "Gestion des risques", "Politiques", "Sensibilisation", "Audit / Contrôle", "Gouvernance", "Autre"];
+export const PLAN_STATUS = ["À planifier", "En cours", "En pause", "Terminé", "Abandonné"];
+export const PLAN_PRIORITIES = ["Basse", "Normale", "Haute", "Critique"];
+export const PLAN_QUARTERS = ["T1", "T2", "T3", "T4"];
+export const PLAN_STATUS_TONE: Record<string, string> = {
+  "À planifier": "bg-slate-100 text-slate-600",
+  "En cours": "bg-sky-100 text-sky-700",
+  "En pause": "bg-amber-100 text-amber-700",
+  "Terminé": "bg-emerald-100 text-emerald-700",
+  "Abandonné": "bg-slate-200 text-slate-400",
+};
+export const PLAN_CATEGORY_TONE: Record<string, string> = {
+  "Conformité": "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "Gestion des risques": "bg-rose-50 text-rose-700 border-rose-200",
+  "Politiques": "bg-sky-50 text-sky-700 border-sky-200",
+  "Sensibilisation": "bg-violet-50 text-violet-700 border-violet-200",
+  "Audit / Contrôle": "bg-indigo-50 text-indigo-700 border-indigo-200",
+  "Gouvernance": "bg-amber-50 text-amber-700 border-amber-200",
+  "Autre": "bg-slate-50 text-slate-600 border-slate-200",
+};
+
+/** Chantier du plan de travail annuel de l'équipe GRC. */
+export interface GrcPlanItem {
+  id: string;
+  ref: string; // PLAN-AAAA-NNN
+  title: string;
+  category: string;
+  year: number;
+  quarter: string; // T1..T4
+  ownerId: string;
+  priority: string;
+  status: string;
+  progress: number; // 0–100
+  dueDate: Date | null;
+  description: string;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Un chantier est « en retard » si son échéance est passée et qu'il n'est ni terminé ni abandonné. */
+export const isPlanLate = (p: GrcPlanItem, now: Date): boolean =>
+  Boolean(p.dueDate && p.dueDate.getTime() < now.getTime() && p.status !== "Terminé" && p.status !== "Abandonné");
+/** Un chantier est « actif » (compte dans la charge) s'il n'est ni terminé ni abandonné. */
+export const isPlanActive = (p: GrcPlanItem): boolean => p.status !== "Terminé" && p.status !== "Abandonné";
+
 /** Taux d'applicabilité d'une politique : part des services arrivés à « Applicable »
  *  (les services « Non applicable » sont exclus du dénominateur). */
 export function policyCoverage(p: Policy): { applicable: number; total: number; pct: number } {

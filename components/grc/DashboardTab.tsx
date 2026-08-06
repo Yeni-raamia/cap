@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertTriangle, Boxes, ClipboardCheck, ScrollText, ShieldAlert, ShieldCheck, TrendingUp, Wrench } from "lucide-react";
+import { AlertTriangle, Award, Boxes, ClipboardCheck, ScrollText, ShieldAlert, ShieldCheck, Target, TrendingUp, Wrench } from "lucide-react";
 import {
   assetCriticality,
   controlGaps,
   isCapaLate,
+  isPlanActive,
+  isPlanLate,
   policyCoverage,
   riskLevel,
   RISK_LEVEL_TONE,
@@ -15,12 +17,13 @@ import {
 } from "@/lib/domain";
 import { FRAMEWORKS } from "@/lib/grc/frameworks";
 import { scoreFramework } from "@/lib/grc/scoring";
+import { computeCyberBadges, earnedCount } from "@/lib/grc/badges";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 
 export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
-  const { risks, policies, assets, controlAssessments, fieldControls, capaActions, profileById } = useApp();
+  const { risks, policies, assets, controlAssessments, fieldControls, capaActions, planItems, nonConformites, profiles, profileById } = useApp();
 
   const d = useMemo(() => {
     const now2 = new Date();
@@ -28,6 +31,22 @@ export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
     const plannedControls = fieldControls.filter((c) => c.status === "Planifié" || c.status === "En cours").length;
     const openCapa = capaActions.filter((a) => a.status !== "Clôturée").length;
     const lateCapa = capaActions.filter((a) => isCapaLate(a, now2)).length;
+
+    // Plan de travail (année courante).
+    const yearNow = now2.getFullYear();
+    const planYear = planItems.filter((p) => p.year === yearNow);
+    const planActive = planYear.filter(isPlanActive).length;
+    const planDone = planYear.filter((p) => p.status === "Terminé").length;
+    const planLate = planYear.filter((p) => isPlanLate(p, now2)).length;
+    const planAvg = planYear.length ? Math.round(planYear.reduce((a, p) => a + (p.status === "Terminé" ? 100 : p.progress), 0) / planYear.length) : 0;
+
+    // Distinctions cyber : total décerné + champion.
+    const badgeData = { fieldControls, capaActions, risks, policies, nonConformites, planItems };
+    const ranking = profiles
+      .map((p) => ({ nom: p.nom, n: earnedCount(computeCyberBadges(p.id, badgeData, now2)) }))
+      .sort((a, b) => b.n - a.n);
+    const badgesTotal = ranking.reduce((s, r) => s + r.n, 0);
+    const champion = ranking[0] && ranking[0].n > 0 ? ranking[0] : null;
     // Niveau résiduel (après traitement) — celui qui pilote la décision.
     const withLvl = risks.map((r) => ({ r, level: riskLevel(r.residualProbability, r.residualImpact) }));
     const openRisks = withLvl.filter(({ r }) => r.status !== "Clôturé");
@@ -56,8 +75,8 @@ export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
     });
     const conformityAvg = frameworkScores.length ? Math.round(frameworkScores.reduce((s, x) => s + x.score.conformity, 0) / frameworkScores.length) : 0;
 
-    return { riskByLevel, topRisks, assetByCrit, applicMoy, overdue, openRisks: openRisks.length, frameworkScores, conformityAvg, gaps, plannedControls, openCapa, lateCapa };
-  }, [risks, policies, assets, controlAssessments, fieldControls, capaActions]);
+    return { riskByLevel, topRisks, assetByCrit, applicMoy, overdue, openRisks: openRisks.length, frameworkScores, conformityAvg, gaps, plannedControls, openCapa, lateCapa, planActive, planDone, planLate, planAvg, badgesTotal, champion };
+  }, [risks, policies, assets, controlAssessments, fieldControls, capaActions, planItems, nonConformites, profiles]);
 
   const pctTone = (p: number) => (p >= 70 ? "text-emerald-600" : p >= 40 ? "text-amber-600" : "text-rose-600");
 
@@ -99,6 +118,37 @@ export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
           <MiniStat icon={AlertTriangle} tone="text-amber-600" label="Actions en retard" value={d.lateCapa} onClick={() => onTab("actions")} />
         </div>
       </Card>
+
+      {/* Plan de travail & distinctions (Lot E) */}
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[13px] font-semibold text-slate-700 flex items-center gap-2"><Target size={15} className="text-emerald-500" /> Plan de travail {new Date().getFullYear()}</div>
+            <button onClick={() => onTab("plan")} className="text-[11px] text-emerald-700 hover:underline">Ouvrir →</button>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            <MiniStat icon={Target} tone="text-sky-600" label="Actifs" value={d.planActive} onClick={() => onTab("plan")} />
+            <MiniStat icon={ShieldCheck} tone="text-emerald-600" label="Terminés" value={d.planDone} onClick={() => onTab("plan")} />
+            <MiniStat icon={AlertTriangle} tone="text-amber-600" label="En retard" value={d.planLate} onClick={() => onTab("plan")} />
+            <MiniStat icon={TrendingUp} tone="text-violet-600" label="Avanct. moy." value={`${d.planAvg}%`} onClick={() => onTab("plan")} />
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[13px] font-semibold text-slate-700 flex items-center gap-2"><Award size={15} className="text-amber-500" /> Distinctions cyber</div>
+            <button onClick={() => onTab("distinctions")} className="text-[11px] text-emerald-700 hover:underline">Palmarès →</button>
+          </div>
+          <button onClick={() => onTab("distinctions")} className="w-full text-left">
+            <div className="text-3xl font-bold text-slate-800 dark:text-slate-100">{d.badgesTotal}</div>
+            <div className="text-[11px] text-slate-400 mt-0.5">badge{d.badgesTotal > 1 ? "s" : ""} décerné{d.badgesTotal > 1 ? "s" : ""} à l&apos;équipe</div>
+            {d.champion ? (
+              <div className="mt-2 text-[12px] text-slate-600">🏆 <span className="font-medium">{d.champion.nom}</span> · {d.champion.n} distinction{d.champion.n > 1 ? "s" : ""}</div>
+            ) : (
+              <div className="mt-2 text-[12px] text-slate-400">Aucune distinction pour l&apos;instant.</div>
+            )}
+          </button>
+        </Card>
+      </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Répartition des risques ouverts par niveau */}

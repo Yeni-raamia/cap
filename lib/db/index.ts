@@ -291,6 +291,13 @@ create table if not exists capa_actions (
   owner_id text, due_date text, status text not null default 'Ouverte', verification text not null default '', closed_at text, created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists grc_plan_items (
+  id text primary key, ref text not null,
+  title text not null default '', category text not null default 'Autre', year integer not null default 0, quarter text not null default 'T1',
+  owner_id text, priority text not null default 'Normale', status text not null default 'À planifier', progress integer not null default 0,
+  due_date text, description text not null default '', created_by text,
+  created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists conversations (
   id text primary key, title text not null default '', kind text not null default 'group',
   ref_type text, ref_id text, created_by text, created_at text not null default (datetime('now'))

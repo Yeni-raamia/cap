@@ -45,6 +45,7 @@ import {
   type CapaAction,
   type ControlAssessment,
   type FieldControl,
+  type GrcPlanItem,
   type Negligence,
   type NonConformite,
   type Objective,
@@ -219,6 +220,19 @@ export interface CapaInput {
   status?: string;
   verification?: string;
 }
+export interface PlanInput {
+  id?: string;
+  title?: string;
+  category?: string;
+  year?: number;
+  quarter?: string;
+  ownerId?: string;
+  priority?: string;
+  status?: string;
+  progress?: number;
+  dueDate?: string | null;
+  description?: string;
+}
 type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service" | "policy";
 type RefListActionPayload =
   | { op: "add"; listKey: RefListKey; label: string; icon?: string }
@@ -378,6 +392,13 @@ interface AppCtx {
   updateCapa: (id: string, fields: CapaInput) => Promise<string | null>;
   setCapaStatus: (id: string, status: string) => Promise<string | null>;
   deleteCapa: (id: string) => Promise<string | null>;
+  // GRC : plan de travail (chantiers)
+  planItems: GrcPlanItem[];
+  planItemById: (id: string) => GrcPlanItem | null;
+  createPlanItem: (input: PlanInput) => Promise<string | null>;
+  updatePlanItem: (id: string, fields: PlanInput) => Promise<string | null>;
+  setPlanStatus: (id: string, status: string) => Promise<string | null>;
+  deletePlanItem: (id: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -550,6 +571,13 @@ const reviveCapa = (a: CapaAction): CapaAction => ({
   updatedAt: new Date(a.updatedAt),
 });
 const reviveCapas = (arr: CapaAction[]): CapaAction[] => arr.map(reviveCapa);
+const revivePlan = (p: GrcPlanItem): GrcPlanItem => ({
+  ...p,
+  dueDate: p.dueDate ? new Date(p.dueDate) : null,
+  createdAt: new Date(p.createdAt),
+  updatedAt: new Date(p.updatedAt),
+});
+const revivePlans = (arr: GrcPlanItem[]): GrcPlanItem[] => arr.map(revivePlan);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -614,6 +642,7 @@ export function AppProvider({
   initialControlAssessments,
   initialFieldControls,
   initialCapaActions,
+  initialPlanItems,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -639,6 +668,7 @@ export function AppProvider({
   initialControlAssessments?: ControlAssessment[];
   initialFieldControls?: FieldControl[];
   initialCapaActions?: CapaAction[];
+  initialPlanItems?: GrcPlanItem[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -680,6 +710,7 @@ export function AppProvider({
   const [controlAssessments, setControlAssessments] = useState<ControlAssessment[]>(demo ? [] : reviveAssessments(initialControlAssessments ?? []));
   const [fieldControls, setFieldControls] = useState<FieldControl[]>(demo ? [] : reviveFieldControls(initialFieldControls ?? []));
   const [capaActions, setCapaActions] = useState<CapaAction[]>(demo ? [] : reviveCapas(initialCapaActions ?? []));
+  const [planItems, setPlanItems] = useState<GrcPlanItem[]>(demo ? [] : revivePlans(initialPlanItems ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -1857,6 +1888,23 @@ export function AppProvider({
   const setCapaStatus = (id: string, status: string) => capaAction("status", { id, status });
   const deleteCapa = (id: string) => capaAction("delete", { id });
 
+  /* ---------- GRC : Plan de travail (chantiers) ---------- */
+  const planItemById = (id: string): GrcPlanItem | null => planItems.find((p) => p.id === id) ?? null;
+  const planAction = async (op: "create" | "update" | "status" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Plan de travail indisponible en mode démo.";
+    const res = await fetch("/api/grc-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.planItems) setPlanItems(revivePlans(d.planItems));
+    if (op === "create") toast("Chantier ajouté au plan.", "success");
+    else if (op === "delete") toast("Chantier supprimé.", "success");
+    return null;
+  };
+  const createPlanItem = (input: PlanInput) => planAction("create", input as Record<string, unknown>);
+  const updatePlanItem = (id: string, fields: PlanInput) => planAction("update", { id, ...fields });
+  const setPlanStatus = (id: string, status: string) => planAction("status", { id, status });
+  const deletePlanItem = (id: string) => planAction("delete", { id });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -2161,6 +2209,12 @@ export function AppProvider({
     updateCapa,
     setCapaStatus,
     deleteCapa,
+    planItems,
+    planItemById,
+    createPlanItem,
+    updatePlanItem,
+    setPlanStatus,
+    deletePlanItem,
     openTaskId,
     setOpenTaskId,
     soundEnabled,
