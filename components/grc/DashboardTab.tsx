@@ -40,9 +40,10 @@ export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
     const planLate = planYear.filter((p) => isPlanLate(p, now2)).length;
     const planAvg = planYear.length ? Math.round(planYear.reduce((a, p) => a + (p.status === "Terminé" ? 100 : p.progress), 0) / planYear.length) : 0;
 
-    // Distinctions cyber : total décerné + champion.
+    // Distinctions cyber : total décerné + champion (équipe GRC uniquement).
     const badgeData = { fieldControls, capaActions, risks, policies, nonConformites, planItems };
     const ranking = profiles
+      .filter((p) => p.grcMember)
       .map((p) => ({ nom: p.nom, n: earnedCount(computeCyberBadges(p.id, badgeData, now2)) }))
       .sort((a, b) => b.n - a.n);
     const badgesTotal = ranking.reduce((s, r) => s + r.n, 0);

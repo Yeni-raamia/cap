@@ -384,6 +384,28 @@ function MembresSection({
                     </button>
                   </div>
 
+                  {/* Appartenance à l'équipe GRC (distinctions du module GRC) */}
+                  <div className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2">
+                    <div>
+                      <div className="text-[12px] font-medium text-slate-700">Équipe GRC</div>
+                      <div className="text-[11px] text-slate-400">
+                        {u.grcMember
+                          ? "Membre GRC : figure au classement des distinctions cyber."
+                          : "Hors GRC : n'apparaît pas dans les distinctions du module GRC."}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => call({ action: "grc", id: u.id, grcMember: !u.grcMember })}
+                      className={`text-[12px] rounded-lg px-3 py-1.5 border font-medium ${
+                        u.grcMember
+                          ? "bg-violet-50 border-violet-200 text-violet-700"
+                          : "bg-slate-50 border-slate-200 text-slate-500"
+                      }`}
+                    >
+                      {u.grcMember ? "Membre GRC" : "Hors GRC"}
+                    </button>
+                  </div>
+
                   {/* Vues accessibles — toutes cochables/décochables */}
                   <div>
                     <div className="text-[11px] text-slate-500 mb-1.5">

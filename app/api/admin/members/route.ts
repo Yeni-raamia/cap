@@ -12,6 +12,7 @@ import {
   resetMemberPassword,
   resetMemberTotp,
   setMemberActive,
+  setMemberGrc,
   setMemberPages,
   setMemberPoste,
   setMemberReadonly,
@@ -128,6 +129,10 @@ export async function POST(request: Request) {
     }
     setMemberReadonly(targetId, ro);
     logActivity(user.id, "member_readonly", `${nameOf(targetId)} → ${ro ? "lecture seule" : "écriture"}`);
+  } else if (action === "grc") {
+    const grc = Boolean(body?.grcMember);
+    setMemberGrc(targetId, grc);
+    logActivity(user.id, "member_grc", `${nameOf(targetId)} → ${grc ? "membre GRC" : "hors GRC"}`);
   } else if (action === "password") {
     const password = String(body?.password || "");
     if (password.length < 6) {

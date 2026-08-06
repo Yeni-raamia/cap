@@ -44,6 +44,7 @@ interface ProfileRow {
   denied_pages: string;
   readonly: number;
   approved: number;
+  grc_member: number;
   must_change_password: number;
   password_changed_at: string | null;
   totp_secret: string | null;
@@ -80,6 +81,7 @@ function mapProfile(r: ProfileRow): Profile {
     deniedPages: parsePages(r.denied_pages),
     readonly: r.readonly === 1,
     approved: r.approved === 1,
+    grcMember: r.grc_member === 1,
     mustChangePassword: r.must_change_password === 1,
     totpEnabled: r.totp_enabled === 1,
   };

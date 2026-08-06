@@ -70,6 +70,7 @@ export function mkProfile(over: Partial<Profile> = {}): Profile {
     deniedPages: [],
     readonly: false,
     approved: true,
+    grcMember: false,
     mustChangePassword: false,
     totpEnabled: false,
   };

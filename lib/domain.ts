@@ -115,6 +115,8 @@ export interface Profile {
   readonly: boolean;
   /** Compte validé par l'administrateur (accès autorisé à l'application). */
   approved: boolean;
+  /** Membre de l'équipe GRC (concerné par les distinctions cyber du module GRC). */
+  grcMember: boolean;
   /** L'utilisateur doit renouveler son mot de passe avant d'accéder à l'app. */
   mustChangePassword: boolean;
   /** Double authentification (TOTP) active pour ce compte. */
@@ -1830,6 +1832,7 @@ export interface AdminMember {
   deniedPages: string[];
   readonly: boolean;
   approved: boolean;
+  grcMember: boolean;
   mustChangePassword: boolean;
   totpEnabled: boolean;
   passwordAgeDays: number | null;

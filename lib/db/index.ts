@@ -436,6 +436,9 @@ function ensureColumns(db: Database.Database) {
   if (!pcols.includes("must_change_password")) {
     db.exec("alter table profiles add column must_change_password integer not null default 0");
   }
+  if (!pcols.includes("grc_member")) {
+    db.exec("alter table profiles add column grc_member integer not null default 0");
+  }
   if (!pcols.includes("password_changed_at")) {
     db.exec("alter table profiles add column password_changed_at text");
     // Point de départ de l'âge des mots de passe existants = maintenant.

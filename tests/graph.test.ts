@@ -23,8 +23,8 @@ describe("buildGraph", () => {
     d.items = [mkItem({ id: "i1", ref: "SOC-2026-0001", projectId: "p1" })];
     d.projects = [mkProject({ id: "p1", ownerId: "u1", memberIds: ["u1", "u2"] })];
     d.profiles = [
-      { id: "u1", nom: "A", poste: "", role: "agent", init: "A", extraPages: [], deniedPages: [], readonly: false, approved: true, mustChangePassword: false, totpEnabled: false },
-      { id: "u2", nom: "B", poste: "", role: "agent", init: "B", extraPages: [], deniedPages: [], readonly: false, approved: true, mustChangePassword: false, totpEnabled: false },
+      { id: "u1", nom: "A", poste: "", role: "agent", init: "A", extraPages: [], deniedPages: [], readonly: false, approved: true, grcMember: false, mustChangePassword: false, totpEnabled: false },
+      { id: "u2", nom: "B", poste: "", role: "agent", init: "B", extraPages: [], deniedPages: [], readonly: false, approved: true, grcMember: false, mustChangePassword: false, totpEnabled: false },
     ];
     const g = buildGraph(d);
     const ids = new Set(g.nodes.map((n) => n.id));
@@ -79,7 +79,7 @@ describe("egoSubgraph", () => {
     const d = emptyData();
     d.items = [mkItem({ id: "i1", projectId: "p1" })];
     d.projects = [mkProject({ id: "p1", ownerId: "u1", memberIds: ["u1"] })];
-    d.profiles = [{ id: "u1", nom: "A", poste: "", role: "agent", init: "A", extraPages: [], deniedPages: [], readonly: false, approved: true, mustChangePassword: false, totpEnabled: false }];
+    d.profiles = [{ id: "u1", nom: "A", poste: "", role: "agent", init: "A", extraPages: [], deniedPages: [], readonly: false, approved: true, grcMember: false, mustChangePassword: false, totpEnabled: false }];
     const g = buildGraph(d);
     const ego = egoSubgraph(g, nid("project", "p1"), 1);
     const ids = new Set(ego.nodes.map((n) => n.id));

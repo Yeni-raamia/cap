@@ -101,6 +101,7 @@ interface MemberRow {
   denied_pages: string;
   readonly: number;
   approved: number;
+  grc_member: number;
   must_change_password: number;
   password_changed_at: string | null;
   totp_enabled: number;
@@ -121,6 +122,7 @@ function mapMember(r: MemberRow): AdminMember {
     deniedPages: csv(r.denied_pages),
     readonly: r.readonly === 1,
     approved: r.approved === 1,
+    grcMember: r.grc_member === 1,
     mustChangePassword: r.must_change_password === 1,
     totpEnabled: r.totp_enabled === 1,
     passwordAgeDays,
@@ -171,6 +173,9 @@ export function setMemberPages(id: string, extraPages: string[], deniedPages: st
 }
 export function setMemberReadonly(id: string, readonly: boolean): void {
   getDb().prepare("update profiles set readonly = ? where id = ?").run(readonly ? 1 : 0, id);
+}
+export function setMemberGrc(id: string, grcMember: boolean): void {
+  getDb().prepare("update profiles set grc_member = ? where id = ?").run(grcMember ? 1 : 0, id);
 }
 export function resetMemberPassword(id: string, password: string): void {
   setUserPassword(id, hashPassword(password)); // pose la date de changement + lève l'obligation

@@ -6,7 +6,11 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.40.0] - 2026-08-06
+## [1.41.0] - 2026-08-06
+
+### Ajouté / Modifié
+
+- **Distinctions cyber réservées à l'équipe GRC** : un marqueur **« Membre GRC »** est ajouté à chaque profil, activable par un administrateur (**Administration → Membres → Équipe GRC**). Le classement des distinctions et le détail par membre ne concernent désormais que les profils marqués GRC (le reste du module reste accessible aux rôles habituels). Le tableau de bord GRC ne compte plus que l'équipe GRC pour le champion et le total de badges. Écran d'invitation si aucun membre n'est encore désigné.
 
 ### Ajouté
 

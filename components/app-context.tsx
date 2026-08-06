@@ -419,7 +419,7 @@ interface AppCtx {
 }
 
 const EPOCH = new Date(0);
-const FALLBACK_PROFILE: Profile = { id: "", nom: "…", poste: "", role: "agent", init: "?", extraPages: [], deniedPages: [], readonly: false, approved: true, mustChangePassword: false, totpEnabled: false };
+const FALLBACK_PROFILE: Profile = { id: "", nom: "…", poste: "", role: "agent", init: "?", extraPages: [], deniedPages: [], readonly: false, approved: true, grcMember: false, mustChangePassword: false, totpEnabled: false };
 // Auteur dont le compte a été supprimé par l'admin (données conservées).
 const DELETED_PROFILE: Profile = { ...FALLBACK_PROFILE, nom: "Compte supprimé", init: "—" };
 const Ctx = createContext<AppCtx | null>(null);
