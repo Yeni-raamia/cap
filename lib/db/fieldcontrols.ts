@@ -3,7 +3,7 @@
  * ================================================================== */
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
-import { CHECK_RESULTS, FIELD_CONTROL_STATUS, type CheckItem, type FieldControl } from "@/lib/domain";
+import { CHECK_RESULTS, FIELD_CONTROL_STATUS, type CheckItem, type FieldControl, type FieldControlEvent, type FieldEventKind } from "@/lib/domain";
 
 const now = () => new Date().toISOString();
 
@@ -33,6 +33,17 @@ interface ItemRow {
   ordre: number;
 }
 
+interface EventRow {
+  id: string;
+  control_id: string;
+  kind: string;
+  label: string;
+  from_status: string;
+  to_status: string;
+  author_id: string | null;
+  at: string;
+}
+
 const mapItem = (r: ItemRow): CheckItem => ({
   id: r.id,
   label: r.label,
@@ -42,7 +53,18 @@ const mapItem = (r: ItemRow): CheckItem => ({
   controlCode: r.control_code,
 });
 
-function mapFc(r: FcRow, items: CheckItem[]): FieldControl {
+const KINDS: FieldEventKind[] = ["creation", "statut", "action"];
+const mapEvent = (r: EventRow): FieldControlEvent => ({
+  id: r.id,
+  kind: (KINDS.includes(r.kind as FieldEventKind) ? r.kind : "action") as FieldEventKind,
+  label: r.label,
+  fromStatus: r.from_status,
+  toStatus: r.to_status,
+  authorId: r.author_id,
+  at: new Date(r.at),
+});
+
+function mapFc(r: FcRow, items: CheckItem[], events: FieldControlEvent[]): FieldControl {
   return {
     id: r.id,
     ref: r.ref,
@@ -55,19 +77,29 @@ function mapFc(r: FcRow, items: CheckItem[]): FieldControl {
     status: r.status,
     summary: r.summary,
     items,
+    events,
     createdBy: r.created_by,
     createdAt: new Date(r.created_at),
     updatedAt: new Date(r.updated_at),
   };
 }
 
+function insertEvent(controlId: string, kind: FieldEventKind, label: string, fromStatus: string, toStatus: string, authorId: string | null): void {
+  getDb()
+    .prepare("insert into field_control_events (id, control_id, kind, label, from_status, to_status, author_id) values (?,?,?,?,?,?,?)")
+    .run(randomUUID(), controlId, kind, label, fromStatus, toStatus, authorId);
+}
+
 export function listFieldControls(): FieldControl[] {
   const db = getDb();
   const rows = db.prepare("select * from field_controls order by coalesce(date, created_at) desc").all() as FcRow[];
   const items = db.prepare("select * from field_control_items order by ordre, rowid").all() as ItemRow[];
+  const events = db.prepare("select * from field_control_events order by at asc, rowid").all() as EventRow[];
   const byControl = new Map<string, CheckItem[]>();
   items.forEach((it) => byControl.set(it.control_id, [...(byControl.get(it.control_id) ?? []), mapItem(it)]));
-  return rows.map((r) => mapFc(r, byControl.get(r.id) ?? []));
+  const evByControl = new Map<string, FieldControlEvent[]>();
+  events.forEach((e) => evByControl.set(e.control_id, [...(evByControl.get(e.control_id) ?? []), mapEvent(e)]));
+  return rows.map((r) => mapFc(r, byControl.get(r.id) ?? [], evByControl.get(r.id) ?? []));
 }
 
 export function getFieldControl(id: string): FieldControl | null {
@@ -75,7 +107,8 @@ export function getFieldControl(id: string): FieldControl | null {
   const r = db.prepare("select * from field_controls where id=?").get(id) as FcRow | undefined;
   if (!r) return null;
   const items = (db.prepare("select * from field_control_items where control_id=? order by ordre, rowid").all(id) as ItemRow[]).map(mapItem);
-  return mapFc(r, items);
+  const events = (db.prepare("select * from field_control_events where control_id=? order by at asc, rowid").all(id) as EventRow[]).map(mapEvent);
+  return mapFc(r, items, events);
 }
 
 export function fieldControlExists(id: string): boolean {
@@ -143,13 +176,16 @@ export function createFieldControl(input: FcFields & { title: string; createdBy:
     input.createdBy
   );
   setItems(id, input.items ?? []);
+  const st = FIELD_CONTROL_STATUS.includes(input.status ?? "") ? input.status! : "Planifié";
+  insertEvent(id, "creation", `Contrôle créé (${st})`, "", st, input.createdBy);
   return id;
 }
 
-export function updateFieldControl(id: string, fields: FcFields): void {
+export function updateFieldControl(id: string, fields: FcFields, actorId: string | null = null): void {
   const db = getDb();
   const cur = db.prepare("select * from field_controls where id=?").get(id) as FcRow | undefined;
   if (!cur) return;
+  const nextStatus = fields.status !== undefined && FIELD_CONTROL_STATUS.includes(fields.status) ? fields.status : cur.status;
   db.prepare(
     "update field_controls set title=?, type=?, service=?, location=?, date=?, inspector_id=?, status=?, summary=?, updated_at=? where id=?"
   ).run(
@@ -159,12 +195,23 @@ export function updateFieldControl(id: string, fields: FcFields): void {
     fields.location !== undefined ? fields.location : cur.location,
     fields.date !== undefined ? fields.date : cur.date,
     fields.inspectorId !== undefined ? fields.inspectorId : cur.inspector_id,
-    fields.status !== undefined && FIELD_CONTROL_STATUS.includes(fields.status) ? fields.status : cur.status,
+    nextStatus,
     fields.summary !== undefined ? fields.summary : cur.summary,
     now(),
     id
   );
   if (fields.items) setItems(id, fields.items);
+  // Trace automatique du changement d'état dans le fil de vie.
+  if (nextStatus !== cur.status) {
+    insertEvent(id, "statut", `Statut : ${cur.status} → ${nextStatus}`, cur.status, nextStatus, actorId);
+  }
+}
+
+/** Ajoute une action de suivi (note datée) au fil de vie d'un contrôle. */
+export function addFieldControlEvent(controlId: string, label: string, actorId: string | null): void {
+  if (!label.trim()) return;
+  insertEvent(controlId, "action", label.trim(), "", "", actorId);
+  getDb().prepare("update field_controls set updated_at=? where id=?").run(now(), controlId);
 }
 
 /** Libellé d'un point de contrôle (pour tracer une action à partir d'un écart). */
@@ -176,5 +223,6 @@ export function checkItemLabel(itemId: string): string | null {
 export function deleteFieldControl(id: string): void {
   const db = getDb();
   db.prepare("delete from field_control_items where control_id=?").run(id);
+  db.prepare("delete from field_control_events where control_id=?").run(id);
   db.prepare("delete from field_controls where id=?").run(id);
 }

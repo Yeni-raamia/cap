@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
-import { createFieldControl, deleteFieldControl, fieldControlExists, getFieldControl, listFieldControls, updateFieldControl } from "@/lib/db/fieldcontrols";
+import { addFieldControlEvent, createFieldControl, deleteFieldControl, fieldControlExists, getFieldControl, listFieldControls, updateFieldControl } from "@/lib/db/fieldcontrols";
 import { logActivity } from "@/lib/db/admin";
 import { frameworkById } from "@/lib/grc/frameworks";
 
@@ -72,7 +72,11 @@ export async function POST(request: Request) {
       status: typeof body?.status === "string" ? body.status : undefined,
       summary: typeof body?.summary === "string" ? body.summary : undefined,
       items: body?.items !== undefined ? parseItems(body.items) : undefined,
-    });
+    }, user.id);
+  } else if (op === "event") {
+    const label = String(body?.label || "").trim();
+    if (!label) return NextResponse.json({ error: "Action de suivi vide." }, { status: 400 });
+    addFieldControlEvent(id, label, user.id);
   } else if (op === "delete") {
     if (!canDelete(user.role)) return NextResponse.json({ error: "Suppression réservée aux manager/directeur/admin." }, { status: 403 });
     deleteFieldControl(id);

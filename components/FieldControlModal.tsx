@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardCheck, Plus, Trash2, Wrench, X } from "lucide-react";
+import { ClipboardCheck, History, Plus, Send, Trash2, Wrench, X } from "lucide-react";
 import {
   CHECK_RESULT_TONE,
   CHECK_RESULTS,
   FIELD_CONTROL_STATUS,
   FIELD_CONTROL_TYPES,
+  FIELD_EVENT_TONE,
+  fmtLong,
   type CheckItem,
   type FieldControl,
 } from "@/lib/domain";
@@ -20,8 +22,21 @@ type LocalItem = CheckItem;
 
 /** Fiche d'un contrôle terrain : métadonnées + check-list ; les écarts génèrent des actions. */
 export function FieldControlModal({ control, creating, onClose }: { control: FieldControl | null; creating: boolean; onClose: () => void }) {
-  const { demo, me, profiles, refLists, createFieldControl, updateFieldControl, deleteFieldControl, createCapa } = useApp();
+  const { demo, me, profiles, profileById, refLists, fieldControlById, createFieldControl, updateFieldControl, deleteFieldControl, addControlEvent, createCapa } = useApp();
   const canEdit = !demo;
+
+  // Fil de vie live (mis à jour dès qu'une action de suivi est ajoutée).
+  const live = control ? fieldControlById(control.id) : null;
+  const events = (live ?? control)?.events ?? [];
+  const [followUp, setFollowUp] = useState("");
+  const [postingEvent, setPostingEvent] = useState(false);
+  const submitEvent = async () => {
+    if (!control || !followUp.trim()) return;
+    setPostingEvent(true);
+    const e = await addControlEvent(control.id, followUp.trim());
+    setPostingEvent(false);
+    if (!e) setFollowUp("");
+  };
 
   const [title, setTitle] = useState(control?.title ?? "");
   const [type, setType] = useState(control?.type ?? FIELD_CONTROL_TYPES[0]);
@@ -155,7 +170,44 @@ export function FieldControlModal({ control, creating, onClose }: { control: Fie
             <label className={labelCls}>Conclusion / synthèse</label>
             <textarea value={summary} onChange={(e) => setSummary(e.target.value)} disabled={!canEdit} rows={2} placeholder="Bilan du contrôle…" className={inputCls} />
           </div>
-          {creating && <div className="text-[11px] text-slate-400">Astuce : enregistrez le contrôle, puis rouvrez-le pour générer une action corrective à partir d&apos;un écart.</div>}
+
+          {/* Fil de vie : états + actions de suivi */}
+          {!creating && control && (
+            <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+              <div className="text-[11px] font-medium text-slate-500 uppercase mb-2 flex items-center gap-1.5"><History size={13} /> Évolution du contrôle</div>
+              {events.length === 0 ? (
+                <div className="text-[12px] text-slate-400">Aucun événement.</div>
+              ) : (
+                <ol className="relative border-l border-slate-200 dark:border-slate-700 ml-1.5 space-y-2.5">
+                  {[...events].reverse().map((ev) => (
+                    <li key={ev.id} className="ml-3.5 relative">
+                      <span className={`absolute -left-[1.15rem] top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 ${ev.kind === "statut" ? "bg-sky-500" : ev.kind === "action" ? "bg-emerald-500" : "bg-slate-400"}`} />
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded ${FIELD_EVENT_TONE[ev.kind]}`}>{ev.kind === "statut" ? "État" : ev.kind === "action" ? "Action" : "Création"}</span>
+                        <span className="text-[12px] text-slate-700 dark:text-slate-200">{ev.label}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">{ev.authorId ? profileById(ev.authorId).nom : "—"} · {fmtLong(ev.at)}</div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {canEdit && (
+                <div className="flex items-center gap-2 mt-3">
+                  <input
+                    value={followUp}
+                    onChange={(e) => setFollowUp(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submitEvent(); } }}
+                    placeholder="Action de suivi (ex. relance du service, nouvelle visite…)"
+                    className="flex-1 text-[12px] border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-emerald-400"
+                  />
+                  <button onClick={submitEvent} disabled={postingEvent || !followUp.trim()} className="inline-flex items-center gap-1 text-[12px] font-medium text-white bg-emerald-600 rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                    <Send size={13} /> Ajouter
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {creating && <div className="text-[11px] text-slate-400">Astuce : enregistrez le contrôle, puis rouvrez-le pour suivre son évolution (états, actions) et générer une action corrective à partir d&apos;un écart.</div>}
         </div>
 
         {canEdit && (

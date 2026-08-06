@@ -284,6 +284,11 @@ create table if not exists field_control_items (
   framework_id text not null default '', control_code text not null default '', ordre integer not null default 0
 );
 create index if not exists idx_fcitems_control on field_control_items(control_id);
+create table if not exists field_control_events (
+  id text primary key, control_id text not null, kind text not null default 'action',
+  label text not null default '', from_status text not null default '', to_status text not null default '',
+  author_id text, at text not null default (datetime('now'))
+);
 create table if not exists capa_actions (
   id text primary key, ref text not null,
   title text not null default '', description text not null default '', type text not null default 'Corrective',

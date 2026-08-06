@@ -385,6 +385,7 @@ interface AppCtx {
   createFieldControl: (input: FieldControlInput) => Promise<string | null>;
   updateFieldControl: (id: string, fields: FieldControlInput) => Promise<string | null>;
   deleteFieldControl: (id: string) => Promise<string | null>;
+  addControlEvent: (id: string, label: string) => Promise<string | null>;
   // GRC : plan d'actions (CAPA)
   capaActions: CapaAction[];
   capaById: (id: string) => CapaAction | null;
@@ -559,6 +560,7 @@ const reviveAssessments = (arr: ControlAssessment[]): ControlAssessment[] => arr
 const reviveFieldControl = (c: FieldControl): FieldControl => ({
   ...c,
   date: c.date ? new Date(c.date) : null,
+  events: (c.events ?? []).map((e) => ({ ...e, at: new Date(e.at) })),
   createdAt: new Date(c.createdAt),
   updatedAt: new Date(c.updatedAt),
 });
@@ -1857,7 +1859,7 @@ export function AppProvider({
 
   /* ---------- GRC : Contrôles terrain ---------- */
   const fieldControlById = (id: string): FieldControl | null => fieldControls.find((c) => c.id === id) ?? null;
-  const fcAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+  const fcAction = async (op: "create" | "update" | "delete" | "event", input: Record<string, unknown>): Promise<string | null> => {
     if (demo) return "Contrôles terrain indisponibles en mode démo.";
     const res = await fetch("/api/field-controls", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
     const d = await res.json();
@@ -1865,11 +1867,13 @@ export function AppProvider({
     if (d.fieldControls) setFieldControls(reviveFieldControls(d.fieldControls));
     if (op === "create") toast("Contrôle terrain créé.", "success");
     else if (op === "delete") toast("Contrôle supprimé.", "success");
+    else if (op === "event") toast("Action de suivi ajoutée.", "success");
     return null;
   };
   const createFieldControl = (input: FieldControlInput) => fcAction("create", input as Record<string, unknown>);
   const updateFieldControl = (id: string, fields: FieldControlInput) => fcAction("update", { id, ...fields });
   const deleteFieldControl = (id: string) => fcAction("delete", { id });
+  const addControlEvent = (id: string, label: string) => fcAction("event", { id, label });
 
   /* ---------- GRC : Plan d'actions (CAPA) ---------- */
   const capaById = (id: string): CapaAction | null => capaActions.find((a) => a.id === id) ?? null;
@@ -2203,6 +2207,7 @@ export function AppProvider({
     createFieldControl,
     updateFieldControl,
     deleteFieldControl,
+    addControlEvent,
     capaActions,
     capaById,
     createCapa,

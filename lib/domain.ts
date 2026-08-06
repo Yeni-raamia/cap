@@ -711,6 +711,22 @@ export interface CheckItem {
   frameworkId: string; // mesure de conformité rattachée (facultatif)
   controlCode: string;
 }
+/** Événement du fil de vie d'un contrôle : création, changement d'état, ou action de suivi. */
+export type FieldEventKind = "creation" | "statut" | "action";
+export interface FieldControlEvent {
+  id: string;
+  kind: FieldEventKind;
+  label: string; // description libre / action de suivi
+  fromStatus: string; // pour kind="statut"
+  toStatus: string; // pour kind="statut"
+  authorId: string | null;
+  at: Date;
+}
+export const FIELD_EVENT_TONE: Record<FieldEventKind, string> = {
+  creation: "bg-slate-100 text-slate-500",
+  statut: "bg-sky-100 text-sky-700",
+  action: "bg-emerald-100 text-emerald-700",
+};
 export interface FieldControl {
   id: string;
   ref: string;
@@ -723,6 +739,7 @@ export interface FieldControl {
   status: string;
   summary: string; // conclusion
   items: CheckItem[];
+  events: FieldControlEvent[]; // fil de vie horodaté (états + actions de suivi)
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;

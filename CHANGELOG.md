@@ -6,7 +6,14 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.41.0] - 2026-08-06
+## [1.42.0] - 2026-08-06
+
+### Ajouté
+
+- **Contrôles terrain — fil de vie & actions de suivi** : chaque contrôle dispose désormais d'une **timeline horodatée** de son évolution.
+  - **Historique automatique des états** : la création et chaque **changement de statut** (Planifié → En cours → Réalisé → Clôturé) sont journalisés (état précédent → nouvel état, auteur, date).
+  - **Actions de suivi** : possibilité d'ajouter des notes/actions datées (relance d'un service, nouvelle visite…) directement sur la fiche, sans quitter la modale.
+  - Affichage en **frise chronologique** sur la fiche du contrôle (états et actions distingués par couleur).
 
 ### Ajouté / Modifié
 
