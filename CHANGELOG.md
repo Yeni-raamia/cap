@@ -6,7 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.45.1] - 2026-08-06
+## [1.46.0] - 2026-08-06
+
+### Ajouté
+
+- **Joyaux de la couronne imprimables en PDF** (onglet Joyaux) : bouton « Rapport PDF » générant le document JCA — synthèse (joyaux, prioritaires, exposés, sans analyse), tableau des joyaux (criticité, C/I/D, exposition, protection, JRI, priorité) et recommandations par joyau à traiter.
+- **Politiques — graphiques de suivi** : sur l'onglet Politiques, un bloc « Statistiques de suivi » visualise la **répartition des diffusions par état** (Diffusée → Consultée → Comprise → Applicable → Non applicable) et la **répartition des politiques par statut** (histogramme + anneau, thème clair/sombre).
 
 ### Corrigé
 

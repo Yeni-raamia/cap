@@ -16,6 +16,7 @@ import { Truck } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PolicyModal } from "@/components/PolicyModal";
 import { PolicyTrackingModal } from "@/components/PolicyTrackingModal";
+import { PolitiquesStats } from "@/components/grc/PolitiquesStats";
 
 const statusTone: Record<string, string> = {
   Brouillon: "bg-slate-100 text-slate-600",
@@ -72,6 +73,8 @@ export function PolitiquesTab() {
         <Kpi label="Applicabilité moyenne" value={`${kpi.avg}%`} tone="text-sky-600" />
         <Kpi label="Revue en retard" value={`${kpi.aRevoir}`} tone="text-amber-600" />
       </div>
+
+      {policies.length > 0 && <PolitiquesStats policies={policies} />}
 
       <Card className="p-2.5">
         <div className="flex items-center gap-2 flex-wrap">

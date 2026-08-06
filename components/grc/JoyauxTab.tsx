@@ -14,6 +14,7 @@ import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { JoyauxRapportPdf } from "@/components/JoyauxRapportPdf";
 
 export function JoyauxTab() {
   const { assets, risks, fieldControls, profileById } = useApp();
@@ -34,6 +35,7 @@ export function JoyauxTab() {
       <GrcTabHeader
         title="Joyaux de la couronne"
         subtitle="Analyse des joyaux (Crown Jewels Analysis) : les actifs vitaux pour la mission, leur exposition et leur protection — déduits des actifs, risques et contrôles."
+        right={jewels.length > 0 ? <JoyauxRapportPdf /> : undefined}
       />
 
       <Card className="p-3.5 bg-gradient-to-r from-indigo-50/60 to-transparent dark:from-indigo-500/10">
