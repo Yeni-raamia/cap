@@ -241,6 +241,14 @@ create table if not exists policy_diffusions (
   updated_at text not null default (datetime('now'))
 );
 create index if not exists idx_polldiff_policy on policy_diffusions(policy_id);
+create table if not exists assets (
+  id text primary key, ref text not null,
+  name text not null default '', type text not null default '', description text not null default '',
+  owner_id text, service text not null default '',
+  confidentiality integer not null default 1, integrity integer not null default 1, availability integer not null default 1,
+  status text not null default 'Actif', review_date text, created_by text,
+  created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists conversations (
   id text primary key, title text not null default '', kind text not null default 'group',
   ref_type text, ref_id text, created_by text, created_at text not null default (datetime('now'))

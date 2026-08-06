@@ -41,6 +41,7 @@ import {
   type MeetingLink,
   type MeetingParticipant,
   type Message,
+  type Asset,
   type Negligence,
   type NonConformite,
   type Objective,
@@ -156,6 +157,19 @@ export interface PolicyInput {
   url?: string;
   ownerId?: string;
   publishedAt?: string | null;
+  reviewDate?: string | null;
+}
+export interface AssetInput {
+  id?: string;
+  name?: string;
+  type?: string;
+  description?: string;
+  ownerId?: string;
+  service?: string;
+  confidentiality?: number;
+  integrity?: number;
+  availability?: number;
+  status?: string;
   reviewDate?: string | null;
 }
 type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service" | "policy";
@@ -292,6 +306,12 @@ interface AppCtx {
   deletePolicy: (id: string) => Promise<string | null>;
   setPolicyDiffusion: (id: string, service: string, stage: string, note?: string) => Promise<string | null>;
   removePolicyDiffusion: (id: string, service: string) => Promise<string | null>;
+  // GRC : registre des actifs
+  assets: Asset[];
+  assetById: (id: string) => Asset | null;
+  createAsset: (input: AssetInput) => Promise<string | null>;
+  updateAsset: (id: string, fields: AssetInput) => Promise<string | null>;
+  deleteAsset: (id: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -432,6 +452,13 @@ const revivePolicy = (p: Policy): Policy => ({
   diffusions: (p.diffusions ?? []).map((d) => ({ ...d, updatedAt: new Date(d.updatedAt) })),
 });
 const revivePolicies = (arr: Policy[]): Policy[] => arr.map(revivePolicy);
+const reviveAsset = (a: Asset): Asset => ({
+  ...a,
+  reviewDate: a.reviewDate ? new Date(a.reviewDate) : null,
+  createdAt: new Date(a.createdAt),
+  updatedAt: new Date(a.updatedAt),
+});
+const reviveAssets = (arr: Asset[]): Asset[] => arr.map(reviveAsset);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -492,6 +519,7 @@ export function AppProvider({
   initialMeetings,
   initialRisks,
   initialPolicies,
+  initialAssets,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -513,6 +541,7 @@ export function AppProvider({
   initialMeetings?: Meeting[];
   initialRisks?: Risk[];
   initialPolicies?: Policy[];
+  initialAssets?: Asset[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -550,6 +579,7 @@ export function AppProvider({
   const [objectives, setObjectives] = useState<Objective[]>(demo ? seedObjectives() : reviveObjectives(initialObjectives ?? []));
   const [risks, setRisks] = useState<Risk[]>(demo ? [] : reviveRisks(initialRisks ?? []));
   const [policies, setPolicies] = useState<Policy[]>(demo ? [] : revivePolicies(initialPolicies ?? []));
+  const [assets, setAssets] = useState<Asset[]>(demo ? [] : reviveAssets(initialAssets ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -1650,6 +1680,29 @@ export function AppProvider({
   const setPolicyDiffusion = (id: string, service: string, stage: string, note?: string) => policyAction("diffuse", { id, service, stage, note: note ?? "" });
   const removePolicyDiffusion = (id: string, service: string) => policyAction("undiffuse", { id, service });
 
+  /* ---------- GRC : Registre des actifs ---------- */
+  const assetById = (id: string): Asset | null => assets.find((a) => a.id === id) ?? null;
+  const assetAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Registre des actifs indisponible en mode démo.";
+    const res = await fetch("/api/assets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, ...input }),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      toast(d.error ?? "Erreur.", "error");
+      return d.error ?? "Erreur.";
+    }
+    if (d.assets) setAssets(reviveAssets(d.assets));
+    if (op === "create") toast("Actif ajouté au registre.", "success");
+    else if (op === "delete") toast("Actif supprimé.", "success");
+    return null;
+  };
+  const createAsset = (input: AssetInput) => assetAction("create", input as Record<string, unknown>);
+  const updateAsset = (id: string, fields: AssetInput) => assetAction("update", { id, ...fields });
+  const deleteAsset = (id: string) => assetAction("delete", { id });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -1933,6 +1986,11 @@ export function AppProvider({
     deletePolicy,
     setPolicyDiffusion,
     removePolicyDiffusion,
+    assets,
+    assetById,
+    createAsset,
+    updateAsset,
+    deleteAsset,
     openTaskId,
     setOpenTaskId,
     soundEnabled,

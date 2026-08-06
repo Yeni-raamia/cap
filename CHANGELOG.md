@@ -6,9 +6,18 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-Module GRC — lots suivants : rondes & contrôles terrain, plan de travail GRC +
-tableau de bord, badges cyber. Chantiers Tâches restants : historique/journal,
-réordonnancement, motif de blocage.
+Module GRC — lots suivants : Conformité (référentiels ISO/NIST/CIS/RGPD-NIS2,
+évaluation des mesures, SoA, score), Risques ISO 27005 (inhérent→résiduel +
+acceptation), Contrôles terrain + CAPA, Plan de travail, badges cyber.
+
+## [1.35.0] - 2026-08-06
+
+### Modifié
+- **Module GRC unifié à onglets** : les entrées séparées « Registre des risques » et « Politiques » de la barre latérale sont regroupées sous **une seule entrée « GRC »** (onglets : **Tableau de bord · Actifs · Risques · Politiques**), pour désencombrer la navigation. Les anciennes URL `/risques` et `/politiques` sont remplacées par `/grc`.
+
+### Ajouté
+- **Registre des actifs** (ISO 27005) : cartographier ce que l'on protège, valorisé selon les besoins de sécurité **C/I/D** (Confidentialité / Intégrité / Disponibilité, échelle 1–4) ; la **criticité** de l'actif = la plus haute des trois valeurs. Type, propriétaire, direction/service, statut, date de revue, réf. auto (`ACT-AAAA-NNN`). Recherche & filtres (type, criticité).
+- **Tableau de bord GRC** : vue transverse — actifs par criticité, **risques ouverts par niveau**, top 5 des risques, applicabilité moyenne des politiques, **revues en retard** (actifs + risques + politiques), avec accès direct aux onglets.
 
 ## [1.34.0] - 2026-08-05
 

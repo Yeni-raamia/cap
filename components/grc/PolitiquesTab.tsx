@@ -11,7 +11,7 @@ import {
 } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
-import { PageHero } from "@/components/PageHero";
+import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { PolicyModal } from "@/components/PolicyModal";
 
@@ -22,8 +22,8 @@ const statusTone: Record<string, string> = {
   Retirée: "bg-slate-200 text-slate-400",
 };
 
-export default function PolitiquesPage() {
-  const { policies, me, profileById, readOnly } = useApp();
+export function PolitiquesTab() {
+  const { policies, profileById, readOnly } = useApp();
   const [search, setSearch] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [fDomain, setFDomain] = useState("");
@@ -51,10 +51,8 @@ export default function PolitiquesPage() {
   const canCreate = !readOnly;
 
   return (
-    <div className="space-y-5 animate-float">
-      <PageHero
-        kicker="Gouvernance · Risque · Conformité"
-        icon={ScrollText}
+    <div className="space-y-5">
+      <GrcTabHeader
         title="Politiques de sécurité"
         subtitle="Diffuser les politiques et suivre, par direction/service, leur cycle : Diffusée → Consultée → Comprise → Applicable."
         right={canCreate ? (

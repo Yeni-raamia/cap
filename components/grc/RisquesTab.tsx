@@ -15,7 +15,7 @@ import {
 } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
-import { PageHero } from "@/components/PageHero";
+import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { RiskModal } from "@/components/RiskModal";
 
@@ -28,8 +28,8 @@ const statusTone: Record<string, string> = {
   Clôturé: "bg-slate-200 text-slate-500",
 };
 
-export default function RisquesPage() {
-  const { risks, me, profileById, readOnly } = useApp();
+export function RisquesTab() {
+  const { risks, profileById, readOnly } = useApp();
   const [search, setSearch] = useState("");
   const [fLevel, setFLevel] = useState<RiskLevel | "">("");
   const [fStatus, setFStatus] = useState("");
@@ -68,10 +68,8 @@ export default function RisquesPage() {
   const canCreate = !readOnly;
 
   return (
-    <div className="space-y-5 animate-float">
-      <PageHero
-        kicker="Gouvernance · Risque · Conformité"
-        icon={ShieldAlert}
+    <div className="space-y-5">
+      <GrcTabHeader
         title="Registre des risques"
         subtitle="Identifier, évaluer (probabilité × impact) et traiter les risques — reliés aux autres modules pour croiser l'information."
         right={canCreate ? (

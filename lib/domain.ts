@@ -577,6 +577,54 @@ export interface Policy {
   updatedAt: Date;
 }
 
+/* ---------- Module GRC : Registre des actifs (ISO 27005) ----------
+ * Ce que l'organisation protège. Chaque actif est valorisé selon les trois
+ * critères de sécurité C/I/D (échelle 1–4) ; sa criticité = max(C, I, D). */
+export const ASSET_TYPES = [
+  "Information / Données",
+  "Logiciel / Applicatif",
+  "Matériel / Infrastructure",
+  "Service / Processus",
+  "Personne / Compétence",
+  "Site / Local",
+  "Fournisseur / Tiers",
+];
+export const ASSET_STATUTS = ["Actif", "En projet", "Retiré"];
+/** Échelle des critères de sécurité (index 1–4). */
+export const CID_LABELS = ["—", "Faible", "Modéré", "Élevé", "Critique"];
+/** Échelle de confidentialité (classification), index 1–4. */
+export const CONFIDENTIALITY_LABELS = ["—", "Public", "Interne", "Confidentiel", "Secret"];
+export type AssetCriticality = "Faible" | "Modéré" | "Élevé" | "Critique";
+export const CRITICALITY_TONE: Record<AssetCriticality, string> = {
+  Faible: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  Modéré: "bg-amber-100 text-amber-700 border-amber-200",
+  Élevé: "bg-orange-100 text-orange-700 border-orange-200",
+  Critique: "bg-rose-100 text-rose-700 border-rose-200",
+};
+/** Criticité d'un actif = plus haute des trois valeurs C/I/D. */
+export function assetCriticality(a: { confidentiality: number; integrity: number; availability: number }): AssetCriticality {
+  const m = Math.max(a.confidentiality || 1, a.integrity || 1, a.availability || 1);
+  return (CID_LABELS[Math.min(4, Math.max(1, m))] as AssetCriticality) || "Faible";
+}
+
+export interface Asset {
+  id: string;
+  ref: string;
+  name: string;
+  type: string;
+  description: string;
+  ownerId: string; // propriétaire de l'actif (responsable)
+  service: string; // direction / service détenteur
+  confidentiality: number; // 1–4
+  integrity: number; // 1–4
+  availability: number; // 1–4
+  status: string;
+  reviewDate: Date | null;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /** Taux d'applicabilité d'une politique : part des services arrivés à « Applicable »
  *  (les services « Non applicable » sont exclus du dénominateur). */
 export function policyCoverage(p: Policy): { applicable: number; total: number; pct: number } {

@@ -17,9 +17,8 @@ import {
   FolderKanban,
   LayoutDashboard,
   MessageSquare,
-  ScrollText,
   Settings,
-  ShieldAlert,
+  ShieldCheck,
   Sparkles,
   Trophy,
   Users,
@@ -47,8 +46,7 @@ const ICONS: Record<string, LucideIcon> = {
   MessageSquare,
   Settings,
   Share2,
-  ShieldAlert,
-  ScrollText,
+  ShieldCheck,
 };
 
 export function Sidebar() {
