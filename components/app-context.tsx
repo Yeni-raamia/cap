@@ -59,6 +59,7 @@ import {
   type ProjectStatus,
   type ReminderState,
   type Risk,
+  type RiskControlRef,
   type RiskLink,
   type Role,
   type Score,
@@ -140,12 +141,18 @@ export interface RiskInput {
   category?: string;
   probability?: number;
   impact?: number;
+  residualProbability?: number;
+  residualImpact?: number;
+  assetId?: string | null;
+  threat?: string;
+  vulnerability?: string;
   treatment?: string;
   treatmentPlan?: string;
   status?: string;
   ownerId?: string;
   reviewDate?: string | null;
   links?: RiskLink[];
+  controls?: RiskControlRef[];
 }
 export interface PolicyInput {
   id?: string;
@@ -310,6 +317,8 @@ interface AppCtx {
   updateRisk: (id: string, fields: RiskInput) => Promise<string | null>;
   setRiskStatus: (id: string, status: string) => Promise<string | null>;
   deleteRisk: (id: string) => Promise<string | null>;
+  acceptRisk: (id: string, acceptUntil: string | null, justification: string) => Promise<string | null>;
+  reviewRisk: (id: string, note: string) => Promise<string | null>;
   // GRC : politiques de sécurité
   policies: Policy[];
   policyById: (id: string) => Policy | null;
@@ -455,6 +464,9 @@ const reviveObjectives = (arr: Objective[]): Objective[] => arr.map(reviveObject
 const reviveRisk = (r: Risk): Risk => ({
   ...r,
   reviewDate: r.reviewDate ? new Date(r.reviewDate) : null,
+  acceptedAt: r.acceptedAt ? new Date(r.acceptedAt) : null,
+  acceptUntil: r.acceptUntil ? new Date(r.acceptUntil) : null,
+  reviews: (r.reviews ?? []).map((v) => ({ ...v, reviewedAt: new Date(v.reviewedAt) })),
   createdAt: new Date(r.createdAt),
   updatedAt: new Date(r.updatedAt),
 });
@@ -1659,7 +1671,7 @@ export function AppProvider({
 
   /* ---------- GRC : Registre des risques ---------- */
   const riskById = (id: string): Risk | null => risks.find((r) => r.id === id) ?? null;
-  const riskAction = async (op: "create" | "update" | "status" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+  const riskAction = async (op: "create" | "update" | "status" | "delete" | "accept" | "review", input: Record<string, unknown>): Promise<string | null> => {
     if (demo) return "Registre des risques indisponible en mode démo.";
     const res = await fetch("/api/risks", {
       method: "POST",
@@ -1680,6 +1692,8 @@ export function AppProvider({
   const updateRisk = (id: string, fields: RiskInput) => riskAction("update", { id, ...fields });
   const setRiskStatus = (id: string, status: string) => riskAction("status", { id, status });
   const deleteRisk = (id: string) => riskAction("delete", { id });
+  const acceptRisk = (id: string, acceptUntil: string | null, justification: string) => riskAction("accept", { id, acceptUntil, justification });
+  const reviewRisk = (id: string, note: string) => riskAction("review", { id, note });
 
   /* ---------- GRC : Politiques de sécurité ---------- */
   const policyById = (id: string): Policy | null => policies.find((p) => p.id === id) ?? null;
@@ -2024,6 +2038,8 @@ export function AppProvider({
     updateRisk,
     setRiskStatus,
     deleteRisk,
+    acceptRisk,
+    reviewRisk,
     policies,
     policyById,
     createPolicy,

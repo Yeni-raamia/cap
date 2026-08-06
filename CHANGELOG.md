@@ -6,8 +6,18 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-Module GRC — lots suivants : Risques ISO 27005 (inhérent→résiduel + acceptation +
-historique), Contrôles terrain + CAPA, Plan de travail, badges cyber.
+Module GRC — lots suivants : Contrôles terrain + CAPA, Plan de travail, badges cyber.
+
+## [1.37.0] - 2026-08-06
+
+### Ajouté / Modifié
+- **Risques — méthode ISO 27005** (refonte du registre, module GRC) :
+  - **Risque inhérent → traitement → risque résiduel** : deux évaluations Probabilité × Impact (avant / après traitement), niveaux calculés ; la **matrice bascule entre vue inhérente et résiduelle**, et chaque risque affiche « Inhérent → Résiduel ».
+  - **Scénario de risque** : **actif ciblé** (lié au registre des actifs), **source/menace** et **vulnérabilité**.
+  - **Mesures de traitement liées à la conformité** : rattacher à un risque des mesures du catalogue (ISO/NIST/CIS/RGPD-NIS2) — le pont entre risques et conformité.
+  - **Acceptation formelle** du risque : signataire, date, échéance d'acceptation et justification (traçabilité) ; passe le risque en statut « Accepté ».
+  - **Historique de réévaluation** (piste d'audit) : chaque création, acceptation ou revue est horodatée avec un instantané des niveaux inhérent/résiduel ; bouton « Consigner une revue ».
+  - Tableau de bord GRC et priorisation basés sur le **risque résiduel**.
 
 ## [1.36.0] - 2026-08-06
 

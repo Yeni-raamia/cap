@@ -7,9 +7,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
-import { createRisk, deleteRisk, getRisk, listRisks, riskExists, setRiskStatus, updateRisk } from "@/lib/db/risks";
+import { acceptRisk, addRiskReview, createRisk, deleteRisk, getRisk, listRisks, riskExists, setRiskStatus, updateRisk } from "@/lib/db/risks";
 import { logActivity } from "@/lib/db/admin";
-import { RISK_STATUTS, type RiskLink, type RiskLinkKind } from "@/lib/domain";
+import { RISK_STATUTS, type RiskControlRef, type RiskLink, type RiskLinkKind } from "@/lib/domain";
+import { frameworkById } from "@/lib/grc/frameworks";
 
 const toIso = (d?: string | null) => (d ? new Date(`${d}T00:00:00`).toISOString() : null);
 const canDelete = (role: string) => ["manager", "directeur", "admin"].includes(role);
@@ -20,6 +21,13 @@ const parseLinks = (v: unknown): RiskLink[] =>
     ? v
         .map((l) => ({ kind: String(l?.kind) as RiskLinkKind, refId: String(l?.refId || "") }))
         .filter((l) => LINK_KINDS.includes(l.kind) && l.refId)
+    : [];
+// N'accepte que des mesures existant réellement dans le catalogue de conformité.
+const parseControls = (v: unknown): RiskControlRef[] =>
+  Array.isArray(v)
+    ? v
+        .map((c) => ({ frameworkId: String(c?.frameworkId || ""), controlCode: String(c?.controlCode || "") }))
+        .filter((c) => frameworkById(c.frameworkId)?.controls.some((x) => x.code === c.controlCode))
     : [];
 
 export async function POST(request: Request) {
@@ -39,12 +47,18 @@ export async function POST(request: Request) {
       category: String(body?.category || ""),
       probability: Number(body?.probability),
       impact: Number(body?.impact),
+      residualProbability: body?.residualProbability !== undefined ? Number(body.residualProbability) : undefined,
+      residualImpact: body?.residualImpact !== undefined ? Number(body.residualImpact) : undefined,
+      assetId: typeof body?.assetId === "string" && body.assetId ? body.assetId : null,
+      threat: String(body?.threat || ""),
+      vulnerability: String(body?.vulnerability || ""),
       treatment: typeof body?.treatment === "string" ? body.treatment : undefined,
       treatmentPlan: String(body?.treatmentPlan || ""),
       status: typeof body?.status === "string" ? body.status : undefined,
       ownerId: typeof body?.ownerId === "string" && body.ownerId ? body.ownerId : user.id,
       reviewDate: toIso(body?.reviewDate),
       links: parseLinks(body?.links),
+      controls: parseControls(body?.controls),
       createdBy: user.id,
     });
     logActivity(user.id, "risque.creation", title);
@@ -61,16 +75,26 @@ export async function POST(request: Request) {
       category: typeof body?.category === "string" ? body.category : undefined,
       probability: body?.probability !== undefined ? Number(body.probability) : undefined,
       impact: body?.impact !== undefined ? Number(body.impact) : undefined,
+      residualProbability: body?.residualProbability !== undefined ? Number(body.residualProbability) : undefined,
+      residualImpact: body?.residualImpact !== undefined ? Number(body.residualImpact) : undefined,
+      assetId: body?.assetId !== undefined ? (body.assetId || null) : undefined,
+      threat: typeof body?.threat === "string" ? body.threat : undefined,
+      vulnerability: typeof body?.vulnerability === "string" ? body.vulnerability : undefined,
       treatment: typeof body?.treatment === "string" ? body.treatment : undefined,
       treatmentPlan: typeof body?.treatmentPlan === "string" ? body.treatmentPlan : undefined,
       status: typeof body?.status === "string" ? body.status : undefined,
       ownerId: typeof body?.ownerId === "string" ? body.ownerId : undefined,
       reviewDate: body?.reviewDate !== undefined ? toIso(body.reviewDate) : undefined,
       links: body?.links !== undefined ? parseLinks(body.links) : undefined,
+      controls: body?.controls !== undefined ? parseControls(body.controls) : undefined,
     });
   } else if (op === "status") {
     if (!RISK_STATUTS.includes(body?.status)) return NextResponse.json({ error: "Statut invalide." }, { status: 400 });
     setRiskStatus(id, body.status);
+  } else if (op === "accept") {
+    acceptRisk(id, user.id, toIso(body?.acceptUntil), String(body?.justification || ""));
+  } else if (op === "review") {
+    addRiskReview(id, user.id, String(body?.note || "Réévaluation"));
   } else if (op === "delete") {
     if (!canDelete(user.role)) return NextResponse.json({ error: "Suppression réservée aux manager/directeur/admin." }, { status: 403 });
     deleteRisk(id);

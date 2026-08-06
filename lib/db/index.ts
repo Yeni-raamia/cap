@@ -219,14 +219,28 @@ create table if not exists risks (
   id text primary key, ref text not null,
   title text not null default '', description text not null default '', category text not null default '',
   probability integer not null default 3, impact integer not null default 3,
+  residual_probability integer not null default 3, residual_impact integer not null default 3,
+  asset_id text, threat text not null default '', vulnerability text not null default '',
   treatment text not null default 'Réduire', treatment_plan text not null default '',
   status text not null default 'Identifié', owner_id text, review_date text, created_by text,
+  accepted_by text, accepted_at text, accept_until text, acceptance_justification text not null default '',
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
 create table if not exists risk_links (
   risk_id text not null, kind text not null, ref_id text not null
 );
 create index if not exists idx_risklinks_risk on risk_links(risk_id);
+create table if not exists risk_controls (
+  risk_id text not null, framework_id text not null, control_code text not null
+);
+create index if not exists idx_riskctrl_risk on risk_controls(risk_id);
+create table if not exists risk_reviews (
+  id text primary key, risk_id text not null, reviewed_by text, reviewed_at text not null default (datetime('now')),
+  inherent_p integer not null default 3, inherent_i integer not null default 3,
+  residual_p integer not null default 3, residual_i integer not null default 3,
+  note text not null default ''
+);
+create index if not exists idx_riskrev_risk on risk_reviews(risk_id);
 create table if not exists policies (
   id text primary key, ref text not null,
   title text not null default '', reference text not null default '', domain text not null default '',
@@ -450,6 +464,21 @@ function ensureColumns(db: Database.Database) {
     db.exec("alter table project_tasks add column description text not null default ''");
     db.exec("alter table project_tasks add column priority text not null default 'Normale'");
     db.exec("alter table project_tasks add column completed_at text");
+  }
+  // Risques : passage au modèle ISO 27005 (résiduel, actif, menace/vuln, acceptation).
+  const rkcols = (db.prepare("pragma table_info(risks)").all() as { name: string }[]).map((c) => c.name);
+  if (rkcols.length > 0 && !rkcols.includes("residual_probability")) {
+    db.exec("alter table risks add column residual_probability integer not null default 3");
+    db.exec("alter table risks add column residual_impact integer not null default 3");
+    // Résiduel initialisé à la valeur inhérente (aucun traitement encore appliqué).
+    db.exec("update risks set residual_probability = probability, residual_impact = impact");
+    db.exec("alter table risks add column asset_id text");
+    db.exec("alter table risks add column threat text not null default ''");
+    db.exec("alter table risks add column vulnerability text not null default ''");
+    db.exec("alter table risks add column accepted_by text");
+    db.exec("alter table risks add column accepted_at text");
+    db.exec("alter table risks add column accept_until text");
+    db.exec("alter table risks add column acceptance_justification text not null default ''");
   }
   // Objectifs annuels : sous-titre + niveau de criticité (label de couleur).
   const objcols = (db.prepare("pragma table_info(objectives)").all() as { name: string }[]).map((c) => c.name);

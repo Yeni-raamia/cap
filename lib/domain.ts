@@ -501,24 +501,59 @@ export const RISK_LEVEL_CELL: Record<RiskLevel, string> = {
   Critique: "bg-rose-300/80 text-rose-900",
 };
 
+/** Mesure de traitement liée à un risque (référence au catalogue de conformité). */
+export interface RiskControlRef {
+  frameworkId: string;
+  controlCode: string;
+}
+/** Entrée d'historique de réévaluation d'un risque (piste d'audit). */
+export interface RiskReview {
+  id: string;
+  reviewedBy: string;
+  reviewedAt: Date;
+  inherentP: number;
+  inherentI: number;
+  residualP: number;
+  residualI: number;
+  note: string;
+}
+
 export interface Risk {
   id: string;
   ref: string;
   title: string;
   description: string;
   category: string;
-  probability: number; // 1–5
-  impact: number; // 1–5
+  // Évaluation ISO 27005 : risque inhérent (avant traitement) → résiduel (après).
+  probability: number; // 1–5 (inhérent)
+  impact: number; // 1–5 (inhérent)
+  residualProbability: number; // 1–5 (résiduel)
+  residualImpact: number; // 1–5 (résiduel)
+  // Scénario de risque.
+  assetId: string | null; // actif ciblé (registre des actifs)
+  threat: string; // source / événement de menace
+  vulnerability: string; // vulnérabilité exploitée
   treatment: string; // stratégie : Réduire / Accepter / Transférer / Éviter
-  treatmentPlan: string; // plan d'action / mesures
+  treatmentPlan: string; // plan d'action
+  controls: RiskControlRef[]; // mesures de traitement (référentiels de conformité)
   status: string;
   ownerId: string;
-  reviewDate: Date | null; // date de revue / réévaluation
+  reviewDate: Date | null; // prochaine revue
+  // Acceptation formelle du risque (le cas échéant).
+  acceptedBy: string | null;
+  acceptedAt: Date | null;
+  acceptUntil: Date | null;
+  acceptanceJustification: string;
+  reviews: RiskReview[]; // historique de réévaluation
   links: RiskLink[]; // croisements vers d'autres modules
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
+
+/** Niveau de risque inhérent / résiduel (raccourcis). */
+export const riskInherentLevel = (r: Risk): RiskLevel => riskLevel(r.probability, r.impact);
+export const riskResidualLevel = (r: Risk): RiskLevel => riskLevel(r.residualProbability, r.residualImpact);
 
 /* ---------- Module GRC : Politiques de sécurité (diffusion & suivi) ----------
  * Chaque politique est suivie, par direction/service destinataire, le long du

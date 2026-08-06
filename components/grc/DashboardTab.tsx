@@ -21,11 +21,12 @@ export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
   const { risks, policies, assets, controlAssessments, profileById } = useApp();
 
   const d = useMemo(() => {
-    const withLvl = risks.map((r) => ({ r, level: riskLevel(r.probability, r.impact) }));
+    // Niveau résiduel (après traitement) — celui qui pilote la décision.
+    const withLvl = risks.map((r) => ({ r, level: riskLevel(r.residualProbability, r.residualImpact) }));
     const openRisks = withLvl.filter(({ r }) => r.status !== "Clôturé");
     const riskByLevel: Record<RiskLevel, number> = { Critique: 0, Élevé: 0, Moyen: 0, Faible: 0 };
     openRisks.forEach(({ level }) => (riskByLevel[level] += 1));
-    const topRisks = [...openRisks].sort((a, b) => b.r.probability * b.r.impact - a.r.probability * a.r.impact).slice(0, 5);
+    const topRisks = [...openRisks].sort((a, b) => b.r.residualProbability * b.r.residualImpact - a.r.residualProbability * a.r.residualImpact).slice(0, 5);
 
     const assetByCrit: Record<AssetCriticality, number> = { Critique: 0, Élevé: 0, Modéré: 0, Faible: 0 };
     assets.filter((a) => a.status !== "Retiré").forEach((a) => (assetByCrit[assetCriticality(a)] += 1));

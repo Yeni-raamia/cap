@@ -35,34 +35,43 @@ export function RisquesTab() {
   const [fStatus, setFStatus] = useState("");
   const [fCat, setFCat] = useState("");
   const [cell, setCell] = useState<{ p: number; i: number } | null>(null);
+  const [mode, setMode] = useState<"residual" | "inherent">("residual");
   const [creating, setCreating] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
-  const withLevel = useMemo(() => risks.map((r) => ({ r, level: riskLevel(r.probability, r.impact) })), [risks]);
+  // Probabilité/impact selon le mode affiché (résiduel par défaut).
+  const probOf = (r: (typeof risks)[number]) => (mode === "residual" ? r.residualProbability : r.probability);
+  const impOf = (r: (typeof risks)[number]) => (mode === "residual" ? r.residualImpact : r.impact);
+
+  const withLevel = useMemo(
+    () => risks.map((r) => ({ r, inh: riskLevel(r.probability, r.impact), res: riskLevel(r.residualProbability, r.residualImpact) })),
+    [risks]
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return withLevel.filter(({ r, level }) =>
+    return withLevel.filter(({ r, res }) =>
       (!q || r.title.toLowerCase().includes(q) || r.ref.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)) &&
-      (!fLevel || level === fLevel) &&
+      (!fLevel || res === fLevel) &&
       (!fStatus || r.status === fStatus) &&
       (!fCat || r.category === fCat) &&
-      (!cell || (r.probability === cell.p && r.impact === cell.i))
+      (!cell || (probOf(r) === cell.p && impOf(r) === cell.i))
     );
-  }, [withLevel, search, fLevel, fStatus, fCat, cell]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [withLevel, search, fLevel, fStatus, fCat, cell, mode]);
 
   const kpi = useMemo(() => {
     const open = withLevel.filter(({ r }) => r.status !== "Clôturé");
     return {
       total: risks.length,
-      critique: open.filter((x) => x.level === "Critique").length,
-      eleve: open.filter((x) => x.level === "Élevé").length,
+      critique: open.filter((x) => x.res === "Critique").length,
+      eleve: open.filter((x) => x.res === "Élevé").length,
       aRevoir: risks.filter((r) => r.reviewDate && r.reviewDate.getTime() < Date.now() && r.status !== "Clôturé").length,
     };
   }, [withLevel, risks]);
 
   // Matrice : lignes = impact (5 en haut → 1 en bas), colonnes = probabilité (1 → 5).
-  const matrixCount = (p: number, i: number) => risks.filter((r) => r.probability === p && r.impact === i && r.status !== "Clôturé").length;
+  const matrixCount = (p: number, i: number) => risks.filter((r) => probOf(r) === p && impOf(r) === i && r.status !== "Clôturé").length;
 
   const editing = editId ? risks.find((r) => r.id === editId) ?? null : null;
   const canCreate = !readOnly;
@@ -89,7 +98,13 @@ export function RisquesTab() {
       <div className="grid lg:grid-cols-[auto_1fr] gap-4">
         {/* Matrice de risques */}
         <Card className="p-4">
-          <div className="text-[13px] font-semibold text-slate-700 mb-3 flex items-center gap-2"><ShieldAlert size={15} className="text-rose-500" /> Matrice des risques</div>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="text-[13px] font-semibold text-slate-700 flex items-center gap-2"><ShieldAlert size={15} className="text-rose-500" /> Matrice des risques</div>
+            <div className="inline-flex rounded-lg border border-slate-200 p-0.5 text-[10px] bg-white">
+              <button onClick={() => { setMode("inherent"); setCell(null); }} className={`px-2 py-0.5 rounded-md font-medium ${mode === "inherent" ? "bg-slate-700 text-white" : "text-slate-500"}`}>Inhérent</button>
+              <button onClick={() => { setMode("residual"); setCell(null); }} className={`px-2 py-0.5 rounded-md font-medium ${mode === "residual" ? "bg-emerald-600 text-white" : "text-slate-500"}`}>Résiduel</button>
+            </div>
+          </div>
           <div className="flex gap-1.5">
             <div className="flex flex-col justify-around text-[9px] text-slate-400 font-medium pr-0.5" style={{ writingMode: "vertical-rl" }}>Impact →</div>
             <div>
@@ -147,9 +162,13 @@ export function RisquesTab() {
             <Card className="p-6 text-center text-[13px] text-slate-400">Aucun risque ne correspond au filtre.</Card>
           ) : (
             <Card className="divide-y divide-slate-100">
-              {filtered.map(({ r, level }) => (
+              {filtered.map(({ r, inh, res }) => (
                 <button key={r.id} onClick={() => setEditId(r.id)} className="w-full text-left flex items-start gap-3 px-4 py-3 hover:bg-slate-50">
-                  <span className={`mt-0.5 shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 border ${RISK_LEVEL_TONE[level]}`}>{level}</span>
+                  <span className="mt-0.5 shrink-0 flex items-center gap-1">
+                    <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 border ${RISK_LEVEL_TONE[inh]}`} title="Inhérent">{inh}</span>
+                    <span className="text-slate-300 text-[10px]">→</span>
+                    <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 border ${RISK_LEVEL_TONE[res]}`} title="Résiduel">{res}</span>
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Token>{r.ref}</Token>
@@ -158,7 +177,7 @@ export function RisquesTab() {
                     <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5 flex-wrap">
                       <span className={`px-1.5 py-0.5 rounded ${statusTone[r.status] ?? "bg-slate-100 text-slate-500"}`}>{r.status}</span>
                       {r.category && <span>{r.category}</span>}
-                      <span>· P{r.probability}×I{r.impact}</span>
+                      {r.controls.length > 0 && <span className="inline-flex items-center gap-0.5 text-emerald-600">🛡 {r.controls.length}</span>}
                       <span>· {profileById(r.ownerId).nom}</span>
                       {r.links.length > 0 && <span className="inline-flex items-center gap-0.5 text-slate-400"><Link2 size={11} /> {r.links.length}</span>}
                       {r.reviewDate && <span className={r.reviewDate.getTime() < Date.now() && r.status !== "Clôturé" ? "text-amber-600 font-medium" : ""}>· revue {fmt(r.reviewDate)}</span>}
