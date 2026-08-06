@@ -254,6 +254,7 @@ interface AppCtx {
   setMeId: (id: string) => void;
   profiles: Profile[];
   profileById: (id: string) => Profile;
+  setProfileGrc: (id: string, grcMember: boolean) => void;
   updateAccount: (fields: { fullName?: string; poste?: string; avatar?: string }) => Promise<boolean>;
   catalogue: Catalogue;
   rs: (item: Item) => ReminderState;
@@ -853,6 +854,10 @@ export function AppProvider({
     if (id && profiles.length > 0) return DELETED_PROFILE;
     return FALLBACK_PROFILE;
   };
+  // Synchronise localement l'appartenance GRC d'un membre après une bascule en
+  // administration, pour que les distinctions se mettent à jour sans recharger la page.
+  const setProfileGrc = (id: string, grcMember: boolean) =>
+    setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, grcMember } : p)));
 
   // État de relance calculé avec les SLA du catalogue courant (types ajoutés inclus).
   const rs = (item: Item): ReminderState => reminderState(item, now, catalogue.types);
@@ -2088,6 +2093,7 @@ export function AppProvider({
     setMeId,
     profiles,
     profileById,
+    setProfileGrc,
     updateAccount,
     catalogue,
     rs,

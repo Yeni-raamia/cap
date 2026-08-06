@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.45.1] - 2026-08-06
+
+### Corrigé
+
+- **Distinctions GRC — prise en compte immédiate du marqueur « Membre GRC »** : basculer un membre en/hors GRC depuis l'Administration met désormais à jour l'onglet Distinctions **sans avoir à recharger la page** (auparavant le changement n'était visible qu'après un rechargement complet, donnant l'impression que les distinctions restaient vides).
+
 ## [1.45.0] - 2026-08-06
 
 ### Ajouté

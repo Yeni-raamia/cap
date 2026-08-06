@@ -167,6 +167,7 @@ function MembresSection({
   const [expanded, setExpanded] = useState<string | null>(null);
   const [posteVal, setPosteVal] = useState("");
   const [pwdVal, setPwdVal] = useState("");
+  const { setProfileGrc } = useApp();
 
   const call = async (payload: Record<string, unknown>) => {
     setErr(null);
@@ -395,7 +396,10 @@ function MembresSection({
                       </div>
                     </div>
                     <button
-                      onClick={() => call({ action: "grc", id: u.id, grcMember: !u.grcMember })}
+                      onClick={async () => {
+                        const next = !u.grcMember;
+                        if (await call({ action: "grc", id: u.id, grcMember: next })) setProfileGrc(u.id, next);
+                      }}
                       className={`text-[12px] rounded-lg px-3 py-1.5 border font-medium ${
                         u.grcMember
                           ? "bg-violet-50 border-violet-200 text-violet-700"
