@@ -12,8 +12,10 @@ import {
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
+import { Truck } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PolicyModal } from "@/components/PolicyModal";
+import { PolicyTrackingModal } from "@/components/PolicyTrackingModal";
 
 const statusTone: Record<string, string> = {
   Brouillon: "bg-slate-100 text-slate-600",
@@ -29,6 +31,7 @@ export function PolitiquesTab() {
   const [fDomain, setFDomain] = useState("");
   const [creating, setCreating] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [trackId, setTrackId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -48,6 +51,7 @@ export function PolitiquesTab() {
   }, [policies]);
 
   const editing = editId ? policies.find((p) => p.id === editId) ?? null : null;
+  const tracking = trackId ? policies.find((p) => p.id === trackId) ?? null : null;
   const canCreate = !readOnly;
 
   return (
@@ -95,29 +99,38 @@ export function PolitiquesTab() {
           {filtered.map((p) => {
             const cov = policyCoverage(p);
             return (
-              <button key={p.id} onClick={() => setEditId(p.id)} className="text-left rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft p-4 hover:-translate-y-0.5 transition-transform">
-                <div className="flex items-start gap-2 mb-1.5 flex-wrap">
+              <div key={p.id} className="group relative text-left rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft p-4 hover:-translate-y-0.5 transition-transform">
+                <button onClick={() => setEditId(p.id)} className="absolute inset-0 rounded-2xl" aria-label={`Ouvrir la politique ${p.ref}`} />
+                <div className="flex items-start gap-2 mb-1.5 flex-wrap relative pointer-events-none">
                   <Token>{p.ref}</Token>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusTone[p.status] ?? "bg-slate-100 text-slate-500"}`}>{p.status}</span>
                   {p.version && <span className="text-[10px] text-slate-400">v{p.version}</span>}
                 </div>
-                <div className="text-[14px] font-semibold text-slate-800 leading-snug">{p.title}</div>
-                <div className="text-[11px] text-slate-400 mt-0.5">{[p.domain, p.reference].filter(Boolean).join(" · ")}</div>
+                <div className="text-[14px] font-semibold text-slate-800 leading-snug relative pointer-events-none">{p.title}</div>
+                <div className="text-[11px] text-slate-400 mt-0.5 relative pointer-events-none">{[p.domain, p.reference].filter(Boolean).join(" · ")}</div>
                 {/* Barre d'applicabilité */}
-                <div className="mt-3">
+                <div className="mt-3 relative pointer-events-none">
                   <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
                     <span className="inline-flex items-center gap-1"><Users2 size={12} /> Applicabilité · {cov.applicable}/{cov.total} services</span>
                     <span className="font-mono">{cov.pct}%</span>
                   </div>
                   <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${cov.pct}%` }} />
+                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${cov.pct}%` }} />
                   </div>
                 </div>
-                <div className="flex items-center gap-2 mt-2 text-[11px] text-slate-400 flex-wrap">
-                  <span>{profileById(p.ownerId).nom}</span>
-                  {p.reviewDate && <span className={p.reviewDate.getTime() < Date.now() && p.status !== "Retirée" ? "text-amber-600 font-medium" : ""}>· revue {fmt(p.reviewDate)}</span>}
+                <div className="flex items-center justify-between gap-2 mt-2 relative">
+                  <div className="flex items-center gap-2 text-[11px] text-slate-400 flex-wrap pointer-events-none">
+                    <span>{profileById(p.ownerId).nom}</span>
+                    {p.reviewDate && <span className={p.reviewDate.getTime() < Date.now() && p.status !== "Retirée" ? "text-amber-600 font-medium" : ""}>· revue {fmt(p.reviewDate)}</span>}
+                  </div>
+                  <button
+                    onClick={() => setTrackId(p.id)}
+                    className="relative shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/30 rounded-full px-2.5 py-1 hover:bg-sky-100"
+                  >
+                    <Truck size={13} /> Suivi
+                  </button>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -126,6 +139,7 @@ export function PolitiquesTab() {
       {(creating || editing) && (
         <PolicyModal policy={editing} creating={creating} onClose={() => { setCreating(false); setEditId(null); }} />
       )}
+      {tracking && <PolicyTrackingModal policy={tracking} onClose={() => setTrackId(null)} />}
     </div>
   );
 }

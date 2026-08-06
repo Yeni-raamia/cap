@@ -6,7 +6,15 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.42.0] - 2026-08-06
+## [1.43.0] - 2026-08-06
+
+### Ajouté
+
+- **Politiques — suivi « façon colis » (ludique & animé)** : un bouton **« Suivi »** sur chaque politique ouvre une vue immersive montrant, direction par direction, la progression le long du cycle **Diffusée → Consultée → Comprise → Appliquée**.
+  - **Rail de livraison animé** par service : colis/camion 🚚 qui avance, jalons validés, étape courante pulsée, badge **« LIVRÉ »** rebondissant à l'arrivée.
+  - **Anneau de progression global** (% appliquée) et **entonnoir de la flotte** (nombre de services ayant atteint chaque étape, barres animées).
+  - **Gamification** : services classés du plus avancé au moins avancé (🥇🥈🥉) et **confettis** de célébration quand une politique est appliquée par tous les services concernés.
+  - Respecte `prefers-reduced-motion` (animations désactivées si l'utilisateur le demande).
 
 ### Ajouté
 
