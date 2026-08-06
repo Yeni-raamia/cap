@@ -6,7 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.39.0] - 2026-08-06
+## [1.40.0] - 2026-08-06
+
+### Ajouté
+
+- **Registre des risques imprimable en PDF** (onglet Risques du module GRC) : bouton **« Rapport PDF »** générant un document ISO 27005 prêt à imprimer/exporter —
+  synthèse (risques, critiques/élevés ouverts, acceptés, revues en retard), **matrice résiduelle** colorée, répartition par niveau résiduel, **détail complet du registre** (inhérent → résiduel, actif ciblé, traitement, statut, responsable, revue) et **journal des acceptations formelles** (signataire, dates, justification). Impression fidèle des couleurs de niveau.
 
 ### Ajouté
 

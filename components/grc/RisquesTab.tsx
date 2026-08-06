@@ -18,6 +18,7 @@ import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { RiskModal } from "@/components/RiskModal";
+import { RisquesRapportPdf } from "@/components/RisquesRapportPdf";
 
 const statusTone: Record<string, string> = {
   Identifié: "bg-slate-100 text-slate-600",
@@ -81,11 +82,16 @@ export function RisquesTab() {
       <GrcTabHeader
         title="Registre des risques"
         subtitle="Identifier, évaluer (probabilité × impact) et traiter les risques — reliés aux autres modules pour croiser l'information."
-        right={canCreate ? (
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-            <Plus size={15} /> Nouveau risque
-          </button>
-        ) : undefined}
+        right={
+          <div className="flex items-center gap-2">
+            {risks.length > 0 && <RisquesRapportPdf />}
+            {canCreate && (
+              <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={15} /> Nouveau risque
+              </button>
+            )}
+          </div>
+        }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
