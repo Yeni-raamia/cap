@@ -625,6 +625,35 @@ export interface Asset {
   updatedAt: Date;
 }
 
+/* ---------- Module GRC : Conformité (évaluation des mesures) ----------
+ * La posture de l'organisation face à un référentiel : pour chaque mesure,
+ * son applicabilité (SoA), son statut d'implémentation et sa maturité (0–5). */
+export const CONTROL_STATUS = ["Non évalué", "Non implémenté", "Partiellement implémenté", "Implémenté"];
+/** Échelle de maturité (type CMMI), index 0–5. */
+export const MATURITY_LABELS = ["Inexistant", "Initial", "Reproductible", "Défini", "Géré", "Optimisé"];
+export const CONTROL_STATUS_TONE: Record<string, string> = {
+  "Non évalué": "bg-slate-100 text-slate-500 border-slate-200",
+  "Non implémenté": "bg-rose-100 text-rose-700 border-rose-200",
+  "Partiellement implémenté": "bg-amber-100 text-amber-700 border-amber-200",
+  Implémenté: "bg-emerald-100 text-emerald-700 border-emerald-200",
+};
+
+export interface ControlAssessment {
+  id: string;
+  frameworkId: string;
+  controlCode: string;
+  applicable: boolean; // dans le périmètre (déclaration d'applicabilité / SoA)
+  justification: string; // justification d'inclusion / d'exclusion
+  status: string;
+  maturity: number; // 0–5
+  responsibleId: string;
+  evidence: string;
+  note: string;
+  lastAssessedAt: Date | null;
+  nextReviewAt: Date | null;
+  updatedAt: Date;
+}
+
 /** Taux d'applicabilité d'une politique : part des services arrivés à « Applicable »
  *  (les services « Non applicable » sont exclus du dénominateur). */
 export function policyCoverage(p: Policy): { applicable: number; total: number; pct: number } {

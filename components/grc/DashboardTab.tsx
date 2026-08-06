@@ -1,21 +1,24 @@
 "use client";
 
 import { useMemo } from "react";
-import { Boxes, ScrollText, ShieldAlert, TrendingUp } from "lucide-react";
+import { Boxes, ScrollText, ShieldAlert, ShieldCheck, TrendingUp } from "lucide-react";
 import {
   assetCriticality,
   policyCoverage,
   riskLevel,
   RISK_LEVEL_TONE,
   type AssetCriticality,
+  type ControlAssessment,
   type RiskLevel,
 } from "@/lib/domain";
+import { FRAMEWORKS } from "@/lib/grc/frameworks";
+import { scoreFramework } from "@/lib/grc/scoring";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 
 export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
-  const { risks, policies, assets, profileById } = useApp();
+  const { risks, policies, assets, controlAssessments, profileById } = useApp();
 
   const d = useMemo(() => {
     const withLvl = risks.map((r) => ({ r, level: riskLevel(r.probability, r.impact) }));
@@ -37,19 +40,46 @@ export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
       assets.filter((a) => a.reviewDate && a.reviewDate.getTime() < now && a.status !== "Retiré").length +
       policies.filter((p) => p.reviewDate && p.reviewDate.getTime() < now && p.status !== "Retirée").length;
 
-    return { riskByLevel, topRisks, assetByCrit, applicMoy, overdue, openRisks: openRisks.length };
-  }, [risks, policies, assets]);
+    // Conformité : score moyen sur les 4 référentiels + détail par référentiel.
+    const frameworkScores = FRAMEWORKS.map((f) => {
+      const byCode = new Map<string, ControlAssessment>();
+      controlAssessments.filter((a) => a.frameworkId === f.id).forEach((a) => byCode.set(a.controlCode, a));
+      return { f, score: scoreFramework(f, byCode) };
+    });
+    const conformityAvg = frameworkScores.length ? Math.round(frameworkScores.reduce((s, x) => s + x.score.conformity, 0) / frameworkScores.length) : 0;
+
+    return { riskByLevel, topRisks, assetByCrit, applicMoy, overdue, openRisks: openRisks.length, frameworkScores, conformityAvg };
+  }, [risks, policies, assets, controlAssessments]);
+
+  const pctTone = (p: number) => (p >= 70 ? "text-emerald-600" : p >= 40 ? "text-amber-600" : "text-rose-600");
 
   return (
     <div className="space-y-5">
       <GrcTabHeader title="Tableau de bord GRC" subtitle="Vue transverse : actifs, risques et conformité de l'équipe Gouvernance-Risque-Conformité." />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <StatTile icon={Boxes} tone="text-teal-600" label="Actifs" value={assets.length} sub={`${d.assetByCrit.Critique} critiques`} onClick={() => onTab("actifs")} />
-        <StatTile icon={ShieldAlert} tone="text-rose-600" label="Risques ouverts" value={d.openRisks} sub={`${d.riskByLevel.Critique} critiques · ${d.riskByLevel.Élevé} élevés`} onClick={() => onTab("risques")} />
-        <StatTile icon={ScrollText} tone="text-sky-600" label="Applicabilité moy." value={`${d.applicMoy}%`} sub={`${policies.length} politiques`} onClick={() => onTab("politiques")} />
-        <StatTile icon={TrendingUp} tone="text-amber-600" label="Revues en retard" value={d.overdue} sub="actifs · risques · politiques" />
+        <StatTile icon={ShieldAlert} tone="text-rose-600" label="Risques ouverts" value={d.openRisks} sub={`${d.riskByLevel.Critique} crit. · ${d.riskByLevel.Élevé} élevés`} onClick={() => onTab("risques")} />
+        <StatTile icon={ShieldCheck} tone="text-emerald-600" label="Conformité moy." value={`${d.conformityAvg}%`} sub="4 référentiels" onClick={() => onTab("conformite")} />
+        <StatTile icon={ScrollText} tone="text-sky-600" label="Applicabilité pol." value={`${d.applicMoy}%`} sub={`${policies.length} politiques`} onClick={() => onTab("politiques")} />
+        <StatTile icon={TrendingUp} tone="text-amber-600" label="Revues en retard" value={d.overdue} sub="actifs·risques·pol." />
       </div>
+
+      {/* Conformité par référentiel */}
+      <Card className="p-4">
+        <div className="text-[13px] font-semibold text-slate-700 mb-3 flex items-center gap-2"><ShieldCheck size={15} className="text-emerald-500" /> Conformité par référentiel</div>
+        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2">
+          {d.frameworkScores.map(({ f, score }) => (
+            <button key={f.id} onClick={() => onTab("conformite")} className="flex items-center gap-2 hover:opacity-80">
+              <span className="w-24 shrink-0 text-[12px] text-slate-600 text-left">{f.short}</span>
+              <div className="flex-1 h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full ${score.conformity >= 70 ? "bg-emerald-500" : score.conformity >= 40 ? "bg-amber-500" : "bg-rose-500"}`} style={{ width: `${score.conformity}%` }} />
+              </div>
+              <span className={`w-9 text-right text-[12px] font-mono font-semibold ${pctTone(score.conformity)}`}>{score.conformity}%</span>
+            </button>
+          ))}
+        </div>
+      </Card>
 
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Répartition des risques ouverts par niveau */}

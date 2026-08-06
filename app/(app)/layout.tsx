@@ -15,6 +15,7 @@ import { listMeetings } from "@/lib/db/meetings";
 import { listRisks } from "@/lib/db/risks";
 import { listPolicies } from "@/lib/db/policies";
 import { listAssets } from "@/lib/db/assets";
+import { listControlAssessments } from "@/lib/db/controls";
 import { getRefLists, getSecuritySettings, getSettings } from "@/lib/db/admin";
 import { maybeRunRemindersInBackground } from "@/lib/reminders/auto";
 import { maybeRunBackupInBackground } from "@/lib/backup/auto";
@@ -59,6 +60,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const risks = listRisks();
   const policies = listPolicies();
   const assets = listAssets();
+  const controlAssessments = listControlAssessments();
 
   return (
     <AppShell
@@ -81,6 +83,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialRisks={risks}
       initialPolicies={policies}
       initialAssets={assets}
+      initialControlAssessments={controlAssessments}
     >
       {children}
     </AppShell>

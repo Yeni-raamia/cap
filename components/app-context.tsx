@@ -42,6 +42,7 @@ import {
   type MeetingParticipant,
   type Message,
   type Asset,
+  type ControlAssessment,
   type Negligence,
   type NonConformite,
   type Objective,
@@ -171,6 +172,17 @@ export interface AssetInput {
   availability?: number;
   status?: string;
   reviewDate?: string | null;
+}
+export interface ControlInput {
+  applicable?: boolean;
+  justification?: string;
+  status?: string;
+  maturity?: number;
+  responsibleId?: string;
+  evidence?: string;
+  note?: string;
+  lastAssessedAt?: string | null;
+  nextReviewAt?: string | null;
 }
 type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service" | "policy";
 type RefListActionPayload =
@@ -312,6 +324,10 @@ interface AppCtx {
   createAsset: (input: AssetInput) => Promise<string | null>;
   updateAsset: (id: string, fields: AssetInput) => Promise<string | null>;
   deleteAsset: (id: string) => Promise<string | null>;
+  // GRC : conformité (évaluation des mesures)
+  controlAssessments: ControlAssessment[];
+  assessControl: (frameworkId: string, controlCode: string, fields: ControlInput) => Promise<string | null>;
+  resetControl: (frameworkId: string, controlCode: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -459,6 +475,13 @@ const reviveAsset = (a: Asset): Asset => ({
   updatedAt: new Date(a.updatedAt),
 });
 const reviveAssets = (arr: Asset[]): Asset[] => arr.map(reviveAsset);
+const reviveAssessment = (a: ControlAssessment): ControlAssessment => ({
+  ...a,
+  lastAssessedAt: a.lastAssessedAt ? new Date(a.lastAssessedAt) : null,
+  nextReviewAt: a.nextReviewAt ? new Date(a.nextReviewAt) : null,
+  updatedAt: new Date(a.updatedAt),
+});
+const reviveAssessments = (arr: ControlAssessment[]): ControlAssessment[] => arr.map(reviveAssessment);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -520,6 +543,7 @@ export function AppProvider({
   initialRisks,
   initialPolicies,
   initialAssets,
+  initialControlAssessments,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -542,6 +566,7 @@ export function AppProvider({
   initialRisks?: Risk[];
   initialPolicies?: Policy[];
   initialAssets?: Asset[];
+  initialControlAssessments?: ControlAssessment[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -580,6 +605,7 @@ export function AppProvider({
   const [risks, setRisks] = useState<Risk[]>(demo ? [] : reviveRisks(initialRisks ?? []));
   const [policies, setPolicies] = useState<Policy[]>(demo ? [] : revivePolicies(initialPolicies ?? []));
   const [assets, setAssets] = useState<Asset[]>(demo ? [] : reviveAssets(initialAssets ?? []));
+  const [controlAssessments, setControlAssessments] = useState<ControlAssessment[]>(demo ? [] : reviveAssessments(initialControlAssessments ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -1703,6 +1729,25 @@ export function AppProvider({
   const updateAsset = (id: string, fields: AssetInput) => assetAction("update", { id, ...fields });
   const deleteAsset = (id: string) => assetAction("delete", { id });
 
+  /* ---------- GRC : Conformité (évaluation des mesures) ---------- */
+  const controlAction = async (op: "assess" | "reset", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Conformité indisponible en mode démo.";
+    const res = await fetch("/api/controls", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, ...input }),
+    });
+    const d = await res.json();
+    if (!res.ok) {
+      toast(d.error ?? "Erreur.", "error");
+      return d.error ?? "Erreur.";
+    }
+    if (d.controlAssessments) setControlAssessments(reviveAssessments(d.controlAssessments));
+    return null;
+  };
+  const assessControl = (frameworkId: string, controlCode: string, fields: ControlInput) => controlAction("assess", { frameworkId, controlCode, ...fields });
+  const resetControl = (frameworkId: string, controlCode: string) => controlAction("reset", { frameworkId, controlCode });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -1991,6 +2036,9 @@ export function AppProvider({
     createAsset,
     updateAsset,
     deleteAsset,
+    controlAssessments,
+    assessControl,
+    resetControl,
     openTaskId,
     setOpenTaskId,
     soundEnabled,

@@ -249,6 +249,15 @@ create table if not exists assets (
   status text not null default 'Actif', review_date text, created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists control_assessments (
+  id text primary key, framework_id text not null, control_code text not null,
+  applicable integer not null default 1, justification text not null default '',
+  status text not null default 'Non évalué', maturity integer not null default 0,
+  responsible_id text, evidence text not null default '', note text not null default '',
+  last_assessed_at text, next_review_at text,
+  updated_at text not null default (datetime('now'))
+);
+create index if not exists idx_ctrlassess on control_assessments(framework_id, control_code);
 create table if not exists conversations (
   id text primary key, title text not null default '', kind text not null default 'group',
   ref_type text, ref_id text, created_by text, created_at text not null default (datetime('now'))

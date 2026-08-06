@@ -6,9 +6,17 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-Module GRC — lots suivants : Conformité (référentiels ISO/NIST/CIS/RGPD-NIS2,
-évaluation des mesures, SoA, score), Risques ISO 27005 (inhérent→résiduel +
-acceptation), Contrôles terrain + CAPA, Plan de travail, badges cyber.
+Module GRC — lots suivants : Risques ISO 27005 (inhérent→résiduel + acceptation +
+historique), Contrôles terrain + CAPA, Plan de travail, badges cyber.
+
+## [1.36.0] - 2026-08-06
+
+### Ajouté
+- **Module GRC — Conformité** (onglet dédié) : évaluer la posture de l'organisation face aux référentiels.
+  - **Bibliothèques de mesures** intégrées : **ISO/IEC 27001:2022 Annexe A (93 mesures)**, **NIST CSF 2.0** (22 catégories), **CIS Controls v8** (18 contrôles), **RGPD & NIS2** (obligations clés) — 157 mesures au total.
+  - **Évaluation par mesure** : **applicabilité (déclaration d'applicabilité / SoA)** avec justification, **statut d'implémentation** (Non implémenté / Partiel / Implémenté) et **maturité 0–5** (échelle type CMMI), responsable, preuves, note/plan d'amélioration, dates d'évaluation et de revue.
+  - **Score de conformité** calculé par référentiel **et par thème/fonction** (moyenne de maturité sur les mesures applicables), taux de couverture, sélecteur de référentiel, recherche & filtres.
+  - **Tableau de bord GRC** enrichi : indice de conformité moyen (4 référentiels) + barre par référentiel.
 
 ## [1.35.0] - 2026-08-06
 

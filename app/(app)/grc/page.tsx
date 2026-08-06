@@ -7,12 +7,14 @@ import { PageHero } from "@/components/PageHero";
 import { DashboardTab } from "@/components/grc/DashboardTab";
 import { ActifsTab } from "@/components/grc/ActifsTab";
 import { RisquesTab } from "@/components/grc/RisquesTab";
+import { ConformiteTab } from "@/components/grc/ConformiteTab";
 import { PolitiquesTab } from "@/components/grc/PolitiquesTab";
 
 const TABS = [
   { id: "dashboard", label: "Tableau de bord" },
   { id: "actifs", label: "Actifs" },
   { id: "risques", label: "Risques" },
+  { id: "conformite", label: "Conformité" },
   { id: "politiques", label: "Politiques" },
 ];
 
@@ -49,6 +51,7 @@ function GrcInner() {
       {active === "dashboard" && <DashboardTab onTab={setTab} />}
       {active === "actifs" && <ActifsTab />}
       {active === "risques" && <RisquesTab />}
+      {active === "conformite" && <ConformiteTab />}
       {active === "politiques" && <PolitiquesTab />}
     </div>
   );
