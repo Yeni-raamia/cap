@@ -6,7 +6,15 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.43.0] - 2026-08-06
+## [1.44.0] - 2026-08-06
+
+### Ajouté
+
+- **Module GRC — Analyse des Joyaux de la Couronne** (onglet « Joyaux », d'après la méthode MITRE *Crown Jewels Analysis*) : identifier les actifs vitaux pour la mission et prioriser leur protection, **entièrement déduit** des onglets Actifs, Risques et Contrôles (aucune saisie dédiée).
+  - **Identification des joyaux** : un actif dont la criticité (max C/I/D) est Élevé/Critique, ou qui porte un risque résiduel élevé/critique.
+  - **Indice JRI** (Jewel Risk Index, 0–100) croisant **valeur** (criticité), **exposition** (pire risque résiduel rattaché) et **protection** (mesures de traitement + contrôles terrain du service) ; bandes Prioritaire / À surveiller / Maîtrisé.
+  - Par joyau : classification C/I/D, exposition (risques résiduels liés), niveau de protection et **recommandations** automatiques (analyse de risque manquante, exposition à réduire, absence de mesures, contrôle terrain à planifier).
+  - Synthèse : joyaux identifiés, prioritaires, à exposition élevée, sans analyse de risque.
 
 ### Ajouté
 
