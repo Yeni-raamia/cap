@@ -6,7 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.52.0] - 2026-08-07
+## [1.53.0] - 2026-08-07
+
+### Ajouté / Modifié
+
+- **Académie — nouveaux parcours** : ajout de **« Conformité & politiques »** (référentiels ISO/RGPD/NIS2/CIS, cycle de vie d'une politique, quiz, étude de cas « une politique reste lettre morte », défi) et **« Contrôles terrain & audit »** (utilité des rondes, bonne check-list, étude de cas « un écart en ronde », défi). Le curriculum passe à **6 parcours, 26 leçons**.
+- **Mise à jour du curriculum sans écrasement** : au démarrage, l'Académie **complète** automatiquement la base avec les parcours et leçons manquants (repérés par titre), sans doublon ni suppression, et sans toucher au contenu créé par un formateur. Les futures additions au curriculum apparaissent donc au redémarrage suivant.
 
 ### Ajouté
 

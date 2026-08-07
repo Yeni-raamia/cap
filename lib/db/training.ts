@@ -53,21 +53,33 @@ function nextRef(db = getDb()): string {
   return `${prefix}${String(max + 1).padStart(3, "0")}`;
 }
 
-/** Sème le curriculum expert si aucun parcours n'existe (idempotent). */
+let curriculumSynced = false;
+/** Aligne la base sur le curriculum expert (une fois par démarrage) : ajoute les
+ *  parcours et leçons manquants (repérés par titre), sans doublon ni suppression,
+ *  et sans toucher au contenu créé par un formateur. Les nouveautés du curriculum
+ *  apparaissent donc au redémarrage suivant. */
 function ensureCurriculum(): void {
+  if (curriculumSynced) return;
+  curriculumSynced = true;
   const db = getDb();
-  const n = (db.prepare("select count(*) c from training_courses").get() as { c: number }).c;
-  if (n > 0) return;
   const insC = db.prepare("insert into training_courses (id, ref, title, description, category, icon, badge, ordre, published, created_by) values (?,?,?,?,?,?,?,?,1,null)");
   const insL = db.prepare("insert into training_lessons (id, course_id, ordre, type, title, content, xp, payload) values (?,?,?,?,?,?,?,?)");
-  const year = new Date().getFullYear();
+  const payload = (l: (typeof CURRICULUM)[number]["lessons"][number]) => JSON.stringify({ questions: l.questions ?? [], steps: l.steps ?? [], challengeHref: l.challengeHref ?? "" });
   const tx = db.transaction(() => {
+    const existing = db.prepare("select id, title from training_courses").all() as { id: string; title: string }[];
+    const byTitle = new Map(existing.map((c) => [c.title, c.id]));
     CURRICULUM.forEach((c, ci) => {
-      const cid = randomUUID();
-      insC.run(cid, `ACAD-${year}-${String(ci + 1).padStart(3, "0")}`, c.title, c.description, c.category, c.icon, c.badge, ci);
-      c.lessons.forEach((l, li) =>
-        insL.run(randomUUID(), cid, li, l.type, l.title, l.content, l.xp, JSON.stringify({ questions: l.questions ?? [], steps: l.steps ?? [], challengeHref: l.challengeHref ?? "" }))
-      );
+      let cid = byTitle.get(c.title);
+      if (!cid) {
+        cid = randomUUID();
+        insC.run(cid, nextRef(db), c.title, c.description, c.category, c.icon, c.badge, ci);
+      }
+      const lTitles = new Set((db.prepare("select title from training_lessons where course_id=?").all(cid) as { title: string }[]).map((r) => r.title));
+      let ordre = (db.prepare("select coalesce(max(ordre),-1)+1 n from training_lessons where course_id=?").get(cid) as { n: number }).n;
+      c.lessons.forEach((l) => {
+        if (lTitles.has(l.title)) return;
+        insL.run(randomUUID(), cid, ordre++, l.type, l.title, l.content, l.xp, payload(l));
+      });
     });
   });
   tx();

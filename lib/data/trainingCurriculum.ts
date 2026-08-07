@@ -258,4 +258,123 @@ export const CURRICULUM: CourseSeed[] = [
       },
     ],
   },
+  {
+    title: "Conformité & politiques",
+    description: "Les référentiels, et comment faire vivre une politique de sécurité.",
+    category: "Conformité & politiques",
+    icon: "📋",
+    badge: "Référent conformité",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "Les grands référentiels, sans jargon",
+        content:
+          "Un référentiel, c'est un catalogue de bonnes pratiques reconnu. Les principaux :\n\n" +
+          "• ISO/IEC 27001 — la norme internationale de management de la sécurité (le « permis de conduire » de la sécurité).\n" +
+          "• RGPD — la loi européenne sur les données personnelles (consentement, droits des personnes, sécurité des données).\n" +
+          "• NIS2 — la directive européenne qui impose un socle de cybersécurité aux entités essentielles/importantes.\n" +
+          "• CIS Controls — une liste très concrète de 18 mesures prioritaires, idéale pour démarrer.\n\n" +
+          "On ne les apprend pas par cœur : on s'en sert comme d'une check-list pour vérifier qu'on ne rate rien. Dans Cap, l'onglet Conformité mesure votre posture face à chacun.",
+      },
+      {
+        type: "lesson", xp: 20, title: "Le cycle de vie d'une politique",
+        content:
+          "Une politique de sécurité (mots de passe, usage du poste, télétravail…) suit un cycle :\n\n" +
+          "1. Rédaction — un document clair, court, applicable.\n" +
+          "2. Validation — par la direction (elle porte l'autorité).\n" +
+          "3. Diffusion — à chaque direction/service concerné.\n" +
+          "4. Suivi de l'application — Diffusée → Consultée → Comprise → Appliquée.\n" +
+          "5. Revue — on la met à jour régulièrement.\n\n" +
+          "Le piège du débutant : croire qu'une politique diffusée est une politique appliquée. Non ! Votre travail commence à la diffusion : vérifier qu'elle est comprise et réellement mise en œuvre.",
+      },
+      {
+        type: "quiz", xp: 25, title: "Quiz — Conformité & politiques",
+        content: "Testez vos repères.",
+        questions: [
+          q("c1q1", "À quoi sert le RGPD ?", ["Chiffrer les disques durs", "Protéger les données personnelles et les droits des personnes", "Faire des sauvegardes"], 1, "Le RGPD encadre le traitement des données personnelles et les droits des personnes."),
+          q("c1q2", "Une politique « diffusée » est-elle forcément appliquée ?", ["Oui, la diffusion suffit", "Non, il faut vérifier la compréhension et l'application", "Seulement si elle est signée"], 1, "La diffusion n'est que le début : on suit ensuite la compréhension et l'application."),
+          q("c1q3", "ISO 27001, c'est…", ["Un antivirus", "Une norme de management de la sécurité de l'information", "Un mot de passe standard"], 1, "C'est la norme internationale de management de la sécurité (SMSI)."),
+        ],
+      },
+      {
+        type: "case", xp: 35, title: "Étude de cas — Une politique reste lettre morte",
+        content: "Trois mois après avoir diffusé la politique de télétravail, vous constatez que la moitié des services ne l'appliquent pas : VPN non utilisé, postes personnels employés pour le travail. Comment redressez-vous la situation ?",
+        steps: [
+          {
+            id: "c1s1", prompt: "Par quoi commencez-vous ?",
+            options: [
+              { label: "Comprendre pourquoi : interroger les services sur leurs blocages", feedback: "Bon réflexe : on diagnostique la cause (manque d'outils ? d'info ? de temps ?) avant d'agir.", score: 100 },
+              { label: "Envoyer un rappel menaçant à tout le monde", feedback: "Prématuré : sans comprendre les blocages, la menace braque et ne règle rien.", score: 20 },
+              { label: "Abandonner la politique, elle est trop ambitieuse", feedback: "Non : renoncer laisse un risque ouvert et décrédibilise la démarche.", score: 0 },
+            ],
+          },
+          {
+            id: "c1s2", prompt: "Le diagnostic montre un manque d'accompagnement. Que faites-vous ?",
+            options: [
+              { label: "Une action de sensibilisation + un guide simple, et suivre l'application par service", feedback: "Excellent : on lève le blocage (pédagogie + outillage) et on mesure les progrès dans Cap.", score: 100 },
+              { label: "Rien, ils finiront bien par s'y mettre", feedback: "L'attentisme laisse le risque s'installer et le comportement se normaliser.", score: 10 },
+            ],
+          },
+        ],
+      },
+      {
+        type: "challenge", xp: 25, title: "Défi — Explorez la conformité",
+        content: "Ouvrez l'onglet Conformité : parcourez les référentiels (ISO 27001, NIST, CIS, RGPD/NIS2) et observez comment on évalue une mesure (applicabilité, statut, maturité). Puis, dans l'onglet Politiques, ouvrez le « Suivi » d'une politique pour voir son avancement par service. Validez ensuite le défi.",
+        challengeHref: "/grc?tab=conformite",
+      },
+    ],
+  },
+  {
+    title: "Contrôles terrain & audit",
+    description: "Aller voir sur le terrain, relever les écarts, faire corriger.",
+    category: "Contrôles & audit",
+    icon: "🔍",
+    badge: "Auditeur terrain",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "Pourquoi aller sur le terrain ?",
+        content:
+          "La sécurité sur le papier ne suffit pas : il faut vérifier la réalité. C'est le rôle des contrôles terrain :\n\n" +
+          "• Ronde de sécurité — un tour des locaux (portes, badges, postes verrouillés, documents sensibles).\n" +
+          "• Inspection physique — un point précis (salle serveurs, armoires, extincteurs).\n" +
+          "• Audit interne — une revue plus formelle d'un processus (gestion des accès, sauvegardes).\n" +
+          "• Entretien / test — sensibilisation, exercice (faux phishing, tailgating).\n\n" +
+          "Chaque contrôle produit des constats : Conforme, Non applicable, ou Écart. Un écart, c'est un point bloquant à corriger.",
+      },
+      {
+        type: "lesson", xp: 20, title: "Ce qui fait une bonne check-list",
+        content:
+          "Une check-list utile est :\n\n" +
+          "• Concrète — chaque point est observable (« l'extincteur est-il en cours de validité ? »), pas vague.\n" +
+          "• Courte — on privilégie l'essentiel, sinon personne ne la remplit.\n" +
+          "• Traçable — on note le constat et, si écart, une preuve (photo, note).\n\n" +
+          "Dans Cap, chaque point de check-list porte un résultat, et le contrôle affiche une barre d'avancement + un taux de conformité. Les écarts deviennent des « points bloquants » qui alimentent le plan d'actions.",
+      },
+      {
+        type: "case", xp: 35, title: "Étude de cas — Un écart en ronde",
+        content: "Lors d'une ronde, vous trouvez la porte de la salle serveurs ouverte et non surveillée, alors qu'elle doit rester verrouillée. Que faites-vous ?",
+        steps: [
+          {
+            id: "a1s1", prompt: "Sur le moment ?",
+            options: [
+              { label: "Refermer/sécuriser immédiatement et noter le constat comme « Écart »", feedback: "Oui : on traite l'urgence physique puis on trace l'écart pour le suivi.", score: 100 },
+              { label: "Passer son chemin, ce n'est pas votre service", feedback: "Non : un accès non contrôlé à la salle serveurs est un risque majeur, on agit.", score: 0 },
+              { label: "Prendre une photo pour se moquer en réunion", feedback: "Non : on documente pour corriger, pas pour blâmer. La posture GRC est constructive.", score: 10 },
+            ],
+          },
+          {
+            id: "a1s2", prompt: "Pour la suite ?",
+            options: [
+              { label: "Générer une action corrective (CAPA) avec responsable et échéance, et prévoir une contre-visite", feedback: "Parfait : l'écart devient une action tracée, et la contre-visite vérifie l'efficacité.", score: 100 },
+              { label: "Se contenter d'en parler oralement au responsable", feedback: "Sans action tracée ni échéance, rien ne garantit la correction durable.", score: 30 },
+            ],
+          },
+        ],
+      },
+      {
+        type: "challenge", xp: 25, title: "Défi — Faites vivre un contrôle",
+        content: "Dans l'onglet Contrôles terrain, ouvrez un contrôle existant (ou créez-en un). Faites avancer son état avec le bouton d'action rapide, ajoutez une « action de suivi » dans son fil de vie, et observez la barre de progression. Puis validez le défi.",
+        challengeHref: "/grc?tab=controles",
+      },
+    ],
+  },
 ];
