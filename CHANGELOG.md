@@ -6,7 +6,11 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.54.0] - 2026-08-07
+## [1.55.0] - 2026-08-07
+
+### Ajouté
+
+- **Académie — parcours « Analyse de risque » approfondi** : 7 nouvelles leçons portent le parcours ISO 27005 à **12 leçons** — le processus ISO 27005 de bout en bout, bâtir un scénario de risque (menace × vulnérabilité × actif), définir ses échelles de probabilité/impact, choisir la bonne stratégie de traitement (Réduire/Transférer/Éviter/Accepter), appétit du risque & acceptation formelle, une étude de cas guidée « construire un risque de A à Z » et un quiz d'approfondissement. Le curriculum atteint **40 leçons**.
 
 ### Ajouté
 

@@ -189,6 +189,95 @@ export const CURRICULUM: CourseSeed[] = [
           q("r1q3", "Un risque résiduel reste Critique. Que faire ?", ["Le classer sans suite", "Renforcer les mesures ou l'accepter formellement", "Le supprimer du registre"], 1, "On renforce, ou on l'accepte formellement (signature + justification)."),
         ],
       },
+      {
+        type: "lesson", xp: 25, title: "Le processus ISO 27005 de bout en bout",
+        content:
+          "L'analyse de risque n'est pas un acte isolé : c'est un cycle qui tourne en continu.\n\n" +
+          "1. Établir le contexte — que protège-t-on ? Quels critères (échelles P et I, seuil d'acceptabilité) ?\n" +
+          "2. Identifier — repérer les risques (actifs → menaces → vulnérabilités → scénarios).\n" +
+          "3. Analyser — estimer la probabilité et l'impact (risque inhérent).\n" +
+          "4. Évaluer — comparer au seuil : ce risque est-il acceptable en l'état ?\n" +
+          "5. Traiter — Réduire / Accepter / Transférer / Éviter → risque résiduel.\n" +
+          "6. Accepter — valider formellement le risque résiduel qui subsiste.\n" +
+          "7. Communiquer & surveiller — informer les parties prenantes, puis réviser régulièrement (les menaces évoluent).\n\n" +
+          "Retenez l'esprit : on n'élimine pas tous les risques (impossible et ruineux), on les ramène à un niveau acceptable, en connaissance de cause et de façon tracée.",
+      },
+      {
+        type: "lesson", xp: 25, title: "Bâtir un scénario de risque : menace × vulnérabilité × actif",
+        content:
+          "Un risque n'est pas une peur vague (« et si on se faisait pirater ? »). C'est un SCÉNARIO concret, qui combine trois éléments :\n\n" +
+          "• Un actif — ce qui a de la valeur (une base de données, un service, un savoir-faire).\n" +
+          "• Une menace — une source qui pourrait lui nuire (attaquant, panne, erreur humaine, catastrophe).\n" +
+          "• Une vulnérabilité — une faiblesse que la menace peut exploiter (mot de passe faible, absence de sauvegarde, porte non verrouillée).\n\n" +
+          "La formule mentale : « [Menace] exploite [Vulnérabilité] sur [Actif], ce qui entraîne [Impact] ».\n\n" +
+          "Exemple : « Un rançongiciel (menace) exploite l'absence de sauvegardes testées (vulnérabilité) sur le SI de paie (actif), ce qui entraîne l'impossibilité de payer les agents (impact) ». Un bon scénario est précis : il rend le risque évaluable et traitable.",
+      },
+      {
+        type: "lesson", xp: 20, title: "Définir ses échelles de probabilité et d'impact",
+        content:
+          "Noter « Probabilité 3 » ou « Impact 4 » n'a de sens que si tout le monde met la même chose derrière. D'où l'importance de définir des échelles claires AVANT d'évaluer.\n\n" +
+          "Exemple d'échelle de Probabilité (1→5) :\n" +
+          "1 Rare (peu probable sur plusieurs années) · 2 Peu probable · 3 Possible (peut arriver dans l'année) · 4 Probable · 5 Quasi certain (déjà observé / fréquent).\n\n" +
+          "Exemple d'échelle d'Impact (1→5) :\n" +
+          "1 Négligeable · 2 Mineur · 3 Modéré (perturbation notable) · 4 Majeur (atteinte sérieuse à l'activité) · 5 Catastrophique (survie de l'organisation en jeu).\n\n" +
+          "L'impact peut être financier, opérationnel, juridique/RGPD ou réputationnel — on retient le plus élevé. Des échelles écrites rendent les évaluations comparables et défendables devant la direction.",
+      },
+      {
+        type: "lesson", xp: 25, title: "Choisir la bonne stratégie de traitement",
+        content:
+          "Quatre stratégies, à choisir selon le couple probabilité/impact et le coût :\n\n" +
+          "• Réduire (le plus courant) — mettre des mesures qui baissent la probabilité et/ou l'impact (sauvegardes, MFA, sensibilisation). Pour les risques élevés/critiques.\n" +
+          "• Transférer — faire porter le risque par un tiers : assurance cyber, sous-traitance avec engagement contractuel. Utile quand l'impact est fort mais qu'on ne peut pas tout réduire soi-même.\n" +
+          "• Éviter — supprimer la source du risque (arrêter un service trop dangereux, ne pas collecter une donnée sensible). Quand le jeu n'en vaut pas la chandelle.\n" +
+          "• Accepter — vivre avec, sans mesure supplémentaire. Réservé aux risques faibles, OU aux risques résiduels jugés tolérables après traitement (avec acceptation formelle).\n\n" +
+          "Piège classique : « accepter » par défaut, faute d'agir. L'acceptation doit être un CHOIX conscient et justifié, pas une négligence.",
+      },
+      {
+        type: "lesson", xp: 20, title: "Appétit du risque & acceptation formelle",
+        content:
+          "L'appétit (ou tolérance) au risque, c'est le niveau de risque que l'organisation accepte de courir pour atteindre ses objectifs. Il est fixé par la direction : c'est elle qui arbitre, pas l'équipe GRC seule.\n\n" +
+          "Concrètement, on définit un SEUIL : par exemple « tout risque résiduel Élevé ou Critique doit être traité ; Faible et Moyen peuvent être acceptés ».\n\n" +
+          "Quand un risque résiduel dépasse ce que l'on peut/veut réduire, on procède à une ACCEPTATION FORMELLE : un responsable (souvent la direction) signe, on note la justification et une date de revue. Cela transforme un risque « subi » en risque « assumé en connaissance de cause » — et protège l'équipe GRC : la décision est tracée et endossée au bon niveau. Dans Cap, chaque risque peut être accepté formellement (signataire, échéance, justification).",
+      },
+      {
+        type: "case", xp: 40, title: "Étude de cas — Construire un risque de A à Z",
+        content: "La direction s'inquiète de la messagerie, très utilisée et cible d'hameçonnage. On vous demande d'en faire une analyse de risque complète. Suivez la démarche.",
+        steps: [
+          {
+            id: "r2s1", prompt: "Étape 1 — Formuler le scénario. Lequel est le mieux construit ?",
+            options: [
+              { label: "« La messagerie n'est pas sûre »", feedback: "Trop vague : ni menace, ni vulnérabilité, ni impact identifiés — inévaluable.", score: 20 },
+              { label: "« Un attaquant (menace) exploite la crédulité/absence de MFA (vulnérabilité) sur la messagerie (actif) → compromission de comptes et fuite d'e-mails (impact) »", feedback: "Excellent : actif, menace, vulnérabilité et impact sont explicites → le risque devient évaluable.", score: 100 },
+              { label: "« Il faut acheter un nouvel antivirus »", feedback: "C'est une solution, pas un risque : on n'a pas encore décrit ni évalué le risque.", score: 10 },
+            ],
+          },
+          {
+            id: "r2s2", prompt: "Étape 2 — Évaluer l'inhérent. L'hameçonnage est fréquent et la MFA n'est pas déployée ; une compromission aurait un impact sérieux. Quel niveau inhérent ?",
+            options: [
+              { label: "Probabilité élevée × Impact majeur → Élevé/Critique", feedback: "Cohérent : menace fréquente + vulnérabilité présente + impact sérieux = risque inhérent élevé.", score: 100 },
+              { label: "Faible, on n'a jamais eu de problème", feedback: "L'absence d'incident passé ne garantit rien, surtout avec une vulnérabilité connue (pas de MFA).", score: 20 },
+            ],
+          },
+          {
+            id: "r2s3", prompt: "Étape 3 — Traiter puis conclure.",
+            options: [
+              { label: "Réduire : déployer la MFA + sensibiliser, réévaluer le résiduel, et accepter formellement ce qui reste", feedback: "Parfait : on réduit d'abord (MFA + sensibilisation), on recalcule le résiduel, et on fait acter formellement le risque restant.", score: 100 },
+              { label: "Accepter le risque tel quel pour aller vite", feedback: "Accepter un risque élevé sans le réduire ni le justifier formellement, c'est exposer l'organisation.", score: 10 },
+            ],
+          },
+        ],
+      },
+      {
+        type: "quiz", xp: 30, title: "Quiz — ISO 27005 approfondi",
+        content: "Validez votre montée en compétence.",
+        questions: [
+          q("r2q1", "Un bon scénario de risque combine…", ["Un budget et une échéance", "Un actif, une menace, une vulnérabilité et un impact", "Un coupable et une sanction"], 1, "Actif + menace + vulnérabilité + impact = un risque évaluable."),
+          q("r2q2", "À quoi sert de définir des échelles de probabilité/impact ?", ["À faire joli sur le rapport", "À rendre les évaluations comparables et défendables", "À remplacer la matrice"], 1, "Des échelles écrites garantissent que chacun évalue de la même façon."),
+          q("r2q3", "Qui fixe l'appétit au risque de l'organisation ?", ["L'équipe GRC seule", "La direction", "Le prestataire informatique"], 1, "L'appétit au risque est un arbitrage de la direction."),
+          q("r2q4", "« Transférer » un risque est pertinent quand…", ["Le risque est nul", "L'impact est fort et qu'on ne peut pas tout réduire soi-même (ex. assurance)", "On veut l'oublier"], 1, "Le transfert (assurance, sous-traitance) fait porter le risque par un tiers."),
+          q("r2q5", "L'acceptation formelle d'un risque résiduel sert surtout à…", ["Gagner du temps", "Décider en connaissance de cause et tracer/endosser la décision au bon niveau", "Éviter de traiter le risque"], 1, "Elle transforme un risque subi en risque assumé, tracé et endossé."),
+        ],
+      },
     ],
   },
   {
