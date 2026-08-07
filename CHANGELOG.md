@@ -6,7 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.47.0] - 2026-08-06
+## [1.48.0] - 2026-08-07
+
+### Modifié
+
+- **Classement — l'accomplissement des tâches et projets pèse davantage** : le poids de l'XP est renforcé pour l'**achèvement d'une tâche** (5 → 12 XP), les **sous-tâches** (1 → 2 XP) et surtout les **projets menés à terme** (50 → 120 XP).
+- **Détail de l'XP par source** : la fiche « Mon profil de jeu » affiche désormais d'où vient l'XP (mails / tâches / projets / objectifs) avec une barre de répartition et les compteurs ; chaque ligne du classement rappelle le nombre de tâches achevées et de projets menés.
 
 ### Ajouté
 

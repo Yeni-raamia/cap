@@ -135,12 +135,17 @@ describe("computeGame", () => {
 
     const g = computeGame("u1", items, tasks, projects, objectives);
 
-    // cloture 2×15 + reponse 1×10 + relance 2×3 + tache 2×5 + sousTache 2×1 + projet 1×50 + objectif 1×200
-    expect(g.xp).toBe(30 + 10 + 6 + 10 + 2 + 50 + 200); // 308
+    // cloture 2×15 + reponse 1×10 + relance 2×3 + tache 2×12 + sousTache 2×2 + projet 1×120 + objectif 1×200
+    expect(g.xp).toBe(30 + 10 + 6 + 24 + 4 + 120 + 200); // 394
     expect(g.level).toBe(1); // Éclaireur (≥ 150, < 450)
     expect(g.levelName).toBe("Éclaireur");
     expect(g.nextXp).toBe(450);
-    expect(g.progressPct).toBe(53); // round((308-150)/(450-150)*100)
+    expect(g.progressPct).toBe(81); // round((394-150)/(450-150)*100)
+
+    // Répartition de l'XP par source d'accomplissement.
+    expect(g.sources).toEqual({ mails: 46, taches: 28, projets: 120, objectifs: 200 });
+    expect(g.counts).toMatchObject({ tache: 2, projet: 1, objectif: 1 });
+    expect(g.sources.mails + g.sources.taches + g.sources.projets + g.sources.objectifs).toBe(g.xp);
 
     const earned = new Set(g.badges.filter((b) => b.earned).map((b) => b.id));
     expect(earned.has("premiere")).toBe(true); // 1re clôture

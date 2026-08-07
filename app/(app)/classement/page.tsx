@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Award, Crown, Flame, Lock } from "lucide-react";
-import { computeGame, isPublished, memberOfMonth, weeklyChallenges, type Badge } from "@/lib/domain";
+import { computeGame, isPublished, memberOfMonth, weeklyChallenges, type Badge, type GameProfile } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
 import { CountUp, Ring } from "@/components/dataviz";
@@ -39,7 +39,7 @@ export default function ClassementPage() {
         kicker="Hall of fame"
         icon={Award}
         title="Classement de l'équipe"
-        subtitle="Gagne de l'XP en relançant, en obtenant des réponses, en clôturant et en atteignant les objectifs. Monte de niveau, débloque des badges."
+        subtitle="Gagne de l'XP en relançant, en clôturant tes suivis, en achevant tes tâches, en menant tes projets à terme et en atteignant les objectifs. Monte de niveau, débloque des badges."
       />
 
       {/* Membre du mois */}
@@ -99,6 +99,8 @@ export default function ClassementPage() {
               {mine.g.badges.every((b) => !b.earned) && <span className="text-[12px] text-slate-400">Débloque ton premier badge en clôturant un suivi de mail.</span>}
             </div>
           </div>
+          {/* Répartition de l'XP par source d'accomplissement */}
+          <SourceBreakdown g={mine.g} />
         </div>
       )}
 
@@ -134,6 +136,9 @@ export default function ClassementPage() {
                 </div>
                 <div className="flex items-center gap-1 mt-1 flex-wrap">
                   <span className="text-[10px] font-medium text-slate-500">{g.levelName}</span>
+                  {(g.counts.tache > 0 || g.counts.projet > 0) && (
+                    <span className="text-[10px] text-slate-400" title="Tâches achevées · projets menés à terme">· ✓ {g.counts.tache} tâche{g.counts.tache > 1 ? "s" : ""} · {g.counts.projet} projet{g.counts.projet > 1 ? "s" : ""}</span>
+                  )}
                   {earned.slice(0, 6).map((b) => <span key={b.id} title={b.label} className="text-[12px]">{b.icon}</span>)}
                   {earned.length === 0 && <span className="text-[10px] text-slate-400">—</span>}
                 </div>
@@ -170,6 +175,37 @@ export default function ClassementPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* Répartition de l'XP par source : mails, tâches, projets, objectifs. */
+function SourceBreakdown({ g }: { g: GameProfile }) {
+  const segs = [
+    { key: "mails", label: "Mails", xp: g.sources.mails, count: g.counts.cloture, unit: "clôtures", color: "#0ea5e9" },
+    { key: "taches", label: "Tâches", xp: g.sources.taches, count: g.counts.tache, unit: "achevées", color: "#10b981" },
+    { key: "projets", label: "Projets", xp: g.sources.projets, count: g.counts.projet, unit: "menés", color: "#8b5cf6" },
+    { key: "objectifs", label: "Objectifs", xp: g.sources.objectifs, count: g.counts.objectif, unit: "atteints", color: "#f59e0b" },
+  ];
+  const total = g.xp || 1;
+  return (
+    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+      <div className="text-[11px] text-slate-500 mb-1.5">D&apos;où vient ton XP</div>
+      <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 mb-2">
+        {segs.map((s) => s.xp > 0 && <div key={s.key} style={{ width: `${(s.xp / total) * 100}%`, background: s.color }} title={`${s.label} · ${s.xp} XP`} />)}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {segs.map((s) => (
+          <div key={s.key} className="rounded-lg border border-slate-100 dark:border-slate-800 p-2">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ background: s.color }} />
+              <span className="text-[11px] text-slate-500">{s.label}</span>
+            </div>
+            <div className="text-[15px] font-bold text-slate-800 dark:text-slate-100">{s.xp} <span className="text-[10px] font-medium text-slate-400">XP</span></div>
+            <div className="text-[10px] text-slate-400">{s.count} {s.unit}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

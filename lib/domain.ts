@@ -1657,9 +1657,9 @@ export const XP = {
   cloture: 15,
   reponse: 10,
   relance: 3,
-  tache: 5,
-  sousTache: 1,
-  projet: 50,
+  tache: 12, // achèvement d'une tâche (poids renforcé)
+  sousTache: 2, // sous-tâche cochée
+  projet: 120, // projet mené à terme (poids renforcé)
   objectif: 200,
 };
 
@@ -1680,6 +1680,23 @@ export interface Badge {
   earned: boolean;
 }
 
+/** Détail de l'XP par source d'accomplissement (pour l'afficher au classement). */
+export interface GameSources {
+  mails: number; // clôtures + réponses + relances
+  taches: number; // tâches + sous-tâches achevées
+  projets: number; // projets menés à terme
+  objectifs: number; // objectifs annuels atteints
+}
+/** Compteurs bruts d'accomplissement. */
+export interface GameCounts {
+  cloture: number;
+  reponse: number;
+  relance: number;
+  tache: number;
+  sousTache: number;
+  projet: number;
+  objectif: number;
+}
 export interface GameProfile {
   id: string;
   xp: number;
@@ -1689,6 +1706,8 @@ export interface GameProfile {
   nextXp: number | null; // XP du prochain palier (null si niveau max)
   progressPct: number; // progression vers le prochain niveau
   badges: Badge[];
+  sources: GameSources; // répartition de l'XP par source
+  counts: GameCounts; // compteurs d'accomplissement
 }
 
 /** Profil de jeu (XP, niveau, badges) dérivé de l'activité réelle. */
@@ -1740,7 +1759,14 @@ export function computeGame(
     { id: "polyvalent", label: "Couteau suisse", icon: "🧰", desc: "Une clôture, une tâche, un projet et un objectif.", earned: cloture >= 1 && tache >= 1 && projet >= 1 && objectif >= 1 },
   ];
 
-  return { id, xp, level, levelName: LEVELS[level].name, levelIcon: LEVELS[level].icon, nextXp, progressPct, badges };
+  const sources: GameSources = {
+    mails: cloture * XP.cloture + reponse * XP.reponse + relance * XP.relance,
+    taches: tache * XP.tache + sousTache * XP.sousTache,
+    projets: projet * XP.projet,
+    objectifs: objectif * XP.objectif,
+  };
+  const counts: GameCounts = { cloture, reponse, relance, tache, sousTache, projet, objectif };
+  return { id, xp, level, levelName: LEVELS[level].name, levelIcon: LEVELS[level].icon, nextXp, progressPct, badges, sources, counts };
 }
 
 /** Début de la semaine (lundi 00:00) contenant `d`. */
