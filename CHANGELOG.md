@@ -6,7 +6,15 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.58.0] - 2026-08-07
+## [1.59.0] - 2026-08-07
+
+### Ajouté
+
+- **Module GRC — Continuité d'activité (BIA / PCA-PRA)** (nouvel onglet « Continuité ») : pour chaque **activité critique**, l'analyse d'impact métier (BIA) et le plan de continuité/reprise.
+  - **BIA** : criticité, **domaines d'impact** (financier, opérationnel, juridique/RGPD, réputation, humain), et les **objectifs de reprise** — **DMIA** (durée max d'interruption admissible), **RTO** (délai de reprise) et **RPO** (perte de données max).
+  - **PCA/PRA** : stratégie de continuité, ressources nécessaires, procédure de reprise, actifs supports, et **suivi des tests** (dernier test / à tester si > 1 an) et des revues.
+  - **Rattachement aux missions** (prolonge Missions & dépendances) et **détection d'incohérence** : alerte si le RTO est plus long que la DMIA (reprise trop tardive).
+  - Indicateurs : plans, activités vitales, plans à tester, écarts / à réviser.
 
 ### Ajouté
 

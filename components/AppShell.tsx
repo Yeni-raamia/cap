@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ControlAssessment, ConversationSummary, Direction, EmailTemplate, FieldControl, GrcPlanItem, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Supplier, Task, TrainingCourse, TrainingDone, TrainingProgressEntry } from "@/lib/domain";
+import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ContinuityPlan, ControlAssessment, ConversationSummary, Direction, EmailTemplate, FieldControl, GrcPlanItem, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Supplier, Task, TrainingCourse, TrainingDone, TrainingProgressEntry } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -91,6 +91,7 @@ export function AppShell({
   initialTrainingProgressAll,
   initialMissions,
   initialSuppliers,
+  initialContinuityPlans,
 }: {
   children: ReactNode;
   demo?: boolean;
@@ -123,6 +124,7 @@ export function AppShell({
   initialTrainingProgressAll?: TrainingProgressEntry[];
   initialMissions?: Mission[];
   initialSuppliers?: Supplier[];
+  initialContinuityPlans?: ContinuityPlan[];
 }) {
   return (
     <AppProvider
@@ -156,6 +158,7 @@ export function AppShell({
       initialTrainingProgressAll={initialTrainingProgressAll}
       initialMissions={initialMissions}
       initialSuppliers={initialSuppliers}
+      initialContinuityPlans={initialContinuityPlans}
     >
       <Shell>{children}</Shell>
     </AppProvider>

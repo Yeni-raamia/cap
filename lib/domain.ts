@@ -1114,6 +1114,55 @@ export const isSupplierReviewLate = (s: Supplier, now: Date): boolean =>
 export const assetSuppliers = (assetId: string, suppliers: Supplier[]): Supplier[] =>
   suppliers.filter((s) => s.status !== "Résilié" && s.assetIds.includes(assetId));
 
+/* ==================================================================
+ *  Module GRC : Continuité d'activité (BIA + PCA/PRA).
+ *  BIA (analyse d'impact métier) : pour chaque activité critique, l'impact
+ *  d'une interruption et les objectifs de reprise (DMIA, RTO, RPO).
+ *  PCA/PRA : la stratégie et la procédure pour reprendre.
+ *  Se rattache aux missions (prolonge Missions & dépendances).
+ * ================================================================== */
+export const CONTINUITY_STATUS = ["Brouillon", "Validé", "À réviser", "Obsolète"];
+/** Échelle de temps partagée pour DMIA / RTO / RPO (du plus court au plus long). */
+export const RECOVERY_SCALE = ["Immédiat", "< 1h", "< 4h", "< 8h", "< 24h", "< 72h", "< 1 sem.", "> 1 sem."];
+export const RECOVERY_SCORE: Record<string, number> = { Immédiat: 8, "< 1h": 7, "< 4h": 6, "< 8h": 5, "< 24h": 4, "< 72h": 3, "< 1 sem.": 2, "> 1 sem.": 1 };
+export const IMPACT_DOMAINS = ["Financier", "Opérationnel", "Juridique / RGPD", "Réputation", "Humain / sécurité"];
+// La criticité BIA réutilise l'échelle de valeur des missions (Vitale → Secondaire).
+
+export interface ContinuityPlan {
+  id: string;
+  ref: string; // PCA-AAAA-NNN
+  activity: string; // activité / processus critique
+  missionId: string; // mission rattachée (facultatif)
+  ownerId: string;
+  criticality: string; // MISSION_VALUES (Vitale → Secondaire)
+  mtpd: string; // DMIA — durée max d'interruption admissible (RECOVERY_SCALE)
+  rto: string; // objectif de temps de reprise
+  rpo: string; // objectif de point de reprise (perte de données max)
+  impacts: string[]; // IMPACT_DOMAINS concernés
+  strategy: string; // stratégie de continuité (site de repli, mode dégradé…)
+  resources: string; // ressources nécessaires à la reprise
+  procedure: string; // procédure de reprise (étapes)
+  assetIds: string[]; // actifs supports
+  lastTestDate: Date | null; // dernier test / exercice
+  reviewDate: Date | null; // prochaine revue
+  status: string;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Un plan est « à tester » s'il n'a jamais été testé ou l'a été il y a plus d'un an. */
+export function isPlanTestStale(p: ContinuityPlan, now: Date): boolean {
+  if (p.status === "Obsolète") return false;
+  if (!p.lastTestDate) return true;
+  return now.getTime() - p.lastTestDate.getTime() > 365 * 864e5;
+}
+export const isPlanReviewLate = (p: ContinuityPlan, now: Date): boolean =>
+  Boolean(p.reviewDate && p.reviewDate.getTime() < now.getTime() && p.status !== "Obsolète");
+/** Écart de continuité : un objectif de reprise (RTO) plus long que la durée max
+ *  tolérée (DMIA) est incohérent — la reprise arrive trop tard. */
+export const hasContinuityGap = (p: ContinuityPlan): boolean =>
+  Boolean(RECOVERY_SCORE[p.rto] && RECOVERY_SCORE[p.mtpd] && RECOVERY_SCORE[p.rto] < RECOVERY_SCORE[p.mtpd]);
+
 /* ---------- Module GRC : Organigramme (Directions → Services) ---------- */
 /** Service (unité) rattaché à une direction. */
 export interface OrgService {

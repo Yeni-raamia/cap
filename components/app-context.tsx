@@ -27,6 +27,7 @@ import {
   seedTraining,
   seedMissions,
   seedSuppliers,
+  seedContinuity,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -53,6 +54,7 @@ import {
   type Message,
   type Asset,
   type CapaAction,
+  type ContinuityPlan,
   type ControlAssessment,
   type Direction,
   type FieldControl,
@@ -283,6 +285,24 @@ export interface SupplierInput {
   assetIds?: string[];
   notes?: string;
 }
+export interface ContinuityInput {
+  id?: string;
+  activity?: string;
+  missionId?: string;
+  ownerId?: string;
+  criticality?: string;
+  mtpd?: string;
+  rto?: string;
+  rpo?: string;
+  impacts?: string[];
+  strategy?: string;
+  resources?: string;
+  procedure?: string;
+  assetIds?: string[];
+  lastTestDate?: string | null;
+  reviewDate?: string | null;
+  status?: string;
+}
 type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service" | "policy";
 type RefListActionPayload =
   | { op: "add"; listKey: RefListKey; label: string; icon?: string }
@@ -476,6 +496,12 @@ interface AppCtx {
   createSupplier: (input: SupplierInput) => Promise<string | null>;
   updateSupplier: (id: string, fields: SupplierInput) => Promise<string | null>;
   deleteSupplier: (id: string) => Promise<string | null>;
+  // GRC : continuité d'activité (BIA/PCA)
+  continuityPlans: ContinuityPlan[];
+  continuityById: (id: string) => ContinuityPlan | null;
+  createContinuity: (input: ContinuityInput) => Promise<string | null>;
+  updateContinuity: (id: string, fields: ContinuityInput) => Promise<string | null>;
+  deleteContinuity: (id: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -669,6 +695,8 @@ const reviveMission = (m: Mission): Mission => ({ ...m, createdAt: new Date(m.cr
 const reviveMissions = (arr: Mission[]): Mission[] => arr.map(reviveMission);
 const reviveSupplier = (s: Supplier): Supplier => ({ ...s, contractEnd: s.contractEnd ? new Date(s.contractEnd) : null, reviewDate: s.reviewDate ? new Date(s.reviewDate) : null, createdAt: new Date(s.createdAt), updatedAt: new Date(s.updatedAt) });
 const reviveSuppliers = (arr: Supplier[]): Supplier[] => arr.map(reviveSupplier);
+const revivePlan2 = (p: ContinuityPlan): ContinuityPlan => ({ ...p, lastTestDate: p.lastTestDate ? new Date(p.lastTestDate) : null, reviewDate: p.reviewDate ? new Date(p.reviewDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
+const reviveContinuity = (arr: ContinuityPlan[]): ContinuityPlan[] => arr.map(revivePlan2);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -740,6 +768,7 @@ export function AppProvider({
   initialTrainingProgressAll,
   initialMissions,
   initialSuppliers,
+  initialContinuityPlans,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -772,6 +801,7 @@ export function AppProvider({
   initialTrainingProgressAll?: TrainingProgressEntry[];
   initialMissions?: Mission[];
   initialSuppliers?: Supplier[];
+  initialContinuityPlans?: ContinuityPlan[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -823,6 +853,7 @@ export function AppProvider({
   );
   const [missions, setMissions] = useState<Mission[]>(demo ? seedMissions() : reviveMissions(initialMissions ?? []));
   const [suppliers, setSuppliers] = useState<Supplier[]>(demo ? seedSuppliers() : reviveSuppliers(initialSuppliers ?? []));
+  const [continuityPlans, setContinuityPlans] = useState<ContinuityPlan[]>(demo ? seedContinuity() : reviveContinuity(initialContinuityPlans ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -2102,6 +2133,22 @@ export function AppProvider({
   const updateSupplier = (id: string, fields: SupplierInput) => supplierAction("update", { id, ...fields });
   const deleteSupplier = (id: string) => supplierAction("delete", { id });
 
+  /* ---------- GRC : Continuité d'activité (BIA/PCA) ---------- */
+  const continuityById = (id: string): ContinuityPlan | null => continuityPlans.find((p) => p.id === id) ?? null;
+  const continuityAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Continuité indisponible en mode démo.";
+    const res = await fetch("/api/continuity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.continuityPlans) setContinuityPlans(reviveContinuity(d.continuityPlans));
+    if (op === "create") toast("Plan de continuité ajouté.", "success");
+    else if (op === "delete") toast("Plan supprimé.", "success");
+    return null;
+  };
+  const createContinuity = (input: ContinuityInput) => continuityAction("create", input as Record<string, unknown>);
+  const updateContinuity = (id: string, fields: ContinuityInput) => continuityAction("update", { id, ...fields });
+  const deleteContinuity = (id: string) => continuityAction("delete", { id });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -2435,6 +2482,11 @@ export function AppProvider({
     createSupplier,
     updateSupplier,
     deleteSupplier,
+    continuityPlans,
+    continuityById,
+    createContinuity,
+    updateContinuity,
+    deleteContinuity,
     openTaskId,
     setOpenTaskId,
     soundEnabled,

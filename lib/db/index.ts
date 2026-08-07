@@ -302,6 +302,14 @@ create table if not exists capa_actions (
   owner_id text, due_date text, status text not null default 'Ouverte', verification text not null default '', closed_at text, created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists continuity_plans (
+  id text primary key, ref text not null,
+  activity text not null default '', mission_id text not null default '', owner_id text,
+  criticality text not null default 'Importante', mtpd text not null default '< 24h', rto text not null default '< 24h', rpo text not null default '< 24h',
+  impacts text not null default '[]', strategy text not null default '', resources text not null default '', procedure text not null default '',
+  asset_ids text not null default '[]', last_test_date text, review_date text, status text not null default 'Brouillon',
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists suppliers (
   id text primary key, ref text not null,
   name text not null default '', type text not null default 'Autre', criticality text not null default 'Standard',

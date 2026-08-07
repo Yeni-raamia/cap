@@ -8,6 +8,7 @@ import type {
   Asset,
   CapaAction,
   CheckItem,
+  ContinuityPlan,
   Direction,
   FieldControl,
   FieldControlEvent,
@@ -60,6 +61,20 @@ export function seedTraining(): TrainingCourse[] {
       updatedAt: day(-30),
     };
   });
+}
+
+/* ---------- Continuité d'activité (BIA/PCA) ---------- */
+export function seedContinuity(): ContinuityPlan[] {
+  const base = (o: Partial<ContinuityPlan> & { id: string; ref: string; activity: string; criticality: string }): ContinuityPlan => ({
+    missionId: "", ownerId: "u1", mtpd: "< 24h", rto: "< 24h", rpo: "< 24h", impacts: [], strategy: "", resources: "", procedure: "",
+    assetIds: [], lastTestDate: null, reviewDate: day(120), status: "Validé", createdBy: "u1", createdAt: day(-120), updatedAt: day(-20), ...o,
+  });
+  return [
+    base({ id: "dcp_pca1", ref: "PCA-2026-001", activity: "Verser les rémunérations", missionId: "dm1", ownerId: "u3", criticality: "Vitale", mtpd: "< 72h", rto: "< 24h", rpo: "< 4h", impacts: ["Financier", "Juridique / RGPD", "Humain / sécurité"], strategy: "Sauvegardes quotidiennes testées + procédure de paie dégradée (virements manuels d'acompte).", resources: "Sauvegardes, accès banque de secours, éditeur en astreinte.", procedure: "1) Restaurer depuis la dernière sauvegarde saine. 2) Vérifier l'intégrité. 3) Si indisponible >48h, lancer les acomptes manuels.", assetIds: ["da2", "da3"], lastTestDate: day(-40) }),
+    base({ id: "dcp_pca2", ref: "PCA-2026-002", activity: "Messagerie", missionId: "dm2", ownerId: "u1", criticality: "Essentielle", mtpd: "< 8h", rto: "< 4h", rpo: "< 1h", impacts: ["Opérationnel", "Réputation"], strategy: "Bascule vers l'hébergement de secours du fournisseur cloud.", resources: "Contrat cloud avec SLA, DNS de secours.", procedure: "Basculer les MX vers le site de secours, informer les utilisateurs.", assetIds: ["da4"], lastTestDate: day(-400) }),
+    // Écart : RTO plus long que la DMIA (incohérent) + jamais testé.
+    base({ id: "dcp_pca3", ref: "PCA-2026-003", activity: "Gérer les identités et les accès", missionId: "dm3", ownerId: "u1", criticality: "Vitale", mtpd: "< 4h", rto: "< 24h", rpo: "< 4h", impacts: ["Opérationnel", "Financier"], strategy: "Annuaire répliqué sur deux sites.", resources: "Réplica AD, procédure de bascule.", procedure: "Promouvoir le contrôleur de secours.", assetIds: ["da1"], lastTestDate: null, status: "À réviser" }),
+  ];
 }
 
 /* ---------- Fournisseurs & prestataires ---------- */
