@@ -858,6 +858,58 @@ export function policyCoverage(p: Policy): { applicable: number; total: number; 
   return { applicable, total, pct: total ? Math.round((applicable / total) * 100) : 0 };
 }
 
+/* ---------- Module GRC : Organigramme (Directions → Services) ---------- */
+/** Service (unité) rattaché à une direction. */
+export interface OrgService {
+  id: string;
+  name: string;
+  headId: string; // responsable du service (profil), facultatif
+}
+/** Direction de l'organisation — peut regrouper plusieurs services. */
+export interface Direction {
+  id: string;
+  ref: string; // DIR-AAAA-NNN
+  name: string;
+  code: string; // sigle court (ex. DSI)
+  headId: string; // directeur (profil), facultatif
+  description: string;
+  services: OrgService[];
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Tous les libellés de services connus de l'organigramme (pour l'auto-complétion). */
+export const directionServiceNames = (directions: Direction[]): string[] =>
+  [...new Set(directions.flatMap((d) => d.services.map((s) => s.name.trim()).filter(Boolean)))].sort((a, b) => a.localeCompare(b));
+
+/** Assimilation/applicabilité des politiques pour une direction : agrège les
+ *  diffusions de toutes les politiques dont le service cible appartient à la
+ *  direction. Renvoie la répartition par étape + le taux d'applicabilité. */
+export function directionPolicyRollup(dir: Direction, policies: Policy[]): {
+  total: number; applicable: number; comprises: number; pct: number; byStage: Record<string, number>;
+} {
+  // Une politique peut être diffusée au niveau de la direction (nom/sigle) ou d'un de ses services.
+  const svcNames = new Set(
+    [dir.name, dir.code, ...dir.services.map((s) => s.name)].map((n) => n.trim().toLowerCase()).filter(Boolean)
+  );
+  const byStage: Record<string, number> = {};
+  POLICY_STAGE_ALL.forEach((s) => (byStage[s] = 0));
+  let concerned = 0;
+  let applicable = 0;
+  let comprises = 0;
+  policies.forEach((p) =>
+    p.diffusions.forEach((d) => {
+      if (!svcNames.has(d.service.trim().toLowerCase())) return;
+      byStage[d.stage] = (byStage[d.stage] ?? 0) + 1;
+      if (d.stage === POLICY_STAGE_NA) return;
+      concerned += 1;
+      if (d.stage === "Applicable") applicable += 1;
+      if (d.stage === "Comprise" || d.stage === "Applicable") comprises += 1;
+    })
+  );
+  return { total: concerned, applicable, comprises, pct: concerned ? Math.round((applicable / concerned) * 100) : 0, byStage };
+}
+
 /** Listes de référence par défaut (seed + repli si la base est vide). */
 export const DEFAULT_REF_LISTS: RefLists = {
   appreciations: APPRECIATIONS,

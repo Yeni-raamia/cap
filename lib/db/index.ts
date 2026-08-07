@@ -302,6 +302,15 @@ create table if not exists capa_actions (
   owner_id text, due_date text, status text not null default 'Ouverte', verification text not null default '', closed_at text, created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists directions (
+  id text primary key, ref text not null,
+  name text not null default '', code text not null default '', head_id text, description text not null default '',
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
+create table if not exists org_services (
+  id text primary key, direction_id text not null, name text not null default '', head_id text, ordre integer not null default 0
+);
+create index if not exists idx_orgsvc_dir on org_services(direction_id);
 create table if not exists grc_plan_items (
   id text primary key, ref text not null,
   title text not null default '', category text not null default 'Autre', year integer not null default 0, quarter text not null default 'T1',

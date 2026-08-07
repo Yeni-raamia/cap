@@ -20,7 +20,13 @@ const toDateInput = (d: Date | null | undefined) => (d ? new Date(d).toISOString
 
 /** Fiche d'une politique : métadonnées + suivi de diffusion par direction/service. */
 export function PolicyModal({ policy, creating, onClose }: { policy: Policy | null; creating: boolean; onClose: () => void }) {
-  const { demo, me, profiles, refLists, createPolicy, updatePolicy, deletePolicy, setPolicyDiffusion, removePolicyDiffusion } = useApp();
+  const { demo, me, profiles, refLists, directions, createPolicy, updatePolicy, deletePolicy, setPolicyDiffusion, removePolicyDiffusion } = useApp();
+  // Cibles de diffusion suggérées : listes de référence + organigramme (directions/sigles/services).
+  const orgTargets = [
+    ...directions.flatMap((d) => [d.name, d.code, ...d.services.map((s) => s.name)]),
+    ...(refLists.services ?? []),
+  ].map((s) => s.trim()).filter(Boolean);
+  const serviceSuggestions = [...new Set(orgTargets)].sort((a, b) => a.localeCompare(b));
   const canEdit = !demo;
 
   const [title, setTitle] = useState(policy?.title ?? "");
@@ -149,7 +155,7 @@ export function PolicyModal({ policy, creating, onClose }: { policy: Policy | nu
               {canEdit && (
                 <div className="flex items-center gap-2 mt-2">
                   <input value={newService} onChange={(e) => setNewService(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addService(); } }} list="policy-services" placeholder="Ajouter une direction/service…" className="flex-1 text-[13px] border border-slate-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-emerald-400" />
-                  <datalist id="policy-services">{(refLists.services ?? []).map((s) => <option key={s} value={s} />)}</datalist>
+                  <datalist id="policy-services">{serviceSuggestions.map((s) => <option key={s} value={s} />)}</datalist>
                   <button onClick={addService} disabled={!newService.trim()} className="inline-flex items-center gap-1 text-[12px] font-medium text-white bg-sky-600 rounded-lg px-3 py-1.5 hover:bg-sky-700 disabled:opacity-40"><Plus size={14} /> Ajouter</button>
                 </div>
               )}

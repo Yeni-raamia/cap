@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { seedAssets, seedRisks, seedPolicies, seedFieldControls, seedCapa, seedPlan } from "@/lib/data/grcDemo";
+import { seedAssets, seedRisks, seedPolicies, seedFieldControls, seedCapa, seedPlan, seedDirections } from "@/lib/data/grcDemo";
 import { computeCyberBadges, earnedCount, type CyberBadgeData } from "@/lib/grc/badges";
 import { computeJewels, isJewel } from "@/lib/grc/jewels";
-import { POLICY_STAGE_ALL } from "@/lib/domain";
+import { directionPolicyRollup, POLICY_STAGE_ALL } from "@/lib/domain";
 
 const data = (): CyberBadgeData => ({
   fieldControls: seedFieldControls(),
@@ -65,6 +65,19 @@ describe("jeu de démonstration GRC — distinctions vivantes", () => {
   it("u1 (RSSI) obtient Dompteur (risque élevé maîtrisé)", () => {
     const earned = new Set(computeCyberBadges("u1", d).filter((b) => b.earned).map((b) => b.id));
     expect(earned.has("dompteur")).toBe(true);
+  });
+});
+
+describe("jeu de démonstration GRC — organigramme relié aux politiques", () => {
+  it("chaque direction avec des politiques diffusées obtient un bilan d'applicabilité", () => {
+    const dirs = seedDirections();
+    const pols = seedPolicies();
+    expect(dirs.length).toBeGreaterThanOrEqual(4);
+    // La DSI reçoit la PSSI (Applicable) → bilan non nul.
+    const dsi = dirs.find((d) => d.code === "DSI")!;
+    const roll = directionPolicyRollup(dsi, pols);
+    expect(roll.total).toBeGreaterThan(0);
+    expect(roll.pct).toBeGreaterThan(0);
   });
 });
 

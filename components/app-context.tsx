@@ -23,6 +23,7 @@ import {
   seedFieldControls,
   seedCapa,
   seedPlan,
+  seedDirections,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -50,6 +51,7 @@ import {
   type Asset,
   type CapaAction,
   type ControlAssessment,
+  type Direction,
   type FieldControl,
   type GrcPlanItem,
   type Negligence,
@@ -239,6 +241,14 @@ export interface PlanInput {
   dueDate?: string | null;
   description?: string;
 }
+export interface DirectionInput {
+  id?: string;
+  name?: string;
+  code?: string;
+  headId?: string;
+  description?: string;
+  services?: { name: string; headId?: string }[];
+}
 type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service" | "policy";
 type RefListActionPayload =
   | { op: "add"; listKey: RefListKey; label: string; icon?: string }
@@ -407,6 +417,12 @@ interface AppCtx {
   updatePlanItem: (id: string, fields: PlanInput) => Promise<string | null>;
   setPlanStatus: (id: string, status: string) => Promise<string | null>;
   deletePlanItem: (id: string) => Promise<string | null>;
+  // GRC : organigramme (directions → services)
+  directions: Direction[];
+  directionById: (id: string) => Direction | null;
+  createDirection: (input: DirectionInput) => Promise<string | null>;
+  updateDirection: (id: string, fields: DirectionInput) => Promise<string | null>;
+  deleteDirection: (id: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -587,6 +603,12 @@ const revivePlan = (p: GrcPlanItem): GrcPlanItem => ({
   updatedAt: new Date(p.updatedAt),
 });
 const revivePlans = (arr: GrcPlanItem[]): GrcPlanItem[] => arr.map(revivePlan);
+const reviveDirection = (d: Direction): Direction => ({
+  ...d,
+  createdAt: new Date(d.createdAt),
+  updatedAt: new Date(d.updatedAt),
+});
+const reviveDirections = (arr: Direction[]): Direction[] => arr.map(reviveDirection);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -652,6 +674,7 @@ export function AppProvider({
   initialFieldControls,
   initialCapaActions,
   initialPlanItems,
+  initialDirections,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -678,6 +701,7 @@ export function AppProvider({
   initialFieldControls?: FieldControl[];
   initialCapaActions?: CapaAction[];
   initialPlanItems?: GrcPlanItem[];
+  initialDirections?: Direction[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -720,6 +744,7 @@ export function AppProvider({
   const [fieldControls, setFieldControls] = useState<FieldControl[]>(demo ? seedFieldControls() : reviveFieldControls(initialFieldControls ?? []));
   const [capaActions, setCapaActions] = useState<CapaAction[]>(demo ? seedCapa() : reviveCapas(initialCapaActions ?? []));
   const [planItems, setPlanItems] = useState<GrcPlanItem[]>(demo ? seedPlan() : revivePlans(initialPlanItems ?? []));
+  const [directions, setDirections] = useState<Direction[]>(demo ? seedDirections() : reviveDirections(initialDirections ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -1920,6 +1945,22 @@ export function AppProvider({
   const setPlanStatus = (id: string, status: string) => planAction("status", { id, status });
   const deletePlanItem = (id: string) => planAction("delete", { id });
 
+  /* ---------- GRC : Organigramme (directions → services) ---------- */
+  const directionById = (id: string): Direction | null => directions.find((d) => d.id === id) ?? null;
+  const dirAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Organigramme indisponible en mode démo.";
+    const res = await fetch("/api/directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.directions) setDirections(reviveDirections(d.directions));
+    if (op === "create") toast("Direction ajoutée.", "success");
+    else if (op === "delete") toast("Direction supprimée.", "success");
+    return null;
+  };
+  const createDirection = (input: DirectionInput) => dirAction("create", input as Record<string, unknown>);
+  const updateDirection = (id: string, fields: DirectionInput) => dirAction("update", { id, ...fields });
+  const deleteDirection = (id: string) => dirAction("delete", { id });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -2232,6 +2273,11 @@ export function AppProvider({
     updatePlanItem,
     setPlanStatus,
     deletePlanItem,
+    directions,
+    directionById,
+    createDirection,
+    updateDirection,
+    deleteDirection,
     openTaskId,
     setOpenTaskId,
     soundEnabled,

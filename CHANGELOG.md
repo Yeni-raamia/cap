@@ -6,7 +6,13 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.49.0] - 2026-08-07
+## [1.50.0] - 2026-08-07
+
+### Ajouté
+
+- **Module GRC — Directions & services** (nouvel onglet « Directions ») : recenser l'**organigramme** de l'organisation, une **direction regroupant plusieurs services** (sigle, directeur/responsable, description, responsable par service).
+  - **Relié aux politiques** : les cibles de diffusion des politiques sont suggérées depuis l'organigramme (directions, sigles, services), et chaque direction affiche le **bilan d'assimilation et d'applicabilité** des politiques la concernant (agrégation des diffusions ciblant son nom, son sigle ou l'un de ses services) — taux d'applicabilité + taux d'assimilation (compris + appliqué).
+  - Indicateurs : nombre de directions, de services, applicabilité moyenne.
 
 ### Ajouté
 

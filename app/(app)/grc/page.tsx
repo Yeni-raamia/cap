@@ -14,10 +14,12 @@ import { ActionsTab } from "@/components/grc/ActionsTab";
 import { PlanTab } from "@/components/grc/PlanTab";
 import { DistinctionsTab } from "@/components/grc/DistinctionsTab";
 import { JoyauxTab } from "@/components/grc/JoyauxTab";
+import { DirectionsTab } from "@/components/grc/DirectionsTab";
 
 const TABS = [
   { id: "dashboard", label: "Tableau de bord" },
   { id: "plan", label: "Plan de travail" },
+  { id: "directions", label: "Directions" },
   { id: "actifs", label: "Actifs" },
   { id: "joyaux", label: "Joyaux" },
   { id: "risques", label: "Risques" },
@@ -60,6 +62,7 @@ function GrcInner() {
 
       {active === "dashboard" && <DashboardTab onTab={setTab} />}
       {active === "plan" && <PlanTab />}
+      {active === "directions" && <DirectionsTab />}
       {active === "actifs" && <ActifsTab />}
       {active === "joyaux" && <JoyauxTab />}
       {active === "risques" && <RisquesTab />}

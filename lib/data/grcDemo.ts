@@ -8,9 +8,11 @@ import type {
   Asset,
   CapaAction,
   CheckItem,
+  Direction,
   FieldControl,
   FieldControlEvent,
   GrcPlanItem,
+  OrgService,
   Policy,
   PolicyDiffusion,
   Risk,
@@ -19,6 +21,27 @@ import type {
 const NOW = () => new Date();
 const day = (offset: number) => new Date(NOW().getTime() + offset * 864e5);
 const Y = () => NOW().getFullYear();
+
+/* ---------- Organigramme (Directions → Services) ---------- */
+export function seedDirections(): Direction[] {
+  const svc = (name: string, headId = ""): OrgService => ({ id: `ds-${name.toLowerCase().replace(/\s+/g, "-")}`, name, headId });
+  const base = (o: Partial<Direction> & { id: string; ref: string; name: string; services: OrgService[] }): Direction => ({
+    code: "",
+    headId: "u1",
+    description: "",
+    createdBy: "u1",
+    createdAt: day(-150),
+    updatedAt: day(-20),
+    ...o,
+  });
+  return [
+    base({ id: "dd1", ref: "DIR-2026-001", name: "Direction des systèmes d'information", code: "DSI", headId: "u1", services: [svc("Réseau & Télécom"), svc("Systèmes & Cloud"), svc("Applications"), svc("Support utilisateurs")] }),
+    base({ id: "dd2", ref: "DIR-2026-002", name: "Ressources humaines", code: "RH", headId: "u3", services: [svc("Paie"), svc("Recrutement"), svc("Formation")] }),
+    base({ id: "dd3", ref: "DIR-2026-003", name: "Finance", code: "FIN", headId: "u3", services: [svc("Comptabilité"), svc("Contrôle de gestion")] }),
+    base({ id: "dd4", ref: "DIR-2026-004", name: "Juridique", code: "JUR", headId: "u6", services: [svc("Contrats"), svc("Conformité & RGPD")] }),
+    base({ id: "dd5", ref: "DIR-2026-005", name: "Direction générale", code: "DG", headId: "u1", services: [svc("Cabinet"), svc("Communication")] }),
+  ];
+}
 
 /* ---------- Actifs (registre C/I/D) ---------- */
 export function seedAssets(): Asset[] {
