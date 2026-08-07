@@ -6,7 +6,16 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.59.0] - 2026-08-07
+## [1.60.0] - 2026-08-07
+
+### Ajouté
+
+- **Module GRC — Gestion des incidents** (nouvel onglet « Incidents ») : registre des incidents de sécurité suivant le **cycle ISO 27035** — Déclaré → Qualifié → En traitement → Résolu → Clôturé.
+  - Type, **gravité** (Mineur → Critique), **détection** & **résolution** (délai moyen de résolution calculé), déclarant et responsable, description, impact, **actifs impactés** et **mission** concernée.
+  - **Confinement/traitement**, **cause racine** et **retour d'expérience (REX)**.
+  - **Marqueur « violation de données personnelles »** (pertinence RGPD — notification 72 h à évaluer).
+  - **Bouton d'avancement rapide** du cycle de vie ; passage en Résolu/Clôturé qui horodate automatiquement la résolution.
+  - **Pont vers le plan d'actions** : générer une action corrective (CAPA) à partir d'un incident. Indicateurs : incidents, ouverts, critiques, violations de données.
 
 ### Ajouté
 

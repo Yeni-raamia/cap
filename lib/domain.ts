@@ -771,8 +771,8 @@ export function nextFieldStatus(status: string): string | null {
 export const CAPA_TYPES = ["Corrective", "Préventive"];
 export const CAPA_STATUS = ["Ouverte", "En cours", "Réalisée", "Vérifiée", "Clôturée"];
 export const CAPA_PRIORITIES = ["Basse", "Normale", "Haute", "Critique"];
-/** Origine d'une action : écart de contrôle, non-conformité, risque, ou saisie manuelle. */
-export type CapaSource = "controle" | "nonconformite" | "risque" | "manuel";
+/** Origine d'une action : écart de contrôle, non-conformité, risque, incident, ou saisie manuelle. */
+export type CapaSource = "controle" | "nonconformite" | "risque" | "incident" | "manuel";
 export const CAPA_STATUS_TONE: Record<string, string> = {
   Ouverte: "bg-slate-100 text-slate-600",
   "En cours": "bg-sky-100 text-sky-700",
@@ -1113,6 +1113,66 @@ export const isSupplierReviewLate = (s: Supplier, now: Date): boolean =>
 /** Prestataires en lien avec un actif (accès / exploitation) — pour la CJA. */
 export const assetSuppliers = (assetId: string, suppliers: Supplier[]): Supplier[] =>
   suppliers.filter((s) => s.status !== "Résilié" && s.assetIds.includes(assetId));
+
+/* ==================================================================
+ *  Module GRC : Gestion des incidents (cycle ISO 27035).
+ *  Déclaration → Qualification → Traitement → Résolution → REX.
+ * ================================================================== */
+export const INCIDENT_TYPES = ["Cyberattaque", "Fuite / violation de données", "Indisponibilité / panne", "Malveillance interne", "Erreur humaine", "Physique / environnemental", "Fraude", "Autre"];
+export const INCIDENT_SEVERITIES = ["Mineur", "Modéré", "Majeur", "Critique"];
+export const INCIDENT_SEVERITY_SCORE: Record<string, number> = { Mineur: 1, "Modéré": 2, Majeur: 3, Critique: 4 };
+export const INCIDENT_SEVERITY_TONE: Record<string, string> = {
+  Mineur: "bg-slate-100 text-slate-600 border-slate-200",
+  "Modéré": "bg-sky-100 text-sky-700 border-sky-200",
+  Majeur: "bg-amber-100 text-amber-700 border-amber-200",
+  Critique: "bg-rose-100 text-rose-700 border-rose-200",
+};
+/** Cycle de vie d'un incident (ISO 27035). */
+export const INCIDENT_STATUS = ["Déclaré", "Qualifié", "En traitement", "Résolu", "Clôturé"];
+export const INCIDENT_STATUS_TONE: Record<string, string> = {
+  "Déclaré": "bg-violet-100 text-violet-700",
+  "Qualifié": "bg-sky-100 text-sky-700",
+  "En traitement": "bg-amber-100 text-amber-700",
+  "Résolu": "bg-emerald-100 text-emerald-700",
+  "Clôturé": "bg-slate-200 text-slate-500",
+};
+
+export interface Incident {
+  id: string;
+  ref: string; // INC-AAAA-NNN
+  title: string;
+  type: string;
+  severity: string;
+  status: string;
+  dataBreach: boolean; // violation de données personnelles (pertinence RGPD, notification 72h)
+  detectedAt: Date | null;
+  declaredBy: string; // qui a signalé
+  ownerId: string; // responsable du traitement
+  missionId: string; // mission impactée (facultatif)
+  assetIds: string[]; // actifs impactés
+  description: string;
+  impact: string; // impact constaté
+  actionsTaken: string; // confinement / traitement
+  resolvedAt: Date | null;
+  rootCause: string; // cause racine
+  lessons: string; // retour d'expérience (REX)
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Un incident est « ouvert » tant qu'il n'est ni résolu ni clôturé. */
+export const isIncidentOpen = (i: Incident): boolean => i.status !== "Résolu" && i.status !== "Clôturé";
+export const incidentSeverityScore = (i: Incident): number => INCIDENT_SEVERITY_SCORE[i.severity] ?? 1;
+/** Étape suivante du cycle de vie (pour l'avancement rapide). */
+export function nextIncidentStatus(status: string): string | null {
+  const i = INCIDENT_STATUS.indexOf(status);
+  return i >= 0 && i < INCIDENT_STATUS.length - 1 ? INCIDENT_STATUS[i + 1] : null;
+}
+/** Délai de résolution en heures (si détecté et résolu). */
+export function incidentResolutionHours(i: Incident): number | null {
+  if (!i.detectedAt || !i.resolvedAt) return null;
+  return Math.max(0, Math.round((i.resolvedAt.getTime() - i.detectedAt.getTime()) / 36e5));
+}
 
 /* ==================================================================
  *  Module GRC : Continuité d'activité (BIA + PCA/PRA).

@@ -28,6 +28,7 @@ import {
   seedMissions,
   seedSuppliers,
   seedContinuity,
+  seedIncidents,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -59,6 +60,7 @@ import {
   type Direction,
   type FieldControl,
   type GrcPlanItem,
+  type Incident,
   type Mission,
   type Negligence,
   type NonConformite,
@@ -285,6 +287,25 @@ export interface SupplierInput {
   assetIds?: string[];
   notes?: string;
 }
+export interface IncidentInput {
+  id?: string;
+  title?: string;
+  type?: string;
+  severity?: string;
+  status?: string;
+  dataBreach?: boolean;
+  detectedAt?: string | null;
+  declaredBy?: string;
+  ownerId?: string;
+  missionId?: string;
+  assetIds?: string[];
+  description?: string;
+  impact?: string;
+  actionsTaken?: string;
+  resolvedAt?: string | null;
+  rootCause?: string;
+  lessons?: string;
+}
 export interface ContinuityInput {
   id?: string;
   activity?: string;
@@ -502,6 +523,13 @@ interface AppCtx {
   createContinuity: (input: ContinuityInput) => Promise<string | null>;
   updateContinuity: (id: string, fields: ContinuityInput) => Promise<string | null>;
   deleteContinuity: (id: string) => Promise<string | null>;
+  // GRC : gestion des incidents
+  incidents: Incident[];
+  incidentById: (id: string) => Incident | null;
+  createIncident: (input: IncidentInput) => Promise<string | null>;
+  updateIncident: (id: string, fields: IncidentInput) => Promise<string | null>;
+  setIncidentStatus: (id: string, status: string) => Promise<string | null>;
+  deleteIncident: (id: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -697,6 +725,8 @@ const reviveSupplier = (s: Supplier): Supplier => ({ ...s, contractEnd: s.contra
 const reviveSuppliers = (arr: Supplier[]): Supplier[] => arr.map(reviveSupplier);
 const revivePlan2 = (p: ContinuityPlan): ContinuityPlan => ({ ...p, lastTestDate: p.lastTestDate ? new Date(p.lastTestDate) : null, reviewDate: p.reviewDate ? new Date(p.reviewDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
 const reviveContinuity = (arr: ContinuityPlan[]): ContinuityPlan[] => arr.map(revivePlan2);
+const reviveIncident = (i: Incident): Incident => ({ ...i, detectedAt: i.detectedAt ? new Date(i.detectedAt) : null, resolvedAt: i.resolvedAt ? new Date(i.resolvedAt) : null, createdAt: new Date(i.createdAt), updatedAt: new Date(i.updatedAt) });
+const reviveIncidents = (arr: Incident[]): Incident[] => arr.map(reviveIncident);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -769,6 +799,7 @@ export function AppProvider({
   initialMissions,
   initialSuppliers,
   initialContinuityPlans,
+  initialIncidents,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -802,6 +833,7 @@ export function AppProvider({
   initialMissions?: Mission[];
   initialSuppliers?: Supplier[];
   initialContinuityPlans?: ContinuityPlan[];
+  initialIncidents?: Incident[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -854,6 +886,7 @@ export function AppProvider({
   const [missions, setMissions] = useState<Mission[]>(demo ? seedMissions() : reviveMissions(initialMissions ?? []));
   const [suppliers, setSuppliers] = useState<Supplier[]>(demo ? seedSuppliers() : reviveSuppliers(initialSuppliers ?? []));
   const [continuityPlans, setContinuityPlans] = useState<ContinuityPlan[]>(demo ? seedContinuity() : reviveContinuity(initialContinuityPlans ?? []));
+  const [incidents, setIncidents] = useState<Incident[]>(demo ? seedIncidents() : reviveIncidents(initialIncidents ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -2149,6 +2182,23 @@ export function AppProvider({
   const updateContinuity = (id: string, fields: ContinuityInput) => continuityAction("update", { id, ...fields });
   const deleteContinuity = (id: string) => continuityAction("delete", { id });
 
+  /* ---------- GRC : Gestion des incidents ---------- */
+  const incidentById = (id: string): Incident | null => incidents.find((i) => i.id === id) ?? null;
+  const incidentAction = async (op: "create" | "update" | "status" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Incidents indisponibles en mode démo.";
+    const res = await fetch("/api/incidents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.incidents) setIncidents(reviveIncidents(d.incidents));
+    if (op === "create") toast("Incident déclaré.", "success");
+    else if (op === "delete") toast("Incident supprimé.", "success");
+    return null;
+  };
+  const createIncident = (input: IncidentInput) => incidentAction("create", input as Record<string, unknown>);
+  const updateIncident = (id: string, fields: IncidentInput) => incidentAction("update", { id, ...fields });
+  const setIncidentStatus = (id: string, status: string) => incidentAction("status", { id, status });
+  const deleteIncident = (id: string) => incidentAction("delete", { id });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -2487,6 +2537,12 @@ export function AppProvider({
     createContinuity,
     updateContinuity,
     deleteContinuity,
+    incidents,
+    incidentById,
+    createIncident,
+    updateIncident,
+    setIncidentStatus,
+    deleteIncident,
     openTaskId,
     setOpenTaskId,
     soundEnabled,

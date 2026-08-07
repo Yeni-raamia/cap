@@ -302,6 +302,14 @@ create table if not exists capa_actions (
   owner_id text, due_date text, status text not null default 'Ouverte', verification text not null default '', closed_at text, created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists incidents (
+  id text primary key, ref text not null,
+  title text not null default '', type text not null default 'Autre', severity text not null default 'Mineur', status text not null default 'Déclaré',
+  data_breach integer not null default 0, detected_at text, declared_by text, owner_id text, mission_id text not null default '',
+  asset_ids text not null default '[]', description text not null default '', impact text not null default '', actions_taken text not null default '',
+  resolved_at text, root_cause text not null default '', lessons text not null default '',
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists continuity_plans (
   id text primary key, ref text not null,
   activity text not null default '', mission_id text not null default '', owner_id text,

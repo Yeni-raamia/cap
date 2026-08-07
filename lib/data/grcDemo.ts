@@ -10,6 +10,7 @@ import type {
   CheckItem,
   ContinuityPlan,
   Direction,
+  Incident,
   FieldControl,
   FieldControlEvent,
   GrcPlanItem,
@@ -61,6 +62,20 @@ export function seedTraining(): TrainingCourse[] {
       updatedAt: day(-30),
     };
   });
+}
+
+/* ---------- Gestion des incidents ---------- */
+export function seedIncidents(): Incident[] {
+  const base = (o: Partial<Incident> & { id: string; ref: string; title: string; severity: string; status: string }): Incident => ({
+    type: "Autre", dataBreach: false, detectedAt: day(-5), declaredBy: "u2", ownerId: "u1", missionId: "", assetIds: [],
+    description: "", impact: "", actionsTaken: "", resolvedAt: null, rootCause: "", lessons: "",
+    createdBy: "u2", createdAt: day(-5), updatedAt: day(-2), ...o,
+  });
+  return [
+    base({ id: "di1", ref: "INC-2026-001", title: "Tentative de rançongiciel sur un poste RH", type: "Cyberattaque", severity: "Majeur", status: "En traitement", detectedAt: day(-3), declaredBy: "u4", ownerId: "u1", missionId: "dm1", assetIds: ["da6"], description: "Un poste a affiché une demande de rançon ; propagation suspectée.", impact: "1 poste chiffré, partage réseau à vérifier.", actionsTaken: "Poste isolé du réseau, analyse en cours, sauvegardes vérifiées." }),
+    base({ id: "di2", ref: "INC-2026-002", title: "Envoi d'un fichier RH au mauvais destinataire", type: "Fuite / violation de données", severity: "Modéré", status: "Résolu", dataBreach: true, detectedAt: day(-12), resolvedAt: day(-11), declaredBy: "u3", ownerId: "u3", missionId: "dm1", assetIds: ["da3"], description: "Un tableau de paie envoyé par erreur à un mauvais interlocuteur interne.", impact: "Données personnelles exposées à une personne non habilitée.", actionsTaken: "Rappel du mail, demande de suppression confirmée, notification au DPO.", rootCause: "Autocomplétion de l'adresse e-mail.", lessons: "Activer la confirmation avant envoi externe + sensibilisation." }),
+    base({ id: "di3", ref: "INC-2026-003", title: "Indisponibilité de la messagerie (2h)", type: "Indisponibilité / panne", severity: "Mineur", status: "Clôturé", detectedAt: day(-20), resolvedAt: day(-20), declaredBy: "u2", ownerId: "u1", missionId: "dm2", assetIds: ["da4"], description: "Coupure de la messagerie pendant 2 heures.", impact: "Gêne opérationnelle, aucune perte de données.", actionsTaken: "Bascule vers le site de secours du fournisseur.", rootCause: "Incident chez l'hébergeur.", lessons: "Vérifier le SLA et le délai de bascule au prochain test PCA." }),
+  ];
 }
 
 /* ---------- Continuité d'activité (BIA/PCA) ---------- */

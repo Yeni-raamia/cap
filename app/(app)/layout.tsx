@@ -24,6 +24,7 @@ import { listAllProgress, listCourses, listProgressFor } from "@/lib/db/training
 import { listMissions } from "@/lib/db/missions";
 import { listSuppliers } from "@/lib/db/suppliers";
 import { listContinuityPlans } from "@/lib/db/continuity";
+import { listIncidents } from "@/lib/db/incidents";
 import { getRefLists, getSecuritySettings, getSettings } from "@/lib/db/admin";
 import { maybeRunRemindersInBackground } from "@/lib/reminders/auto";
 import { maybeRunBackupInBackground } from "@/lib/backup/auto";
@@ -79,6 +80,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const missions = listMissions();
   const suppliers = listSuppliers();
   const continuityPlans = listContinuityPlans();
+  const incidents = listIncidents();
 
   return (
     <AppShell
@@ -112,6 +114,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialMissions={missions}
       initialSuppliers={suppliers}
       initialContinuityPlans={continuityPlans}
+      initialIncidents={incidents}
     >
       {children}
     </AppShell>
