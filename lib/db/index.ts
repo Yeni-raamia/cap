@@ -302,6 +302,15 @@ create table if not exists capa_actions (
   owner_id text, due_date text, status text not null default 'Ouverte', verification text not null default '', closed_at text, created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists direction_reviews (
+  id text primary key, ref text not null,
+  title text not null default '', date text, period text not null default '', participant_ids text not null default '[]',
+  context_changes text not null default '', risk_review text not null default '', compliance_review text not null default '',
+  incidents_review text not null default '', objectives_review text not null default '', feedback text not null default '',
+  decisions text not null default '', actions text not null default '', kpi_snapshot text not null default '{}',
+  next_review_date text, status text not null default 'Préparée',
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists processing_activities (
   id text primary key, ref text not null,
   name text not null default '', purpose text not null default '', legal_basis text not null default '',

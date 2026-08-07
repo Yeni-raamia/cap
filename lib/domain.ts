@@ -1115,6 +1115,42 @@ export const assetSuppliers = (assetId: string, suppliers: Supplier[]): Supplier
   suppliers.filter((s) => s.status !== "Résilié" && s.assetIds.includes(assetId));
 
 /* ==================================================================
+ *  Module GRC : Revue de direction (ISO 27001 §9.3).
+ *  Enregistre chaque revue : éléments d'entrée (bilans) et de sortie
+ *  (décisions), avec un instantané des indicateurs de pilotage.
+ * ================================================================== */
+export const REVIEW_STATUS = ["Préparée", "Tenue", "Clôturée"];
+export const REVIEW_STATUS_TONE: Record<string, string> = {
+  "Préparée": "bg-slate-100 text-slate-600",
+  "Tenue": "bg-sky-100 text-sky-700",
+  "Clôturée": "bg-emerald-100 text-emerald-700",
+};
+export interface DirectionReview {
+  id: string;
+  ref: string; // REV-AAAA-NNN
+  title: string;
+  date: Date | null;
+  period: string; // période couverte
+  participantIds: string[];
+  // Éléments d'entrée (ISO 9.3.2)
+  contextChanges: string;
+  riskReview: string;
+  complianceReview: string;
+  incidentsReview: string;
+  objectivesReview: string;
+  feedback: string;
+  // Éléments de sortie (ISO 9.3.3)
+  decisions: string;
+  actions: string;
+  kpiSnapshot: Record<string, number>; // instantané des indicateurs à la date de revue
+  nextReviewDate: Date | null;
+  status: string;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/* ==================================================================
  *  Module GRC : RGPD — registre des traitements (ROPA, art. 30) et
  *  analyses d'impact (AIPD/PIA, art. 35).
  * ================================================================== */

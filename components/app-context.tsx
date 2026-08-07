@@ -30,6 +30,7 @@ import {
   seedContinuity,
   seedIncidents,
   seedProcessing,
+  seedReviews,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -59,6 +60,7 @@ import {
   type ContinuityPlan,
   type ControlAssessment,
   type Direction,
+  type DirectionReview,
   type FieldControl,
   type GrcPlanItem,
   type Incident,
@@ -288,6 +290,24 @@ export interface SupplierInput {
   reviewDate?: string | null;
   assetIds?: string[];
   notes?: string;
+}
+export interface ReviewInput {
+  id?: string;
+  title?: string;
+  date?: string | null;
+  period?: string;
+  participantIds?: string[];
+  contextChanges?: string;
+  riskReview?: string;
+  complianceReview?: string;
+  incidentsReview?: string;
+  objectivesReview?: string;
+  feedback?: string;
+  decisions?: string;
+  actions?: string;
+  kpiSnapshot?: Record<string, number>;
+  nextReviewDate?: string | null;
+  status?: string;
 }
 export interface ProcessingInput {
   id?: string;
@@ -561,6 +581,12 @@ interface AppCtx {
   createProcessing: (input: ProcessingInput) => Promise<string | null>;
   updateProcessing: (id: string, fields: ProcessingInput) => Promise<string | null>;
   deleteProcessing: (id: string) => Promise<string | null>;
+  // GRC : revue de direction
+  reviews: DirectionReview[];
+  reviewById: (id: string) => DirectionReview | null;
+  createReview: (input: ReviewInput) => Promise<string | null>;
+  updateReview: (id: string, fields: ReviewInput) => Promise<string | null>;
+  deleteReview: (id: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -760,6 +786,8 @@ const reviveIncident = (i: Incident): Incident => ({ ...i, detectedAt: i.detecte
 const reviveIncidents = (arr: Incident[]): Incident[] => arr.map(reviveIncident);
 const reviveProcessing1 = (p: ProcessingActivity): ProcessingActivity => ({ ...p, reviewDate: p.reviewDate ? new Date(p.reviewDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
 const reviveProcessing = (arr: ProcessingActivity[]): ProcessingActivity[] => arr.map(reviveProcessing1);
+const reviveReview = (r: DirectionReview): DirectionReview => ({ ...r, date: r.date ? new Date(r.date) : null, nextReviewDate: r.nextReviewDate ? new Date(r.nextReviewDate) : null, createdAt: new Date(r.createdAt), updatedAt: new Date(r.updatedAt) });
+const reviveReviews = (arr: DirectionReview[]): DirectionReview[] => arr.map(reviveReview);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -834,6 +862,7 @@ export function AppProvider({
   initialContinuityPlans,
   initialIncidents,
   initialProcessing,
+  initialReviews,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -869,6 +898,7 @@ export function AppProvider({
   initialContinuityPlans?: ContinuityPlan[];
   initialIncidents?: Incident[];
   initialProcessing?: ProcessingActivity[];
+  initialReviews?: DirectionReview[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -923,6 +953,7 @@ export function AppProvider({
   const [continuityPlans, setContinuityPlans] = useState<ContinuityPlan[]>(demo ? seedContinuity() : reviveContinuity(initialContinuityPlans ?? []));
   const [incidents, setIncidents] = useState<Incident[]>(demo ? seedIncidents() : reviveIncidents(initialIncidents ?? []));
   const [processing, setProcessing] = useState<ProcessingActivity[]>(demo ? seedProcessing() : reviveProcessing(initialProcessing ?? []));
+  const [reviews, setReviews] = useState<DirectionReview[]>(demo ? seedReviews() : reviveReviews(initialReviews ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -2251,6 +2282,22 @@ export function AppProvider({
   const updateProcessing = (id: string, fields: ProcessingInput) => rgpdAction("update", { id, ...fields });
   const deleteProcessing = (id: string) => rgpdAction("delete", { id });
 
+  /* ---------- GRC : Revue de direction ---------- */
+  const reviewById = (id: string): DirectionReview | null => reviews.find((r) => r.id === id) ?? null;
+  const reviewAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Revue de direction indisponible en mode démo.";
+    const res = await fetch("/api/reviews", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.reviews) setReviews(reviveReviews(d.reviews));
+    if (op === "create") toast("Revue de direction créée.", "success");
+    else if (op === "delete") toast("Revue supprimée.", "success");
+    return null;
+  };
+  const createReview = (input: ReviewInput) => reviewAction("create", input as Record<string, unknown>);
+  const updateReview = (id: string, fields: ReviewInput) => reviewAction("update", { id, ...fields });
+  const deleteReview = (id: string) => reviewAction("delete", { id });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -2600,6 +2647,11 @@ export function AppProvider({
     createProcessing,
     updateProcessing,
     deleteProcessing,
+    reviews,
+    reviewById,
+    createReview,
+    updateReview,
+    deleteReview,
     openTaskId,
     setOpenTaskId,
     soundEnabled,

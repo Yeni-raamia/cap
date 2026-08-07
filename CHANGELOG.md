@@ -6,6 +6,18 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.62.0] - 2026-08-07
+
+### Ajouté
+
+- **Module GRC — Revue de direction & pilotage** (nouvel onglet « Revue de direction ») : un **tableau de bord synthétique** de la posture GRC et le **registre des revues de direction** (ISO 27001 §9.3).
+  - **Indice de posture GRC** (0–100) : conformité moyenne des référentiels **pondérée** par les points d'attention (risques critiques, actions correctives en retard, incidents critiques, AIPD à réaliser, plans de continuité à tester).
+  - **Indicateurs de pilotage** agrégés depuis **tous les onglets** : conformité, risques ouverts/critiques/acceptés, écarts terrain, actions en retard, incidents ouverts, violations de données, AIPD à réaliser, applicabilité des politiques, continuité à tester, joyaux prioritaires.
+  - **Revues de direction (ISO 27001 §9.3)** : fiche structurée avec **éléments d'entrée** (évolutions du contexte, bilan des risques, conformité & audits, incidents & non-conformités, objectifs & plan d'action, retours des parties intéressées) et **éléments de sortie** (décisions & orientations, actions & moyens décidés).
+  - **Participants**, période, dates de tenue et de prochaine revue, statut (Préparée → Tenue → Clôturée).
+  - **Capture d'indicateurs** : un bouton fige les KPIs du moment dans la revue (instantané daté), pour un historique de la trajectoire GRC d'une revue à l'autre.
+  - Édition réservée hors lecture seule ; suppression réservée aux manager/directeur/admin.
+
 ## [1.61.0] - 2026-08-07
 
 ### Ajouté

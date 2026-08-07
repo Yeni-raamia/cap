@@ -10,6 +10,7 @@ import type {
   CheckItem,
   ContinuityPlan,
   Direction,
+  DirectionReview,
   Incident,
   FieldControl,
   FieldControlEvent,
@@ -63,6 +64,26 @@ export function seedTraining(): TrainingCourse[] {
       updatedAt: day(-30),
     };
   });
+}
+
+/* ---------- Revue de direction ---------- */
+export function seedReviews(): DirectionReview[] {
+  return [
+    {
+      id: "drev1", ref: "REV-2026-001", title: "Revue de direction — 1er semestre", date: day(-30), period: "S1 " + Y(),
+      participantIds: ["u1", "u3", "u6"],
+      contextChanges: "Nouvelle directive NIS2 en préparation ; renforcement de l'équipe GRC.",
+      riskReview: "6 risques ouverts, dont 2 critiques en cours de traitement (annuaire, hameçonnage).",
+      complianceReview: "Score de conformité en progression ; audit à blanc ISO 27001 planifié.",
+      incidentsReview: "3 incidents dont 1 violation de données (résolue, DPO notifié).",
+      objectivesReview: "Certification ISO 27001 en cours ; campagne de sensibilisation lancée.",
+      feedback: "Les directions demandent plus d'accompagnement sur les politiques.",
+      decisions: "Prioriser le déploiement du MFA ; valider le budget sensibilisation.",
+      actions: "Plan d'actions correctives à jour ; nommer un référent par direction.",
+      kpiSnapshot: { conformite: 62, risquesCritiques: 2, incidentsOuverts: 1, capaEnRetard: 1 },
+      nextReviewDate: day(150), status: "Clôturée", createdBy: "u1", createdAt: day(-32), updatedAt: day(-30),
+    },
+  ];
 }
 
 /* ---------- RGPD : registre des traitements ---------- */
