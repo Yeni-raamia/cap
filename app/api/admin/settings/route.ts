@@ -10,6 +10,16 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   if (typeof body?.orgName === "string") setSetting("org_name", body.orgName.trim() || "Équipe sécurité");
+  if (typeof body?.orgLogo === "string") {
+    const logo = body.orgLogo.trim();
+    if (logo && !/^data:image\/(png|jpeg|webp|gif|svg\+xml);/.test(logo)) {
+      return NextResponse.json({ error: "Logo invalide (image attendue)." }, { status: 400 });
+    }
+    if (logo.length > 700_000) {
+      return NextResponse.json({ error: "Logo trop volumineux (réduisez l'image)." }, { status: 400 });
+    }
+    setSetting("org_logo", logo); // vide = suppression du logo
+  }
   if (typeof body?.emailEnabled === "boolean") setSetting("email_enabled", body.emailEnabled ? "1" : "0");
   if (typeof body?.digestHour === "string" && /^\d{2}:\d{2}$/.test(body.digestHour))
     setSetting("digest_hour", body.digestHour);

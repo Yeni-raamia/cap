@@ -17,7 +17,7 @@ const exact: React.CSSProperties = { WebkitPrintColorAdjust: "exact", printColor
 
 /** Bouton + document imprimable de l'analyse des joyaux de la couronne (JCA). */
 export function JoyauxRapportPdf() {
-  const { assets, risks, fieldControls, profileById, orgName, now } = useApp();
+  const { assets, risks, fieldControls, profileById, orgName, orgLogo, now } = useApp();
   const [open, setOpen] = useState(false);
 
   const build = () => {
@@ -55,10 +55,13 @@ export function JoyauxRapportPdf() {
 
     return (
       <div className="print-report">
-        <div style={{ borderBottom: "2px solid #0f172a", paddingBottom: 10, marginBottom: 16 }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>{APP_NAME} — Analyse des joyaux de la couronne</div>
-          <div style={{ fontSize: 12, color: "#475569" }}>{orgName} · méthode Crown Jewels Analysis (MITRE)</div>
-          <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>Édité le {fmtLong(now)} · {jewels.length} joyau(x) sur {assets.filter((a) => a.status !== "Retiré").length} actif(s)</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, borderBottom: "2px solid #0f172a", paddingBottom: 10, marginBottom: 16 }}>
+          {orgLogo && <img src={orgLogo} alt="" style={{ maxHeight: 56, maxWidth: 160, objectFit: "contain" }} />}
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 700 }}>{APP_NAME} — Analyse des joyaux de la couronne</div>
+            <div style={{ fontSize: 12, color: "#475569" }}>{orgName} · méthode Crown Jewels Analysis (MITRE)</div>
+            <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>Édité le {fmtLong(now)} · {jewels.length} joyau(x) sur {assets.filter((a) => a.status !== "Retiré").length} actif(s)</div>
+          </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 16 }}>

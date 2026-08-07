@@ -10,7 +10,7 @@ import { useApp } from "./app-context";
  * (qui décide sur document imprimé, sans accès à l'application).
  */
 export function NegligencesReport({ negs }: { negs: Negligence[] }) {
-  const { items, profileById, orgName, refLists } = useApp();
+  const { items, profileById, orgName, orgLogo, refLists } = useApp();
   if (typeof document === "undefined") return null;
 
   const th = { textAlign: "left" as const, fontSize: 11, textTransform: "uppercase" as const, color: "#64748b", borderBottom: "1px solid #cbd5e1", padding: "4px 6px" };
@@ -18,10 +18,13 @@ export function NegligencesReport({ negs }: { negs: Negligence[] }) {
 
   return createPortal(
     <div className="print-report">
-      <div style={{ borderBottom: "2px solid #0f172a", paddingBottom: 10, marginBottom: 14 }}>
-        <div style={{ fontSize: 20, fontWeight: 700 }}>{APP_NAME} — Rapport des négligences</div>
-        <div style={{ fontSize: 12, color: "#475569" }}>{orgName} · Document confidentiel — à l&apos;attention du Directeur général</div>
-        <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>Édité le {new Date().toLocaleDateString("fr-FR")} · {negs.length} fiche(s)</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, borderBottom: "2px solid #0f172a", paddingBottom: 10, marginBottom: 14 }}>
+        {orgLogo && <img src={orgLogo} alt="" style={{ maxHeight: 56, maxWidth: 160, objectFit: "contain" }} />}
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>{APP_NAME} — Rapport des négligences</div>
+          <div style={{ fontSize: 12, color: "#475569" }}>{orgName} · Document confidentiel — à l&apos;attention du Directeur général</div>
+          <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>Édité le {new Date().toLocaleDateString("fr-FR")} · {negs.length} fiche(s)</div>
+        </div>
       </div>
 
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>

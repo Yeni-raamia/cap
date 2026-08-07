@@ -1993,6 +1993,7 @@ export interface AdminCounts {
 
 export interface AppSettings {
   orgName: string;
+  orgLogo: string; // logo de l'organisation (data URL), "" si aucun — affiché sur les rapports
   emailEnabled: boolean;
   digestHour: string; // "08:00"
 }

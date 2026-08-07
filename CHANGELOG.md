@@ -6,7 +6,11 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.50.0] - 2026-08-07
+## [1.51.0] - 2026-08-07
+
+### Ajouté
+
+- **Logo de l'organisation dans les rapports** : l'administration (**Administration → Paramètres**) permet désormais d'ajouter/remplacer/retirer un **logo** (en plus du nom de l'organisation). Le logo est redimensionné automatiquement et apparaît en tête de tous les documents imprimables — rapport d'activité, registre des risques, analyse des joyaux, rapports négligences et non-conformités.
 
 ### Ajouté
 

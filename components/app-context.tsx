@@ -270,6 +270,7 @@ interface AppCtx {
   rs: (item: Item) => ReminderState;
   scores: Score[];
   orgName: string;
+  orgLogo: string;
   emailEnabled: boolean;
   digestHour: string;
   applySettings: (s: AppSettings) => void;
@@ -754,6 +755,7 @@ export function AppProvider({
   const [nowState, setNowState] = useState<Date | null>(null);
   const [meId, setMeId] = useState<string>(DEFAULT_USER_ID); // sélecteur démo
   const [orgName, setOrgName] = useState(initialSettings?.orgName ?? ORG_NAME);
+  const [orgLogo, setOrgLogo] = useState(initialSettings?.orgLogo ?? "");
   const [emailEnabled, setEmailEnabled] = useState(initialSettings?.emailEnabled ?? true);
   const [digestHour, setDigestHour] = useState(initialSettings?.digestHour ?? "08:00");
   const [open, setOpen] = useState<Item | null>(null);
@@ -762,6 +764,7 @@ export function AppProvider({
 
   const applySettings = (s: AppSettings) => {
     setOrgName(s.orgName);
+    setOrgLogo(s.orgLogo ?? "");
     setEmailEnabled(s.emailEnabled);
     setDigestHour(s.digestHour);
   };
@@ -2140,6 +2143,7 @@ export function AppProvider({
     rs,
     scores,
     orgName,
+    orgLogo,
     emailEnabled,
     digestHour,
     applySettings,

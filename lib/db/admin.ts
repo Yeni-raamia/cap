@@ -34,6 +34,7 @@ export function setSetting(key: string, value: string): void {
 export function getSettings(): AppSettings {
   return {
     orgName: getSetting("org_name") || process.env.NEXT_PUBLIC_ORG_NAME?.trim() || "Équipe sécurité",
+    orgLogo: getSetting("org_logo") || "",
     emailEnabled: (getSetting("email_enabled") ?? "1") === "1",
     digestHour: getSetting("digest_hour") || "08:00",
   };

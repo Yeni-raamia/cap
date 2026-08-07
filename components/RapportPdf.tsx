@@ -26,6 +26,7 @@ interface AgentRow {
 }
 interface Report {
   orgName: string;
+  orgLogo: string;
   fromLabel: string;
   toLabel: string;
   editedAt: string;
@@ -48,7 +49,7 @@ interface Report {
 }
 
 export function RapportPdf() {
-  const { items, profiles, catalogue, now, rs, scores, profileById, orgName } = useApp();
+  const { items, profiles, catalogue, now, rs, scores, profileById, orgName, orgLogo } = useApp();
   const [preset, setPreset] = useState<Preset>("mensuel");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -111,6 +112,7 @@ export function RapportPdf() {
 
     setReport({
       orgName,
+      orgLogo,
       fromLabel: fmtLong(new Date(fromT)),
       toLabel: fmtLong(new Date(toT)),
       editedAt: fmtLong(now),
@@ -197,11 +199,14 @@ function ReportDocument({ report }: { report: Report }) {
   );
   return (
     <div className="print-report">
-      <div style={{ borderBottom: "2px solid #0f172a", paddingBottom: 10, marginBottom: 16 }}>
-        <div style={{ fontSize: 20, fontWeight: 700 }}>{APP_NAME} — Rapport d&apos;activité</div>
-        <div style={{ fontSize: 12, color: "#475569" }}>{report.orgName}</div>
-        <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>
-          Période : du {report.fromLabel} au {report.toLabel} · Édité le {report.editedAt}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, borderBottom: "2px solid #0f172a", paddingBottom: 10, marginBottom: 16 }}>
+        {report.orgLogo && <img src={report.orgLogo} alt="" style={{ maxHeight: 56, maxWidth: 160, objectFit: "contain" }} />}
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>{APP_NAME} — Rapport d&apos;activité</div>
+          <div style={{ fontSize: 12, color: "#475569" }}>{report.orgName}</div>
+          <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>
+            Période : du {report.fromLabel} au {report.toLabel} · Édité le {report.editedAt}
+          </div>
         </div>
       </div>
 

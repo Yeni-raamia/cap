@@ -7,7 +7,7 @@ import { useApp } from "./app-context";
 
 /** Rapport consolidé de TOUTES les non-conformités à la politique de sécurité. */
 export function NonConformitesReport({ ncs }: { ncs: NonConformite[] }) {
-  const { items, profileById, orgName, refLists } = useApp();
+  const { items, profileById, orgName, orgLogo, refLists } = useApp();
   if (typeof document === "undefined") return null;
 
   const th = { textAlign: "left" as const, fontSize: 11, textTransform: "uppercase" as const, color: "#64748b", borderBottom: "1px solid #cbd5e1", padding: "4px 6px" };
@@ -15,10 +15,13 @@ export function NonConformitesReport({ ncs }: { ncs: NonConformite[] }) {
 
   return createPortal(
     <div className="print-report">
-      <div style={{ borderBottom: "2px solid #0f172a", paddingBottom: 10, marginBottom: 14 }}>
-        <div style={{ fontSize: 20, fontWeight: 700 }}>{APP_NAME} — Rapport des non-conformités</div>
-        <div style={{ fontSize: 12, color: "#475569" }}>{orgName} · Écarts à la politique de sécurité — document confidentiel</div>
-        <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>Édité le {new Date().toLocaleDateString("fr-FR")} · {ncs.length} fiche(s)</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, borderBottom: "2px solid #0f172a", paddingBottom: 10, marginBottom: 14 }}>
+        {orgLogo && <img src={orgLogo} alt="" style={{ maxHeight: 56, maxWidth: 160, objectFit: "contain" }} />}
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>{APP_NAME} — Rapport des non-conformités</div>
+          <div style={{ fontSize: 12, color: "#475569" }}>{orgName} · Écarts à la politique de sécurité — document confidentiel</div>
+          <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>Édité le {new Date().toLocaleDateString("fr-FR")} · {ncs.length} fiche(s)</div>
+        </div>
       </div>
 
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 16 }}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   Check,
@@ -21,6 +21,8 @@ import {
   UserPlus,
   Users2,
   X,
+  Image as ImageIcon,
+  Upload,
 } from "lucide-react";
 import {
   ACTION_ICONS,
@@ -831,13 +833,59 @@ function ActionsListCard({ actions, onAdd, onDelete }: { actions: { kind: string
   );
 }
 
+/* Réduit une image (en préservant le ratio) en data URL ; conserve les SVG tels quels. */
+function logoToDataUrl(file: File, max = 320): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    if (file.type === "image/svg+xml") {
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+      return;
+    }
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("no ctx"));
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = reject;
+      img.src = String(reader.result);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 /* ================= Paramètres ================= */
 function ParametresSection({ settings, onSaved, setErr }: { settings: AppSettings; onSaved: () => void; setErr: (e: string | null) => void }) {
   const { applySettings } = useApp();
   const [org, setOrg] = useState(settings.orgName);
+  const [logo, setLogo] = useState(settings.orgLogo);
   const [email, setEmail] = useState(settings.emailEnabled);
   const [hour, setHour] = useState(settings.digestHour);
   const [msg, setMsg] = useState<string | null>(null);
+  const logoRef = useRef<HTMLInputElement>(null);
+
+  const pickLogo = async (file: File) => {
+    if (!/^image\//.test(file.type)) return setErr("Fichier image attendu.");
+    try {
+      const dataUrl = await logoToDataUrl(file);
+      if (dataUrl.length > 700_000) return setErr("Logo trop lourd après compression — choisissez une image plus simple.");
+      setLogo(dataUrl);
+      setErr(null);
+    } catch {
+      setErr("Impossible de lire l'image.");
+    }
+  };
 
   const save = async () => {
     setErr(null);
@@ -845,7 +893,7 @@ function ParametresSection({ settings, onSaved, setErr }: { settings: AppSetting
     const r = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orgName: org, emailEnabled: email, digestHour: hour }),
+      body: JSON.stringify({ orgName: org, orgLogo: logo, emailEnabled: email, digestHour: hour }),
     });
     const d = await r.json();
     if (!r.ok) return setErr(d.error ?? "Erreur.");
@@ -860,6 +908,35 @@ function ParametresSection({ settings, onSaved, setErr }: { settings: AppSetting
         <label className="text-[12px] font-medium text-slate-600">Nom de l&apos;organisation / équipe</label>
         <input value={org} onChange={(e) => setOrg(e.target.value)} className="w-full mt-1 text-[13px] border border-slate-200 rounded-lg px-3 py-2" />
         <p className="text-[11px] text-slate-400 mt-1">Affiché dans l&apos;app et sur les rapports PDF.</p>
+      </div>
+
+      <div>
+        <label className="text-[12px] font-medium text-slate-600">Logo de l&apos;organisation</label>
+        <div className="flex items-center gap-3 mt-1">
+          <div className="h-16 w-16 rounded-lg border border-slate-200 bg-slate-50 grid place-items-center overflow-hidden shrink-0">
+            {logo ? <img src={logo} alt="Logo" className="max-h-full max-w-full object-contain" /> : <ImageIcon size={20} className="text-slate-300" />}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <button onClick={() => logoRef.current?.click()} className="inline-flex items-center gap-1 text-[12px] font-medium text-emerald-700 border border-emerald-200 rounded-lg px-2.5 py-1.5 hover:bg-emerald-50">
+                <Upload size={13} /> {logo ? "Remplacer" : "Choisir une image"}
+              </button>
+              {logo && (
+                <button onClick={() => setLogo("")} className="inline-flex items-center gap-1 text-[12px] text-rose-600 border border-rose-200 rounded-lg px-2.5 py-1.5 hover:bg-rose-50">
+                  <Trash2 size={13} /> Retirer
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400">PNG/JPG (transparence conservée). Apparaît en tête des rapports PDF.</p>
+          </div>
+          <input
+            ref={logoRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) void pickLogo(f); if (logoRef.current) logoRef.current.value = ""; }}
+          />
+        </div>
       </div>
 
       <div>
