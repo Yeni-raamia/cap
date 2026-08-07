@@ -858,6 +858,115 @@ export function policyCoverage(p: Policy): { applicable: number; total: number; 
   return { applicable, total, pct: total ? Math.round((applicable / total) * 100) : 0 };
 }
 
+/* ==================================================================
+ *  Module GRC : Académie (entraînement de l'équipe GRC).
+ *  Un parcours (course) contient des leçons de 4 types : leçon, quiz,
+ *  étude de cas décisionnelle, défi pratique. La progression est propre
+ *  à l'apprentissage (niveau de compétence GRC dédié).
+ * ================================================================== */
+export const TRAINING_CATEGORIES = [
+  "Fondamentaux cyber",
+  "Fondamentaux GRC",
+  "Gestion des risques",
+  "Conformité & politiques",
+  "Contrôles & audit",
+  "Incidents & non-conformités",
+  "Décision & pilotage",
+];
+export type LessonType = "lesson" | "quiz" | "case" | "challenge";
+export const LESSON_TYPES: LessonType[] = ["lesson", "quiz", "case", "challenge"];
+export const LESSON_TYPE_META: Record<LessonType, { label: string; icon: string; tone: string }> = {
+  lesson: { label: "Leçon", icon: "📖", tone: "bg-sky-100 text-sky-700" },
+  quiz: { label: "Quiz", icon: "❓", tone: "bg-violet-100 text-violet-700" },
+  case: { label: "Étude de cas", icon: "🎬", tone: "bg-amber-100 text-amber-700" },
+  challenge: { label: "Défi pratique", icon: "🎯", tone: "bg-emerald-100 text-emerald-700" },
+};
+
+/** Question de quiz (QCM) avec explication de la bonne réponse. */
+export interface QuizQuestion {
+  id: string;
+  prompt: string;
+  options: string[];
+  correct: number; // index de la bonne réponse
+  explanation: string;
+}
+/** Choix d'une étude de cas : conséquence + qualité de la décision (0–100). */
+export interface CaseOption {
+  label: string;
+  feedback: string;
+  score: number; // 0–100 : qualité de la décision
+}
+/** Étape décisionnelle d'une étude de cas. */
+export interface CaseStep {
+  id: string;
+  prompt: string;
+  options: CaseOption[];
+}
+export interface TrainingLesson {
+  id: string;
+  courseId: string;
+  order: number;
+  type: LessonType;
+  title: string;
+  content: string; // leçon : texte ; cas : mise en situation ; défi : consigne
+  xp: number;
+  questions: QuizQuestion[]; // quiz
+  steps: CaseStep[]; // étude de cas
+  challengeHref: string; // défi : lien vers un module (ex. /grc?tab=risques)
+}
+export interface TrainingCourse {
+  id: string;
+  ref: string;
+  title: string;
+  description: string;
+  category: string;
+  icon: string; // emoji
+  badge: string; // certification décernée à 100 % (ex. « Analyste de risque certifié »)
+  order: number;
+  published: boolean;
+  lessons: TrainingLesson[];
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Achèvement d'une leçon par un apprenant (avec le score obtenu 0–100). */
+export interface TrainingDone {
+  lessonId: string;
+  score: number;
+  completedAt: Date;
+}
+
+export const TRAINING_LEVELS: { min: number; name: string; icon: string }[] = [
+  { min: 0, name: "Débutant", icon: "🌱" },
+  { min: 150, name: "Junior", icon: "📘" },
+  { min: 400, name: "Confirmé", icon: "🎓" },
+  { min: 800, name: "Expert", icon: "🏆" },
+];
+export interface TrainingLevel { level: number; name: string; icon: string; xp: number; nextXp: number | null; progressPct: number; }
+export function trainingLevel(xp: number): TrainingLevel {
+  let level = 0;
+  for (let i = 0; i < TRAINING_LEVELS.length; i++) if (xp >= TRAINING_LEVELS[i].min) level = i;
+  const nextXp = level < TRAINING_LEVELS.length - 1 ? TRAINING_LEVELS[level + 1].min : null;
+  const base = TRAINING_LEVELS[level].min;
+  const progressPct = nextXp ? Math.round(((xp - base) / (nextXp - base)) * 100) : 100;
+  return { level, name: TRAINING_LEVELS[level].name, icon: TRAINING_LEVELS[level].icon, xp, nextXp, progressPct };
+}
+
+/** XP gagnée par un apprenant = somme (xp de la leçon × score/100) sur les leçons achevées. */
+export function trainingXp(courses: TrainingCourse[], done: TrainingDone[]): number {
+  const xpById = new Map<string, number>();
+  courses.forEach((c) => c.lessons.forEach((l) => xpById.set(l.id, l.xp)));
+  return done.reduce((s, d) => s + Math.round(((xpById.get(d.lessonId) ?? 0) * d.score) / 100), 0);
+}
+/** Avancement d'un parcours pour un apprenant (leçons achevées / total). */
+export function courseProgress(course: TrainingCourse, doneIds: Set<string>): { done: number; total: number; pct: number } {
+  const total = course.lessons.length;
+  const done = course.lessons.filter((l) => doneIds.has(l.id)).length;
+  return { done, total, pct: total ? Math.round((done / total) * 100) : 0 };
+}
+/** Score maximal atteignable pour une leçon (pour l'affichage). */
+export const lessonMaxScore = 100;
+
 /* ---------- Module GRC : Organigramme (Directions → Services) ---------- */
 /** Service (unité) rattaché à une direction. */
 export interface OrgService {

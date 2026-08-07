@@ -24,6 +24,7 @@ import {
   seedCapa,
   seedPlan,
   seedDirections,
+  seedTraining,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -77,6 +78,8 @@ import {
   type Task,
   type TaskPriority,
   type TaskStatus,
+  type TrainingCourse,
+  type TrainingDone,
 } from "@/lib/domain";
 import { ORG_NAME } from "@/lib/config";
 import { fireConfetti } from "@/lib/confetti";
@@ -424,6 +427,11 @@ interface AppCtx {
   createDirection: (input: DirectionInput) => Promise<string | null>;
   updateDirection: (id: string, fields: DirectionInput) => Promise<string | null>;
   deleteDirection: (id: string) => Promise<string | null>;
+  // GRC : Académie (entraînement)
+  trainingCourses: TrainingCourse[];
+  trainingDone: TrainingDone[];
+  completeLesson: (lessonId: string, score: number) => Promise<string | null>;
+  trainingEdit: (op: string, input: Record<string, unknown>) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -610,6 +618,9 @@ const reviveDirection = (d: Direction): Direction => ({
   updatedAt: new Date(d.updatedAt),
 });
 const reviveDirections = (arr: Direction[]): Direction[] => arr.map(reviveDirection);
+const reviveCourse = (c: TrainingCourse): TrainingCourse => ({ ...c, createdAt: new Date(c.createdAt), updatedAt: new Date(c.updatedAt) });
+const reviveCourses = (arr: TrainingCourse[]): TrainingCourse[] => arr.map(reviveCourse);
+const reviveDone = (arr: TrainingDone[]): TrainingDone[] => arr.map((d) => ({ ...d, completedAt: new Date(d.completedAt) }));
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -676,6 +687,8 @@ export function AppProvider({
   initialCapaActions,
   initialPlanItems,
   initialDirections,
+  initialTrainingCourses,
+  initialTrainingDone,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -703,6 +716,8 @@ export function AppProvider({
   initialCapaActions?: CapaAction[];
   initialPlanItems?: GrcPlanItem[];
   initialDirections?: Direction[];
+  initialTrainingCourses?: TrainingCourse[];
+  initialTrainingDone?: TrainingDone[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -746,6 +761,8 @@ export function AppProvider({
   const [capaActions, setCapaActions] = useState<CapaAction[]>(demo ? seedCapa() : reviveCapas(initialCapaActions ?? []));
   const [planItems, setPlanItems] = useState<GrcPlanItem[]>(demo ? seedPlan() : revivePlans(initialPlanItems ?? []));
   const [directions, setDirections] = useState<Direction[]>(demo ? seedDirections() : reviveDirections(initialDirections ?? []));
+  const [trainingCourses, setTrainingCourses] = useState<TrainingCourse[]>(demo ? seedTraining() : reviveCourses(initialTrainingCourses ?? []));
+  const [trainingDone, setTrainingDone] = useState<TrainingDone[]>(demo ? [] : reviveDone(initialTrainingDone ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -1964,6 +1981,35 @@ export function AppProvider({
   const updateDirection = (id: string, fields: DirectionInput) => dirAction("update", { id, ...fields });
   const deleteDirection = (id: string) => dirAction("delete", { id });
 
+  /* ---------- GRC : Académie (entraînement) ---------- */
+  const completeLesson = async (lessonId: string, score: number): Promise<string | null> => {
+    // En démo : progression conservée en mémoire (pas de persistance serveur).
+    if (demo) {
+      setTrainingDone((prev) => {
+        const s = Math.max(0, Math.min(100, Math.round(score)));
+        const ex = prev.find((d) => d.lessonId === lessonId);
+        if (ex) return prev.map((d) => (d.lessonId === lessonId ? { ...d, score: Math.max(d.score, s), completedAt: new Date() } : d));
+        return [...prev, { lessonId, score: s, completedAt: new Date() }];
+      });
+      return null;
+    }
+    const res = await fetch("/api/training", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op: "complete", lessonId, score }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.progress) setTrainingDone(reviveDone(d.progress));
+    return null;
+  };
+  const trainingEdit = async (op: string, input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Édition de l'Académie indisponible en mode démo.";
+    const res = await fetch("/api/training", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.courses) setTrainingCourses(reviveCourses(d.courses));
+    if (op.endsWith(".delete")) toast("Supprimé.", "success");
+    else toast("Enregistré.", "success");
+    return null;
+  };
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -2282,6 +2328,10 @@ export function AppProvider({
     createDirection,
     updateDirection,
     deleteDirection,
+    trainingCourses,
+    trainingDone,
+    completeLesson,
+    trainingEdit,
     openTaskId,
     setOpenTaskId,
     soundEnabled,

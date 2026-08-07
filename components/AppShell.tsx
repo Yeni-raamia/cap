@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ControlAssessment, ConversationSummary, Direction, EmailTemplate, FieldControl, GrcPlanItem, Item, Meeting, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Task } from "@/lib/domain";
+import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ControlAssessment, ConversationSummary, Direction, EmailTemplate, FieldControl, GrcPlanItem, Item, Meeting, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Task, TrainingCourse, TrainingDone } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -86,6 +86,8 @@ export function AppShell({
   initialCapaActions,
   initialPlanItems,
   initialDirections,
+  initialTrainingCourses,
+  initialTrainingDone,
 }: {
   children: ReactNode;
   demo?: boolean;
@@ -113,6 +115,8 @@ export function AppShell({
   initialCapaActions?: CapaAction[];
   initialPlanItems?: GrcPlanItem[];
   initialDirections?: Direction[];
+  initialTrainingCourses?: TrainingCourse[];
+  initialTrainingDone?: TrainingDone[];
 }) {
   return (
     <AppProvider
@@ -141,6 +145,8 @@ export function AppShell({
       initialCapaActions={initialCapaActions}
       initialPlanItems={initialPlanItems}
       initialDirections={initialDirections}
+      initialTrainingCourses={initialTrainingCourses}
+      initialTrainingDone={initialTrainingDone}
     >
       <Shell>{children}</Shell>
     </AppProvider>

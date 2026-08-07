@@ -20,6 +20,7 @@ import { listFieldControls } from "@/lib/db/fieldcontrols";
 import { listCapaActions } from "@/lib/db/capa";
 import { listPlanItems } from "@/lib/db/grcplan";
 import { listDirections } from "@/lib/db/directions";
+import { listCourses, listProgressFor } from "@/lib/db/training";
 import { getRefLists, getSecuritySettings, getSettings } from "@/lib/db/admin";
 import { maybeRunRemindersInBackground } from "@/lib/reminders/auto";
 import { maybeRunBackupInBackground } from "@/lib/backup/auto";
@@ -69,6 +70,8 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const capaActions = listCapaActions();
   const planItems = listPlanItems();
   const directions = listDirections();
+  const trainingCourses = listCourses();
+  const trainingDone = listProgressFor(user.id);
 
   return (
     <AppShell
@@ -96,6 +99,8 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialCapaActions={capaActions}
       initialPlanItems={planItems}
       initialDirections={directions}
+      initialTrainingCourses={trainingCourses}
+      initialTrainingDone={trainingDone}
     >
       {children}
     </AppShell>

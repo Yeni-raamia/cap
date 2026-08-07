@@ -302,6 +302,23 @@ create table if not exists capa_actions (
   owner_id text, due_date text, status text not null default 'Ouverte', verification text not null default '', closed_at text, created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists training_courses (
+  id text primary key, ref text not null,
+  title text not null default '', description text not null default '', category text not null default '',
+  icon text not null default '🎓', badge text not null default '', ordre integer not null default 0, published integer not null default 1,
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
+create table if not exists training_lessons (
+  id text primary key, course_id text not null, ordre integer not null default 0,
+  type text not null default 'lesson', title text not null default '', content text not null default '',
+  xp integer not null default 20, payload text not null default '{}'
+);
+create index if not exists idx_tlesson_course on training_lessons(course_id);
+create table if not exists training_progress (
+  id text primary key, user_id text not null, lesson_id text not null, score integer not null default 100,
+  completed_at text not null default (datetime('now'))
+);
+create unique index if not exists idx_tprogress_uniq on training_progress(user_id, lesson_id);
 create table if not exists directions (
   id text primary key, ref text not null,
   name text not null default '', code text not null default '', head_id text, description text not null default '',

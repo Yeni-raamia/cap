@@ -6,7 +6,15 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.51.0] - 2026-08-07
+## [1.52.0] - 2026-08-07
+
+### Ajouté
+
+- **Module GRC — Académie (Entraînement)** : un espace d'apprentissage ludique pour faire monter en compétence une équipe GRC débutante (nouvel onglet « Entraînement »).
+  - **4 formats d'apprentissage** : **leçons**, **quiz (QCM)** avec correction et explications, **études de cas décisionnelles** (choix à conséquences + avis d'expert, notés), **défis pratiques** ancrés dans les vrais modules de Cap.
+  - **Curriculum expert prêt à l'emploi** semé automatiquement : Fondamentaux cyber · Le métier GRC au quotidien · Analyse de risque (ISO 27005) · Décider & prioriser (4 parcours, 17 leçons).
+  - **Niveau de compétence GRC dédié** (Débutant → Junior → Confirmé → Expert) avec XP, barre de progression, et **certifications** décernées à la complétion d'un parcours. Confettis à la réussite.
+  - **Éditeur de contenu** pour les formateurs (manager/directeur/admin) : créer/modifier/supprimer des parcours et des leçons, y compris l'écriture de quiz et d'études de cas.
 
 ### Ajouté
 

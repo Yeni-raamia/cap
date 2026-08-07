@@ -16,11 +16,49 @@ import type {
   Policy,
   PolicyDiffusion,
   Risk,
+  TrainingCourse,
+  TrainingLesson,
 } from "../domain";
+import { CURRICULUM } from "./trainingCurriculum";
 
 const NOW = () => new Date();
 const day = (offset: number) => new Date(NOW().getTime() + offset * 864e5);
 const Y = () => NOW().getFullYear();
+
+/* ---------- Académie (curriculum de démonstration) ---------- */
+export function seedTraining(): TrainingCourse[] {
+  const year = Y();
+  return CURRICULUM.map((c, ci): TrainingCourse => {
+    const cid = `tc${ci + 1}`;
+    const lessons: TrainingLesson[] = c.lessons.map((l, li) => ({
+      id: `${cid}-l${li + 1}`,
+      courseId: cid,
+      order: li,
+      type: l.type,
+      title: l.title,
+      content: l.content,
+      xp: l.xp,
+      questions: l.questions ?? [],
+      steps: l.steps ?? [],
+      challengeHref: l.challengeHref ?? "",
+    }));
+    return {
+      id: cid,
+      ref: `ACAD-${year}-${String(ci + 1).padStart(3, "0")}`,
+      title: c.title,
+      description: c.description,
+      category: c.category,
+      icon: c.icon,
+      badge: c.badge,
+      order: ci,
+      published: true,
+      lessons,
+      createdBy: "u1",
+      createdAt: day(-120),
+      updatedAt: day(-30),
+    };
+  });
+}
 
 /* ---------- Organigramme (Directions → Services) ---------- */
 export function seedDirections(): Direction[] {
