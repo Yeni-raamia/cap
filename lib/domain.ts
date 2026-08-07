@@ -946,6 +946,17 @@ export interface Attachment {
   createdAt: Date;
 }
 
+/** Fichier partagé d'un projet (même stockage que les pièces jointes de suivi). */
+export interface ProjectAttachment {
+  id: string;
+  projectId: string;
+  filename: string;
+  mime: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: Date;
+}
+
 /** Taille maximale d'une pièce jointe (10 Mo). */
 export const ATTACH_MAX_BYTES = 10 * 1024 * 1024;
 

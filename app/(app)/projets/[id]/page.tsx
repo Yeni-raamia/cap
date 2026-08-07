@@ -24,6 +24,7 @@ import {
   Trash2,
   Users2,
   X,
+  Paperclip,
 } from "lucide-react";
 import {
   fmt,
@@ -34,6 +35,7 @@ import {
   type TaskStatus,
 } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
+import { ProjectFiles } from "@/components/ProjectFiles";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
 import { Discussion } from "@/components/Discussion";
 import { ProjectTaskModal } from "@/components/ProjectTaskModal";
@@ -1033,6 +1035,17 @@ export default function ProjetDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Fichiers partagés */}
+      {!demo && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Paperclip size={15} className="text-slate-500" />
+            <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Fichiers partagés</h2>
+          </div>
+          <ProjectFiles projectId={project.id} canWrite={canContribute} />
+        </div>
+      )}
 
       {/* Notes */}
       <div>

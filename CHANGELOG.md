@@ -6,7 +6,11 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.48.0] - 2026-08-07
+## [1.49.0] - 2026-08-07
+
+### Ajouté
+
+- **Projets — partage de fichiers** : chaque projet dispose d'une section **« Fichiers partagés »** permettant de déposer, télécharger et supprimer des documents (mêmes types et limite de 10 Mo que les pièces jointes de suivi). Dépôt réservé aux **membres du projet** (ou responsables) ; suppression par l'auteur du dépôt ou un responsable. Chaque fichier indique son auteur et sa date.
 
 ### Modifié
 
