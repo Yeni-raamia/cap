@@ -6,7 +6,11 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.53.0] - 2026-08-07
+## [1.54.0] - 2026-08-07
+
+### Ajouté
+
+- **Académie — parcours « Incidents & non-conformités »** : réagir à un incident et traiter un écart aux règles. Événement/incident/crise, les 5 réflexes (dont « confiner avant d'enquêter »), étude de cas « un rançongiciel se propage », incident vs non-conformité, étude de cas « une non-conformité qui revient » (cause racine), quiz et défi vers le module Non-conformités. Le curriculum passe à **7 parcours, 33 leçons**.
 
 ### Ajouté / Modifié
 

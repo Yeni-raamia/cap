@@ -377,4 +377,98 @@ export const CURRICULUM: CourseSeed[] = [
       },
     ],
   },
+  {
+    title: "Incidents & non-conformités",
+    description: "Réagir vite et bien à un incident, traiter un écart aux règles.",
+    category: "Incidents & non-conformités",
+    icon: "🚨",
+    badge: "Gestion des incidents",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "Événement, incident : de quoi parle-t-on ?",
+        content:
+          "Il faut distinguer trois niveaux :\n\n" +
+          "• Événement — un fait observable (une tentative de connexion échouée). La plupart sont sans gravité.\n" +
+          "• Incident de sécurité — un événement (ou une série) qui porte atteinte à la confidentialité, l'intégrité ou la disponibilité (un poste chiffré par un rançongiciel, une fuite de données).\n" +
+          "• Crise — un incident majeur qui dépasse le fonctionnement normal et mobilise la direction.\n\n" +
+          "Votre rôle GRC n'est pas de « réparer » techniquement, mais d'organiser la réaction : qualifier, coordonner, tracer, et surtout tirer les leçons. Un incident bien géré renforce l'organisation ; un incident caché l'affaiblit.",
+      },
+      {
+        type: "lesson", xp: 25, title: "Les 5 réflexes face à un incident",
+        content:
+          "Un cycle de gestion d'incident simple (inspiré d'ISO 27035) :\n\n" +
+          "1. Détecter & signaler — repérer le fait et le remonter vite (mieux vaut une fausse alerte qu'un silence).\n" +
+          "2. Qualifier — est-ce vraiment un incident ? Quelle gravité, quel périmètre ?\n" +
+          "3. Confiner — limiter la propagation (isoler le poste, couper un accès) AVANT d'enquêter.\n" +
+          "4. Éradiquer & rétablir — supprimer la cause, restaurer depuis des sauvegardes saines, revenir à la normale.\n" +
+          "5. Capitaliser — retour d'expérience (REX) : que corriger pour que ça ne se reproduise pas ? → un plan d'actions.\n\n" +
+          "Règle d'or du débutant : on confine d'abord, on enquête ensuite. Chercher « qui a fait ça » pendant qu'un rançongiciel se propage, c'est perdre un temps précieux.",
+      },
+      {
+        type: "case", xp: 35, title: "Étude de cas — Un rançongiciel se propage",
+        content: "Un agent signale que son écran affiche une demande de rançon et que des fichiers partagés deviennent illisibles. D'autres postes semblent touchés. Vous êtes la première personne GRC informée. Quelle est votre priorité ?",
+        steps: [
+          {
+            id: "i1s1", prompt: "Premier geste ?",
+            options: [
+              { label: "Faire isoler du réseau les postes concernés (débrancher / couper le Wi-Fi)", feedback: "Oui : on confine pour stopper la propagation avant tout le reste.", score: 100 },
+              { label: "Lancer une enquête pour trouver le coupable", feedback: "Non : pendant l'enquête, le rançongiciel continue de chiffrer. On confine d'abord.", score: 10 },
+              { label: "Payer la rançon pour tout débloquer vite", feedback: "Non : payer ne garantit rien, finance les attaquants, et n'empêche pas la récidive.", score: 0 },
+            ],
+          },
+          {
+            id: "i1s2", prompt: "Ensuite, côté GRC ?",
+            options: [
+              { label: "Ouvrir une fiche incident, alerter les bonnes personnes, tracer les actions et préparer le REX", feedback: "Parfait : coordination, traçabilité, puis retour d'expérience pour ne pas revivre ça.", score: 100 },
+              { label: "Attendre que la technique règle tout et ne rien documenter", feedback: "Sans traçabilité ni REX, on perd la mémoire de l'incident et on ne progresse pas.", score: 20 },
+            ],
+          },
+        ],
+      },
+      {
+        type: "lesson", xp: 20, title: "Incident ou non-conformité ?",
+        content:
+          "Deux notions proches mais différentes :\n\n" +
+          "• Un incident est un ÉVÉNEMENT qui a causé (ou failli causer) un dommage.\n" +
+          "• Une non-conformité est un ÉCART à une règle : une politique, une procédure, un référentiel qui n'est pas respecté (ex. des comptes partagés alors que c'est interdit).\n\n" +
+          "Une non-conformité peut exister sans incident (le risque est latent) — et c'est justement l'intérêt de la détecter tôt, avant qu'elle ne provoque un incident. On la traite en la traçant, en décidant d'une correction (plan d'actions), et en vérifiant qu'elle est levée. Dans Cap, les non-conformités ont leur propre suivi.",
+      },
+      {
+        type: "case", xp: 35, title: "Étude de cas — Une non-conformité qui revient",
+        content: "Pour la troisième fois en six mois, un audit relève que des comptes à privilèges sont partagés entre plusieurs administrateurs, contrairement à la politique. Le correctif est appliqué à chaque fois… puis l'écart réapparaît. Que faites-vous ?",
+        steps: [
+          {
+            id: "i2s1", prompt: "Votre analyse ?",
+            options: [
+              { label: "Chercher la cause racine : pourquoi l'écart revient-il ? (outil manquant, habitude, manque de comptes nominatifs)", feedback: "Oui : une non-conformité récurrente cache une cause profonde ; la corriger en surface ne suffit pas.", score: 100 },
+              { label: "Re-corriger une fois de plus, comme d'habitude", feedback: "Corriger le symptôme sans la cause garantit que l'écart reviendra.", score: 20 },
+              { label: "Sanctionner immédiatement les administrateurs", feedback: "La sanction seule, sans traiter la cause (ex. absence de comptes nominatifs), ne règle rien durablement.", score: 30 },
+            ],
+          },
+          {
+            id: "i2s2", prompt: "La bonne réponse ?",
+            options: [
+              { label: "Une action corrective ciblant la cause racine (créer des comptes nominatifs + traçabilité) et un contrôle de suivi", feedback: "Excellent : on traite la cause et on vérifie dans la durée que l'écart ne revient plus.", score: 100 },
+              { label: "Fermer la non-conformité en espérant que ça tienne", feedback: "Sans action sur la cause ni suivi, la récurrence est quasi certaine.", score: 20 },
+            ],
+          },
+        ],
+      },
+      {
+        type: "quiz", xp: 25, title: "Quiz — Incidents & non-conformités",
+        content: "Consolidez vos réflexes.",
+        questions: [
+          q("i1q1", "Face à un rançongiciel qui se propage, quel est le premier geste ?", ["Enquêter sur le coupable", "Confiner : isoler les postes du réseau", "Payer la rançon"], 1, "On confine d'abord pour stopper la propagation, on enquête ensuite."),
+          q("i1q2", "Une non-conformité, c'est…", ["Un incident avec dommage", "Un écart à une règle/politique/référentiel", "Une panne matérielle"], 1, "C'est un écart à une règle — il peut exister sans incident."),
+          q("i1q3", "Une non-conformité revient sans cesse malgré les correctifs. Que faut-il traiter ?", ["Le symptôme, encore une fois", "La cause racine", "Rien, c'est inévitable"], 1, "La récurrence signale une cause racine non traitée."),
+          q("i1q4", "À quoi sert le retour d'expérience (REX) après un incident ?", ["À désigner un coupable", "À corriger durablement pour éviter la récidive", "À clore le dossier au plus vite"], 1, "Le REX transforme l'incident en amélioration : on tire les leçons et on agit."),
+        ],
+      },
+      {
+        type: "challenge", xp: 25, title: "Défi — Le suivi des non-conformités",
+        content: "Ouvrez le module Non-conformités. Observez comment une non-conformité est décrite (service concerné, gravité, politique/règle violée, statut) et comment on trace la décision. Repérez le lien vers un éventuel plan d'action. Puis revenez valider le défi.",
+        challengeHref: "/non-conformites",
+      },
+    ],
+  },
 ];
