@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { analyzeJewel, computeJewels, isJewel } from "@/lib/grc/jewels";
-import type { Asset, FieldControl, Risk } from "@/lib/domain";
+import type { Asset, FieldControl, Mission, Risk } from "@/lib/domain";
+
+const mission = (o: Partial<Mission>): Mission =>
+  ({ id: "m1", ref: "MIS", name: "Mission", type: "Régalienne", value: "Vitale", description: "", ownerId: "u1", status: "Active", assetIds: [], peopleIds: [], dependencies: [], createdBy: null, createdAt: new Date(), updatedAt: new Date(), ...o } as Mission);
 
 // Fabriques minimales : seuls les champs lus par le moteur JCA importent.
 const asset = (o: Partial<Asset>): Asset =>
@@ -69,6 +72,25 @@ describe("analyzeJewel", () => {
     const protectedJ = analyzeJewel(asset({ confidentiality: 4, service: "RH" }), risks, [control({ service: "RH", status: "Réalisé" })]);
     expect(protectedJ.jri).toBeLessThan(exposed.jri);
     expect(exposed.band).toBe("Prioritaire");
+  });
+
+  it("un actif faible porteur d'une mission vitale devient un joyau (valeur héritée)", () => {
+    const a = asset({ id: "a1", confidentiality: 1, integrity: 1, availability: 1 });
+    const missions = [mission({ value: "Vitale", assetIds: ["a1"] })];
+    const jSans = analyzeJewel(a, [], []);
+    const jAvec = analyzeJewel(a, [], [], missions);
+    expect(isJewel(jSans)).toBe(false); // sans mission
+    expect(jAvec.missionValue).toBe(4);
+    expect(jAvec.critScore).toBe(4); // valeur effective héritée
+    expect(isJewel(jAvec)).toBe(true);
+    expect(jAvec.missionNames).toContain("Mission");
+    expect(jAvec.jri).toBeGreaterThan(jSans.jri);
+  });
+
+  it("une mission retirée n'élève pas la valeur", () => {
+    const a = asset({ id: "a1", confidentiality: 1 });
+    const j = analyzeJewel(a, [], [], [mission({ value: "Vitale", status: "Retirée", assetIds: ["a1"] })]);
+    expect(j.missionValue).toBe(0);
   });
 
   it("recommande une analyse de risque quand aucun risque n'est rattaché", () => {

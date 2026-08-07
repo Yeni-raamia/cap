@@ -12,6 +12,7 @@ import type {
   FieldControl,
   FieldControlEvent,
   GrcPlanItem,
+  Mission,
   OrgService,
   Policy,
   PolicyDiffusion,
@@ -58,6 +59,41 @@ export function seedTraining(): TrainingCourse[] {
       updatedAt: day(-30),
     };
   });
+}
+
+/* ---------- Missions & dépendances ---------- */
+export function seedMissions(): Mission[] {
+  const base = (o: Partial<Mission> & { id: string; ref: string; name: string; value: string }): Mission => ({
+    type: "Métier",
+    description: "",
+    ownerId: "u1",
+    status: "Active",
+    assetIds: [],
+    peopleIds: [],
+    dependencies: [],
+    createdBy: "u1",
+    createdAt: day(-150),
+    updatedAt: day(-20),
+    ...o,
+  });
+  return [
+    base({ id: "dm1", ref: "MIS-2026-001", name: "Verser les rémunérations", type: "Régalienne", value: "Vitale", ownerId: "u3", description: "Payer les agents dans les délais légaux.", assetIds: ["da2", "da3", "da1"], peopleIds: ["u3"], dependencies: [
+      { id: "dm1d1", direction: "amont", kind: "Prestataire", name: "Éditeur du logiciel de paie", description: "Maintenance et mises à jour.", criticality: "Essentielle" },
+      { id: "dm1d2", direction: "amont", kind: "Entité externe", name: "Banque (virements)", description: "Exécution des virements SEPA.", criticality: "Vitale" },
+      { id: "dm1d3", direction: "aval", kind: "Autre organisation", name: "Agents & organismes sociaux", description: "Bénéficiaires des versements et déclarations.", criticality: "Vitale" },
+    ] }),
+    base({ id: "dm2", ref: "MIS-2026-002", name: "Assurer la communication interne", type: "Support", value: "Essentielle", ownerId: "u1", description: "Messagerie et collaboration.", assetIds: ["da4", "da1"], peopleIds: ["u1", "u2"], dependencies: [
+      { id: "dm2d1", direction: "amont", kind: "Prestataire", name: "Hébergeur / fournisseur cloud", description: "Disponibilité de la messagerie.", criticality: "Essentielle" },
+      { id: "dm2d2", direction: "aval", kind: "Service interne", name: "Toutes les directions", description: "Dépendent de la messagerie au quotidien.", criticality: "Importante" },
+    ] }),
+    base({ id: "dm3", ref: "MIS-2026-003", name: "Gérer les identités et les accès", type: "Régalienne", value: "Vitale", ownerId: "u1", description: "Contrôler qui accède à quoi.", assetIds: ["da1"], peopleIds: ["u1"], dependencies: [
+      { id: "dm3d1", direction: "aval", kind: "Service interne", name: "Applications métier", description: "S'authentifient via l'annuaire.", criticality: "Vitale" },
+    ] }),
+    base({ id: "dm4", ref: "MIS-2026-004", name: "Informer le public", type: "Métier", value: "Importante", ownerId: "u6", description: "Site institutionnel et publications.", assetIds: ["da5"], peopleIds: ["u6"], dependencies: [
+      { id: "dm4d1", direction: "amont", kind: "Prestataire", name: "Agence web / hébergeur", description: "Maintenance du site public.", criticality: "Importante" },
+      { id: "dm4d2", direction: "aval", kind: "Autre organisation", name: "Usagers / citoyens", description: "Consultent l'information publique.", criticality: "Importante" },
+    ] }),
+  ];
 }
 
 /* ---------- Organigramme (Directions → Services) ---------- */

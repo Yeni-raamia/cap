@@ -10,9 +10,11 @@
  * ================================================================== */
 import {
   assetCriticality,
+  assetMissionValue,
   riskResidualLevel,
   type Asset,
   type FieldControl,
+  type Mission,
   type Risk,
   type RiskLevel,
 } from "@/lib/domain";
@@ -30,8 +32,10 @@ export const JEWEL_BAND_TONE: Record<JewelBand, string> = {
 
 export interface JewelAnalysis {
   asset: Asset;
-  criticality: string; // AssetCriticality
-  critScore: number; // 1–4
+  criticality: string; // AssetCriticality (max C/I/D)
+  critScore: number; // 1–4 — valeur effective (max de la classification C/I/D et de la valeur métier héritée des missions)
+  missionValue: number; // 1–4 valeur héritée des missions (0 si aucune)
+  missionNames: string[]; // missions qui s'appuient sur l'actif
   linkedRisks: { risk: Risk; residual: RiskLevel }[];
   maxResidual: RiskLevel | null;
   mitigations: number; // mesures de traitement (uniques) issues des risques liés
@@ -44,10 +48,14 @@ export interface JewelAnalysis {
 
 const bandOf = (jri: number): JewelBand => (jri >= 70 ? "Prioritaire" : jri >= 45 ? "À surveiller" : "Maîtrisé");
 
-/** Analyse un actif isolé (exporté pour les tests). */
-export function analyzeJewel(asset: Asset, risks: Risk[], fieldControls: FieldControl[]): JewelAnalysis {
+/** Analyse un actif isolé (exporté pour les tests). Les missions élèvent la valeur. */
+export function analyzeJewel(asset: Asset, risks: Risk[], fieldControls: FieldControl[], missions: Mission[] = []): JewelAnalysis {
   const criticality = assetCriticality(asset);
-  const critScore = CRIT_SCORE[criticality] ?? 1;
+  const cidScore = CRIT_SCORE[criticality] ?? 1;
+  // Valeur métier héritée : un actif porteur d'une mission vitale hérite de sa valeur.
+  const missionValue = assetMissionValue(asset.id, missions);
+  const missionNames = missions.filter((m) => m.status !== "Retirée" && m.assetIds.includes(asset.id)).map((m) => m.name);
+  const critScore = Math.max(cidScore, missionValue);
 
   const linkedRisks = risks
     .filter((r) => r.assetId === asset.id && r.status !== "Clôturé")
@@ -78,25 +86,26 @@ export function analyzeJewel(asset: Asset, risks: Risk[], fieldControls: FieldCo
   const band = bandOf(jri);
 
   const recommendations: string[] = [];
+  if (missionValue > cidScore) recommendations.push(`Actif porteur d'une mission ${missionValue >= 4 ? "vitale" : "essentielle"} : sa protection prime, quelle que soit sa classification technique.`);
   if (linkedRisks.length === 0) recommendations.push("Aucun risque rattaché : réaliser une analyse de risque (ISO 27005) sur ce joyau.");
   if (maxResidual === "Critique" || maxResidual === "Élevé") recommendations.push(`Exposition ${maxResidual.toLowerCase()} : renforcer le traitement du risque résiduel.`);
   if (mitigations === 0 && linkedRisks.length > 0) recommendations.push("Aucune mesure de traitement rattachée : formaliser des mesures (catalogue de conformité).");
   if (controlCoverage === 0) recommendations.push("Aucun contrôle terrain récent sur le service détenteur : planifier une ronde / inspection.");
   if (recommendations.length === 0) recommendations.push("Protection cohérente avec la criticité : maintenir la vigilance et les revues.");
 
-  return { asset, criticality, critScore, linkedRisks, maxResidual, mitigations, controlCoverage, protectionScore, jri, band, recommendations };
+  return { asset, criticality, critScore, missionValue, missionNames, linkedRisks, maxResidual, mitigations, controlCoverage, protectionScore, jri, band, recommendations };
 }
 
-/** Un actif est un « joyau » si sa criticité (max C/I/D) est Élevé ou Critique,
- *  ou s'il porte un risque résiduel élevé/critique. */
+/** Un actif est un « joyau » si sa valeur effective (classification ou mission) est
+ *  élevée, ou s'il porte un risque résiduel élevé/critique. */
 export function isJewel(a: JewelAnalysis): boolean {
   return a.critScore >= 3 || a.maxResidual === "Critique" || a.maxResidual === "Élevé";
 }
 
 /** Analyse complète : classe les joyaux par indice de priorité (JRI) décroissant. */
-export function computeJewels(assets: Asset[], risks: Risk[], fieldControls: FieldControl[]): JewelAnalysis[] {
+export function computeJewels(assets: Asset[], risks: Risk[], fieldControls: FieldControl[], missions: Mission[] = []): JewelAnalysis[] {
   return assets
     .filter((a) => a.status !== "Retiré")
-    .map((a) => analyzeJewel(a, risks, fieldControls))
+    .map((a) => analyzeJewel(a, risks, fieldControls, missions))
     .sort((x, y) => y.jri - x.jri || y.critScore - x.critScore);
 }

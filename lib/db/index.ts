@@ -302,6 +302,13 @@ create table if not exists capa_actions (
   owner_id text, due_date text, status text not null default 'Ouverte', verification text not null default '', closed_at text, created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists missions (
+  id text primary key, ref text not null,
+  name text not null default '', type text not null default 'Métier', value text not null default 'Importante',
+  description text not null default '', owner_id text, status text not null default 'Active',
+  asset_ids text not null default '[]', people_ids text not null default '[]', deps text not null default '[]',
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists training_courses (
   id text primary key, ref text not null,
   title text not null default '', description text not null default '', category text not null default '',

@@ -967,6 +967,67 @@ export function courseProgress(course: TrainingCourse, doneIds: Set<string>): { 
 /** Score maximal atteignable pour une leçon (pour l'affichage). */
 export const lessonMaxScore = 100;
 
+/* ==================================================================
+ *  Module GRC : Missions & dépendances de l'organisation.
+ *  Base de l'analyse des joyaux (CJA) : ce que l'organisation doit
+ *  protéger en priorité, ce dont ses missions dépendent, et qui dépend
+ *  d'elles. Une mission relie des actifs, des personnes et des
+ *  dépendances externes (amont / aval).
+ * ================================================================== */
+export const MISSION_TYPES = ["Régalienne", "Métier", "Support"];
+export const MISSION_VALUES = ["Vitale", "Essentielle", "Importante", "Secondaire"];
+export const MISSION_VALUE_SCORE: Record<string, number> = { Vitale: 4, Essentielle: 3, Importante: 2, Secondaire: 1 };
+export const MISSION_VALUE_TONE: Record<string, string> = {
+  Vitale: "bg-rose-100 text-rose-700 border-rose-200",
+  Essentielle: "bg-orange-100 text-orange-700 border-orange-200",
+  Importante: "bg-amber-100 text-amber-700 border-amber-200",
+  Secondaire: "bg-slate-100 text-slate-600 border-slate-200",
+};
+export const MISSION_STATUS = ["Active", "En projet", "Retirée"];
+
+/** Sens d'une dépendance vue depuis la mission. */
+export type DepDirection = "amont" | "aval";
+export const DEP_DIRECTION_LABEL: Record<DepDirection, string> = {
+  amont: "Dont dépend la mission", // fournisseurs/entités en amont
+  aval: "Qui dépend de la mission", // bénéficiaires/entités en aval
+};
+export const DEP_KINDS = ["Entité externe", "Autre organisation", "Service interne", "Prestataire", "Infrastructure"];
+
+export interface MissionDependency {
+  id: string;
+  direction: DepDirection;
+  kind: string; // DEP_KINDS
+  name: string;
+  description: string;
+  criticality: string; // MISSION_VALUES (réutilisé)
+}
+export interface Mission {
+  id: string;
+  ref: string; // MIS-AAAA-NNN
+  name: string;
+  type: string; // MISSION_TYPES
+  value: string; // MISSION_VALUES (valeur/criticité de la mission)
+  description: string;
+  ownerId: string; // responsable de la mission
+  status: string;
+  assetIds: string[]; // actifs rattachés (registre des actifs)
+  peopleIds: string[]; // personnes rattachées (profils)
+  dependencies: MissionDependency[]; // dépendances amont / aval
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+export const missionValueScore = (m: Mission): number => MISSION_VALUE_SCORE[m.value] ?? 1;
+
+/** Valeur métier maximale héritée par un actif via les missions qui s'y appuient (0 si aucune). */
+export function assetMissionValue(assetId: string, missions: Mission[]): number {
+  let max = 0;
+  missions.forEach((m) => {
+    if (m.status !== "Retirée" && m.assetIds.includes(assetId)) max = Math.max(max, missionValueScore(m));
+  });
+  return max;
+}
+
 /* ---------- Module GRC : Organigramme (Directions → Services) ---------- */
 /** Service (unité) rattaché à une direction. */
 export interface OrgService {

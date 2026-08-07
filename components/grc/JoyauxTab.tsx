@@ -17,9 +17,9 @@ import { EmptyState } from "@/components/EmptyState";
 import { JoyauxRapportPdf } from "@/components/JoyauxRapportPdf";
 
 export function JoyauxTab() {
-  const { assets, risks, fieldControls, profileById } = useApp();
+  const { assets, risks, fieldControls, missions, profileById } = useApp();
 
-  const analyses = useMemo(() => computeJewels(assets, risks, fieldControls), [assets, risks, fieldControls]);
+  const analyses = useMemo(() => computeJewels(assets, risks, fieldControls, missions), [assets, risks, fieldControls, missions]);
   const jewels = useMemo(() => analyses.filter(isJewel), [analyses]);
   const others = analyses.length - jewels.length;
 
@@ -95,6 +95,9 @@ function JewelCard({ j, owner }: { j: JewelAnalysis; owner: string }) {
             <span className={`text-[10px] px-2 py-0.5 rounded-full border ${CRITICALITY_TONE[j.criticality as AssetCriticality] ?? "bg-slate-100 text-slate-500"}`}>{j.criticality}</span>
           </div>
           <div className="text-[11px] text-slate-400 mt-0.5">{[a.type, a.service, owner].filter(Boolean).join(" · ")}</div>
+          {j.missionNames.length > 0 && (
+            <div className="text-[11px] text-indigo-600 mt-1 inline-flex items-center gap-1 flex-wrap">🎯 {j.missionNames.join(" · ")}{j.missionValue > 0 && <span className="text-slate-400">(valeur héritée)</span>}</div>
+          )}
         </div>
         {/* Indice JRI */}
         <div className="text-right shrink-0">

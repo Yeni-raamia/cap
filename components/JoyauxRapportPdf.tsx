@@ -17,7 +17,7 @@ const exact: React.CSSProperties = { WebkitPrintColorAdjust: "exact", printColor
 
 /** Bouton + document imprimable de l'analyse des joyaux de la couronne (JCA). */
 export function JoyauxRapportPdf() {
-  const { assets, risks, fieldControls, profileById, orgName, orgLogo, now } = useApp();
+  const { assets, risks, fieldControls, missions, profileById, orgName, orgLogo, now } = useApp();
   const [open, setOpen] = useState(false);
 
   const build = () => {
@@ -41,7 +41,7 @@ export function JoyauxRapportPdf() {
   function Doc() {
     const th = "text-left text-[10px] uppercase tracking-wide text-slate-500 border-b border-slate-300 py-1 pr-2";
     const td = "text-[11px] text-slate-800 border-b border-slate-100 py-1 pr-2 align-top";
-    const jewels = computeJewels(assets, risks, fieldControls).filter(isJewel);
+    const jewels = computeJewels(assets, risks, fieldControls, missions).filter(isJewel);
     const prioritaires = jewels.filter((j) => j.band === "Prioritaire").length;
     const exposed = jewels.filter((j) => j.maxResidual === "Critique" || j.maxResidual === "Élevé").length;
     const noRisk = jewels.filter((j) => j.linkedRisks.length === 0).length;

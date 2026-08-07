@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ControlAssessment, ConversationSummary, Direction, EmailTemplate, FieldControl, GrcPlanItem, Item, Meeting, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Task, TrainingCourse, TrainingDone } from "@/lib/domain";
+import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ControlAssessment, ConversationSummary, Direction, EmailTemplate, FieldControl, GrcPlanItem, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Task, TrainingCourse, TrainingDone } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -88,6 +88,7 @@ export function AppShell({
   initialDirections,
   initialTrainingCourses,
   initialTrainingDone,
+  initialMissions,
 }: {
   children: ReactNode;
   demo?: boolean;
@@ -117,6 +118,7 @@ export function AppShell({
   initialDirections?: Direction[];
   initialTrainingCourses?: TrainingCourse[];
   initialTrainingDone?: TrainingDone[];
+  initialMissions?: Mission[];
 }) {
   return (
     <AppProvider
@@ -147,6 +149,7 @@ export function AppShell({
       initialDirections={initialDirections}
       initialTrainingCourses={initialTrainingCourses}
       initialTrainingDone={initialTrainingDone}
+      initialMissions={initialMissions}
     >
       <Shell>{children}</Shell>
     </AppProvider>

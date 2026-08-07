@@ -6,7 +6,13 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.55.0] - 2026-08-07
+## [1.56.0] - 2026-08-07
+
+### Ajouté
+
+- **Module GRC — Missions & dépendances** (nouvel onglet « Missions ») : cartographier les **missions de l'organisation** (dont les missions régaliennes), leur **valeur** (Vitale → Secondaire), les **actifs** et **personnes** qui les portent, et leurs **dépendances amont** (ce dont la mission dépend) **et aval** (qui dépend de la mission).
+  - **Vue arborescente** par mission : Amont → Mission (avec ses actifs et personnes clés) → Aval, chaque dépendance colorée par criticité.
+  - **Alimente l'analyse des joyaux (CJA)** : un actif porteur d'une mission vitale/essentielle **hérite de sa valeur métier** — sa protection prime même si sa classification technique C/I/D est modeste. L'onglet Joyaux (et son rapport PDF) affichent désormais les missions portées et intègrent cette valeur dans l'indice JRI.
 
 ### Ajouté
 
