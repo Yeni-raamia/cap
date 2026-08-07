@@ -6,7 +6,15 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.60.0] - 2026-08-07
+## [1.61.0] - 2026-08-07
+
+### Ajouté
+
+- **Module GRC — RGPD** (nouvel onglet « RGPD ») : le **registre des activités de traitement** (ROPA, art. 30) et les **analyses d'impact** (AIPD/PIA, art. 35).
+  - Par traitement : finalité, **base légale**, catégories de données (dont **données sensibles** art. 9), personnes concernées, destinataires/sous-traitants, durée de conservation, **transferts hors UE**, mesures de sécurité, actifs supports, responsable et service.
+  - **Section AIPD** : indication si requise, état (à réaliser / en cours / réalisée) et **risque résiduel pour les personnes**.
+  - **Croisements** : l'onglet relie automatiquement les **violations de données** (incidents marqués « violation de données ») et les **sous-traitants** (fournisseurs accédant à des données personnelles/sensibles), avec les rappels réglementaires (notification 72 h, contrat art. 28).
+  - Indicateurs : traitements, données sensibles, AIPD à réaliser, revues en retard.
 
 ### Ajouté
 

@@ -16,6 +16,7 @@ import type {
   GrcPlanItem,
   Mission,
   OrgService,
+  ProcessingActivity,
   Supplier,
   Policy,
   PolicyDiffusion,
@@ -62,6 +63,23 @@ export function seedTraining(): TrainingCourse[] {
       updatedAt: day(-30),
     };
   });
+}
+
+/* ---------- RGPD : registre des traitements ---------- */
+export function seedProcessing(): ProcessingActivity[] {
+  const base = (o: Partial<ProcessingActivity> & { id: string; ref: string; name: string }): ProcessingActivity => ({
+    purpose: "", legalBasis: "Obligation légale", dataCategories: [], sensitiveData: false, dataSubjects: "", recipients: "",
+    retention: "", transfersOutsideEU: false, transferDetails: "", ownerId: "u3", service: "RH", securityMeasures: "", assetIds: [],
+    piaRequired: false, piaStatus: "Non requise", piaRisk: "Faible", piaNotes: "", status: "Actif", reviewDate: day(180),
+    createdBy: "u3", createdAt: day(-120), updatedAt: day(-20), ...o,
+  });
+  return [
+    base({ id: "dtrt1", ref: "TRT-2026-001", name: "Gestion de la paie", purpose: "Calcul et versement des rémunérations, déclarations sociales.", legalBasis: "Obligation légale", dataCategories: ["Identité", "Coordonnées", "Vie professionnelle", "Données financières", "Numéro de sécurité sociale"], sensitiveData: false, dataSubjects: "Agents de l'organisation", recipients: "Service RH, comptabilité, organismes sociaux, éditeur de paie (sous-traitant)", retention: "5 ans après le départ de l'agent", ownerId: "u3", service: "RH", securityMeasures: "Chiffrement, habilitations, journalisation.", assetIds: ["da2", "da3"] }),
+    base({ id: "dtrt2", ref: "TRT-2026-002", name: "Gestion des accès et journalisation", purpose: "Contrôler les accès au SI et tracer les connexions.", legalBasis: "Intérêt légitime", dataCategories: ["Identité", "Données de connexion"], dataSubjects: "Agents et prestataires", recipients: "DSI", retention: "12 mois pour les logs", ownerId: "u1", service: "DSI", securityMeasures: "Annuaire sécurisé, MFA.", assetIds: ["da1"] }),
+    // Traitement à risque : données de santé → AIPD requise, en cours.
+    base({ id: "dtrt3", ref: "TRT-2026-003", name: "Suivi médecine du travail", purpose: "Suivi des visites et aptitudes.", legalBasis: "Obligation légale", dataCategories: ["Identité", "Données de santé"], sensitiveData: true, dataSubjects: "Agents", recipients: "Service de santé au travail", retention: "Durée réglementaire", ownerId: "u3", service: "RH", securityMeasures: "Accès restreint au personnel médical, cloisonnement.", piaRequired: true, piaStatus: "En cours", piaRisk: "Élevé", piaNotes: "Données sensibles (santé) → AIPD obligatoire ; mesures de cloisonnement à finaliser.", reviewDate: day(-10) }),
+    base({ id: "dtrt4", ref: "TRT-2026-004", name: "Gestion des usagers du site public", purpose: "Traiter les demandes en ligne des usagers.", legalBasis: "Mission d'intérêt public", dataCategories: ["Identité", "Coordonnées"], dataSubjects: "Usagers / citoyens", recipients: "Service concerné", retention: "3 ans", ownerId: "u6", service: "Direction générale", securityMeasures: "HTTPS, minimisation.", assetIds: ["da5"] }),
+  ];
 }
 
 /* ---------- Gestion des incidents ---------- */

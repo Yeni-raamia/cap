@@ -1115,6 +1115,55 @@ export const assetSuppliers = (assetId: string, suppliers: Supplier[]): Supplier
   suppliers.filter((s) => s.status !== "Résilié" && s.assetIds.includes(assetId));
 
 /* ==================================================================
+ *  Module GRC : RGPD — registre des traitements (ROPA, art. 30) et
+ *  analyses d'impact (AIPD/PIA, art. 35).
+ * ================================================================== */
+export const LEGAL_BASES = ["Consentement", "Contrat", "Obligation légale", "Intérêt légitime", "Mission d'intérêt public", "Sauvegarde d'intérêts vitaux"];
+export const DATA_CATEGORIES = ["Identité", "Coordonnées", "Vie professionnelle", "Données de connexion", "Données financières", "Données de santé", "Données biométriques", "Localisation", "Numéro de sécurité sociale", "Autre"];
+export const PROCESSING_STATUS = ["Actif", "En projet", "Suspendu", "Clôturé"];
+export const PIA_STATUS = ["Non requise", "À réaliser", "En cours", "Réalisée"];
+export const PIA_RISK_LEVELS = ["Faible", "Moyen", "Élevé"];
+export const PIA_RISK_TONE: Record<string, string> = {
+  Faible: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  Moyen: "bg-amber-100 text-amber-700 border-amber-200",
+  "Élevé": "bg-rose-100 text-rose-700 border-rose-200",
+};
+
+/** Traitement de données personnelles (fiche du registre — ROPA). */
+export interface ProcessingActivity {
+  id: string;
+  ref: string; // TRT-AAAA-NNN
+  name: string;
+  purpose: string; // finalité
+  legalBasis: string; // base légale
+  dataCategories: string[]; // catégories de données
+  sensitiveData: boolean; // données sensibles (art. 9)
+  dataSubjects: string; // personnes concernées
+  recipients: string; // destinataires (dont sous-traitants)
+  retention: string; // durée de conservation
+  transfersOutsideEU: boolean;
+  transferDetails: string; // pays / garanties
+  ownerId: string; // responsable du traitement (côté interne)
+  service: string; // direction / service
+  securityMeasures: string;
+  assetIds: string[]; // actifs / SI supportant le traitement
+  // AIPD / PIA
+  piaRequired: boolean;
+  piaStatus: string; // PIA_STATUS
+  piaRisk: string; // PIA_RISK_LEVELS — risque résiduel pour les personnes
+  piaNotes: string;
+  status: string; // PROCESSING_STATUS
+  reviewDate: Date | null;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Une AIPD est « à faire » si elle est requise mais pas encore réalisée. */
+export const piaOutstanding = (p: ProcessingActivity): boolean => p.piaRequired && p.piaStatus !== "Réalisée" && p.status !== "Clôturé";
+export const isRopaReviewLate = (p: ProcessingActivity, now: Date): boolean =>
+  Boolean(p.reviewDate && p.reviewDate.getTime() < now.getTime() && p.status !== "Clôturé");
+
+/* ==================================================================
  *  Module GRC : Gestion des incidents (cycle ISO 27035).
  *  Déclaration → Qualification → Traitement → Résolution → REX.
  * ================================================================== */

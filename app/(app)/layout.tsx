@@ -25,6 +25,7 @@ import { listMissions } from "@/lib/db/missions";
 import { listSuppliers } from "@/lib/db/suppliers";
 import { listContinuityPlans } from "@/lib/db/continuity";
 import { listIncidents } from "@/lib/db/incidents";
+import { listProcessing } from "@/lib/db/rgpd";
 import { getRefLists, getSecuritySettings, getSettings } from "@/lib/db/admin";
 import { maybeRunRemindersInBackground } from "@/lib/reminders/auto";
 import { maybeRunBackupInBackground } from "@/lib/backup/auto";
@@ -81,6 +82,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const suppliers = listSuppliers();
   const continuityPlans = listContinuityPlans();
   const incidents = listIncidents();
+  const processing = listProcessing();
 
   return (
     <AppShell
@@ -115,6 +117,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialSuppliers={suppliers}
       initialContinuityPlans={continuityPlans}
       initialIncidents={incidents}
+      initialProcessing={processing}
     >
       {children}
     </AppShell>

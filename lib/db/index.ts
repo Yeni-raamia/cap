@@ -302,6 +302,16 @@ create table if not exists capa_actions (
   owner_id text, due_date text, status text not null default 'Ouverte', verification text not null default '', closed_at text, created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists processing_activities (
+  id text primary key, ref text not null,
+  name text not null default '', purpose text not null default '', legal_basis text not null default '',
+  data_categories text not null default '[]', sensitive_data integer not null default 0, data_subjects text not null default '',
+  recipients text not null default '', retention text not null default '', transfers_outside_eu integer not null default 0, transfer_details text not null default '',
+  owner_id text, service text not null default '', security_measures text not null default '', asset_ids text not null default '[]',
+  pia_required integer not null default 0, pia_status text not null default 'Non requise', pia_risk text not null default 'Faible', pia_notes text not null default '',
+  status text not null default 'Actif', review_date text,
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists incidents (
   id text primary key, ref text not null,
   title text not null default '', type text not null default 'Autre', severity text not null default 'Mineur', status text not null default 'Déclaré',

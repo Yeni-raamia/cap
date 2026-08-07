@@ -29,6 +29,7 @@ import {
   seedSuppliers,
   seedContinuity,
   seedIncidents,
+  seedProcessing,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -66,6 +67,7 @@ import {
   type NonConformite,
   type Objective,
   type Policy,
+  type ProcessingActivity,
   type RefLists,
   type Catalogue,
   type Item,
@@ -286,6 +288,29 @@ export interface SupplierInput {
   reviewDate?: string | null;
   assetIds?: string[];
   notes?: string;
+}
+export interface ProcessingInput {
+  id?: string;
+  name?: string;
+  purpose?: string;
+  legalBasis?: string;
+  dataCategories?: string[];
+  sensitiveData?: boolean;
+  dataSubjects?: string;
+  recipients?: string;
+  retention?: string;
+  transfersOutsideEU?: boolean;
+  transferDetails?: string;
+  ownerId?: string;
+  service?: string;
+  securityMeasures?: string;
+  assetIds?: string[];
+  piaRequired?: boolean;
+  piaStatus?: string;
+  piaRisk?: string;
+  piaNotes?: string;
+  status?: string;
+  reviewDate?: string | null;
 }
 export interface IncidentInput {
   id?: string;
@@ -530,6 +555,12 @@ interface AppCtx {
   updateIncident: (id: string, fields: IncidentInput) => Promise<string | null>;
   setIncidentStatus: (id: string, status: string) => Promise<string | null>;
   deleteIncident: (id: string) => Promise<string | null>;
+  // GRC : RGPD (registre des traitements + AIPD)
+  processing: ProcessingActivity[];
+  processingById: (id: string) => ProcessingActivity | null;
+  createProcessing: (input: ProcessingInput) => Promise<string | null>;
+  updateProcessing: (id: string, fields: ProcessingInput) => Promise<string | null>;
+  deleteProcessing: (id: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -727,6 +758,8 @@ const revivePlan2 = (p: ContinuityPlan): ContinuityPlan => ({ ...p, lastTestDate
 const reviveContinuity = (arr: ContinuityPlan[]): ContinuityPlan[] => arr.map(revivePlan2);
 const reviveIncident = (i: Incident): Incident => ({ ...i, detectedAt: i.detectedAt ? new Date(i.detectedAt) : null, resolvedAt: i.resolvedAt ? new Date(i.resolvedAt) : null, createdAt: new Date(i.createdAt), updatedAt: new Date(i.updatedAt) });
 const reviveIncidents = (arr: Incident[]): Incident[] => arr.map(reviveIncident);
+const reviveProcessing1 = (p: ProcessingActivity): ProcessingActivity => ({ ...p, reviewDate: p.reviewDate ? new Date(p.reviewDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
+const reviveProcessing = (arr: ProcessingActivity[]): ProcessingActivity[] => arr.map(reviveProcessing1);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -800,6 +833,7 @@ export function AppProvider({
   initialSuppliers,
   initialContinuityPlans,
   initialIncidents,
+  initialProcessing,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -834,6 +868,7 @@ export function AppProvider({
   initialSuppliers?: Supplier[];
   initialContinuityPlans?: ContinuityPlan[];
   initialIncidents?: Incident[];
+  initialProcessing?: ProcessingActivity[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -887,6 +922,7 @@ export function AppProvider({
   const [suppliers, setSuppliers] = useState<Supplier[]>(demo ? seedSuppliers() : reviveSuppliers(initialSuppliers ?? []));
   const [continuityPlans, setContinuityPlans] = useState<ContinuityPlan[]>(demo ? seedContinuity() : reviveContinuity(initialContinuityPlans ?? []));
   const [incidents, setIncidents] = useState<Incident[]>(demo ? seedIncidents() : reviveIncidents(initialIncidents ?? []));
+  const [processing, setProcessing] = useState<ProcessingActivity[]>(demo ? seedProcessing() : reviveProcessing(initialProcessing ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -2199,6 +2235,22 @@ export function AppProvider({
   const setIncidentStatus = (id: string, status: string) => incidentAction("status", { id, status });
   const deleteIncident = (id: string) => incidentAction("delete", { id });
 
+  /* ---------- GRC : RGPD (registre des traitements + AIPD) ---------- */
+  const processingById = (id: string): ProcessingActivity | null => processing.find((p) => p.id === id) ?? null;
+  const rgpdAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "RGPD indisponible en mode démo.";
+    const res = await fetch("/api/rgpd", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.processing) setProcessing(reviveProcessing(d.processing));
+    if (op === "create") toast("Traitement ajouté au registre.", "success");
+    else if (op === "delete") toast("Traitement supprimé.", "success");
+    return null;
+  };
+  const createProcessing = (input: ProcessingInput) => rgpdAction("create", input as Record<string, unknown>);
+  const updateProcessing = (id: string, fields: ProcessingInput) => rgpdAction("update", { id, ...fields });
+  const deleteProcessing = (id: string) => rgpdAction("delete", { id });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -2543,6 +2595,11 @@ export function AppProvider({
     updateIncident,
     setIncidentStatus,
     deleteIncident,
+    processing,
+    processingById,
+    createProcessing,
+    updateProcessing,
+    deleteProcessing,
     openTaskId,
     setOpenTaskId,
     soundEnabled,
