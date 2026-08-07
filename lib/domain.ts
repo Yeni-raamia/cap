@@ -1028,6 +1028,54 @@ export function assetMissionValue(assetId: string, missions: Mission[]): number 
   return max;
 }
 
+/* ==================================================================
+ *  Module GRC : Fournisseurs & prestataires (tiers).
+ *  Gestion des tiers qui interagissent avec le SI — brique de la chaîne
+ *  d'approvisionnement et dépendance externe pour l'analyse des joyaux.
+ * ================================================================== */
+export const SUPPLIER_TYPES = ["Éditeur / Logiciel", "Hébergeur / Cloud", "Infogérance / TMA", "Télécom / Réseau", "Conseil / Audit", "Matériel", "Autre"];
+export const SUPPLIER_CRITICALITIES = ["Critique", "Important", "Standard"];
+export const SUPPLIER_CRITICALITY_SCORE: Record<string, number> = { Critique: 3, Important: 2, Standard: 1 };
+export const SUPPLIER_CRITICALITY_TONE: Record<string, string> = {
+  Critique: "bg-rose-100 text-rose-700 border-rose-200",
+  Important: "bg-amber-100 text-amber-700 border-amber-200",
+  Standard: "bg-slate-100 text-slate-600 border-slate-200",
+};
+export const SUPPLIER_STATUS = ["Actif", "En évaluation", "Résilié"];
+export const DATA_ACCESS_LEVELS = ["Aucune donnée", "Données internes", "Données personnelles", "Données sensibles"];
+export const DATA_ACCESS_TONE: Record<string, string> = {
+  "Aucune donnée": "bg-slate-100 text-slate-500",
+  "Données internes": "bg-sky-100 text-sky-700",
+  "Données personnelles": "bg-amber-100 text-amber-700",
+  "Données sensibles": "bg-rose-100 text-rose-700",
+};
+
+export interface Supplier {
+  id: string;
+  ref: string; // FRN-AAAA-NNN
+  name: string;
+  type: string;
+  criticality: string; // SUPPLIER_CRITICALITIES
+  service: string; // prestation / périmètre du SI concerné
+  dataAccess: string; // DATA_ACCESS_LEVELS
+  ownerId: string; // responsable interne du contrat
+  status: string;
+  contractEnd: Date | null; // échéance du contrat
+  reviewDate: Date | null; // prochaine revue de sécurité du tiers
+  assetIds: string[]; // actifs du SI auxquels le tiers accède / qu'il opère
+  notes: string;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+export const supplierCriticalityScore = (s: Supplier): number => SUPPLIER_CRITICALITY_SCORE[s.criticality] ?? 1;
+/** Un tiers dont la revue de sécurité est dépassée. */
+export const isSupplierReviewLate = (s: Supplier, now: Date): boolean =>
+  Boolean(s.reviewDate && s.reviewDate.getTime() < now.getTime() && s.status !== "Résilié");
+/** Prestataires en lien avec un actif (accès / exploitation) — pour la CJA. */
+export const assetSuppliers = (assetId: string, suppliers: Supplier[]): Supplier[] =>
+  suppliers.filter((s) => s.status !== "Résilié" && s.assetIds.includes(assetId));
+
 /* ---------- Module GRC : Organigramme (Directions → Services) ---------- */
 /** Service (unité) rattaché à une direction. */
 export interface OrgService {

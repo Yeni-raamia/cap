@@ -14,6 +14,7 @@ import type {
   GrcPlanItem,
   Mission,
   OrgService,
+  Supplier,
   Policy,
   PolicyDiffusion,
   Risk,
@@ -59,6 +60,22 @@ export function seedTraining(): TrainingCourse[] {
       updatedAt: day(-30),
     };
   });
+}
+
+/* ---------- Fournisseurs & prestataires ---------- */
+export function seedSuppliers(): Supplier[] {
+  const base = (o: Partial<Supplier> & { id: string; ref: string; name: string }): Supplier => ({
+    type: "Autre", criticality: "Standard", service: "", dataAccess: "Aucune donnée", ownerId: "u1", status: "Actif",
+    contractEnd: day(200), reviewDate: day(60), assetIds: [], notes: "",
+    createdBy: "u1", createdAt: day(-140), updatedAt: day(-20), ...o,
+  });
+  return [
+    base({ id: "sup1", ref: "FRN-2026-001", name: "Éditeur du logiciel de paie", type: "Éditeur / Logiciel", criticality: "Critique", service: "Maintenance & mises à jour du SI de paie", dataAccess: "Données personnelles", ownerId: "u3", assetIds: ["da2"], reviewDate: day(-10) }),
+    base({ id: "sup2", ref: "FRN-2026-002", name: "Hébergeur cloud (messagerie)", type: "Hébergeur / Cloud", criticality: "Critique", service: "Hébergement de la messagerie", dataAccess: "Données internes", ownerId: "u1", assetIds: ["da4"] }),
+    base({ id: "sup3", ref: "FRN-2026-003", name: "Infogérant du parc", type: "Infogérance / TMA", criticality: "Important", service: "Support et maintenance des postes", dataAccess: "Données internes", ownerId: "u6", assetIds: ["da6"] }),
+    base({ id: "sup4", ref: "FRN-2026-004", name: "Agence web", type: "Conseil / Audit", criticality: "Standard", service: "Maintenance du site public", dataAccess: "Aucune donnée", ownerId: "u6", assetIds: ["da5"], contractEnd: day(90) }),
+    base({ id: "sup5", ref: "FRN-2026-005", name: "Cabinet d'audit sécurité", type: "Conseil / Audit", criticality: "Important", service: "Audits et tests d'intrusion annuels", dataAccess: "Données sensibles", ownerId: "u1", status: "En évaluation" }),
+  ];
 }
 
 /* ---------- Missions & dépendances ---------- */

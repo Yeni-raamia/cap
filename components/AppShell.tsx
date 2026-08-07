@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ControlAssessment, ConversationSummary, Direction, EmailTemplate, FieldControl, GrcPlanItem, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Task, TrainingCourse, TrainingDone } from "@/lib/domain";
+import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ControlAssessment, ConversationSummary, Direction, EmailTemplate, FieldControl, GrcPlanItem, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Supplier, Task, TrainingCourse, TrainingDone } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -89,6 +89,7 @@ export function AppShell({
   initialTrainingCourses,
   initialTrainingDone,
   initialMissions,
+  initialSuppliers,
 }: {
   children: ReactNode;
   demo?: boolean;
@@ -119,6 +120,7 @@ export function AppShell({
   initialTrainingCourses?: TrainingCourse[];
   initialTrainingDone?: TrainingDone[];
   initialMissions?: Mission[];
+  initialSuppliers?: Supplier[];
 }) {
   return (
     <AppProvider
@@ -150,6 +152,7 @@ export function AppShell({
       initialTrainingCourses={initialTrainingCourses}
       initialTrainingDone={initialTrainingDone}
       initialMissions={initialMissions}
+      initialSuppliers={initialSuppliers}
     >
       <Shell>{children}</Shell>
     </AppProvider>

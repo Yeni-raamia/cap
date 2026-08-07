@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Gem, Info, ShieldAlert, ShieldCheck } from "lucide-react";
 import {
+  assetSuppliers,
   CID_LABELS,
   CONFIDENTIALITY_LABELS,
   CRITICALITY_TONE,
@@ -17,7 +18,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { JoyauxRapportPdf } from "@/components/JoyauxRapportPdf";
 
 export function JoyauxTab() {
-  const { assets, risks, fieldControls, missions, profileById } = useApp();
+  const { assets, risks, fieldControls, missions, suppliers, profileById } = useApp();
 
   const analyses = useMemo(() => computeJewels(assets, risks, fieldControls, missions), [assets, risks, fieldControls, missions]);
   const jewels = useMemo(() => analyses.filter(isJewel), [analyses]);
@@ -62,7 +63,7 @@ export function JoyauxTab() {
         <Card className="p-6 text-center text-[13px] text-slate-400">Aucun joyau détecté : aucun actif n&apos;atteint une criticité élevée ou ne porte de risque résiduel élevé.</Card>
       ) : (
         <div className="space-y-3">
-          {jewels.map((j) => <JewelCard key={j.asset.id} j={j} owner={profileById(j.asset.ownerId).nom} />)}
+          {jewels.map((j) => <JewelCard key={j.asset.id} j={j} owner={profileById(j.asset.ownerId).nom} suppliers={assetSuppliers(j.asset.id, suppliers).map((s) => s.name)} />)}
         </div>
       )}
 
@@ -75,7 +76,7 @@ export function JoyauxTab() {
   );
 }
 
-function JewelCard({ j, owner }: { j: JewelAnalysis; owner: string }) {
+function JewelCard({ j, owner, suppliers }: { j: JewelAnalysis; owner: string; suppliers: string[] }) {
   const a = j.asset;
   const cid = [
     { k: "C", v: a.confidentiality, label: CONFIDENTIALITY_LABELS[a.confidentiality] ?? "—" },
@@ -97,6 +98,9 @@ function JewelCard({ j, owner }: { j: JewelAnalysis; owner: string }) {
           <div className="text-[11px] text-slate-400 mt-0.5">{[a.type, a.service, owner].filter(Boolean).join(" · ")}</div>
           {j.missionNames.length > 0 && (
             <div className="text-[11px] text-indigo-600 mt-1 inline-flex items-center gap-1 flex-wrap">🎯 {j.missionNames.join(" · ")}{j.missionValue > 0 && <span className="text-slate-400">(valeur héritée)</span>}</div>
+          )}
+          {suppliers.length > 0 && (
+            <div className="text-[11px] text-orange-600 mt-0.5">🚚 {suppliers.length} prestataire{suppliers.length > 1 ? "s" : ""} avec accès : {suppliers.join(", ")}</div>
           )}
         </div>
         {/* Indice JRI */}

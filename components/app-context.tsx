@@ -26,6 +26,7 @@ import {
   seedDirections,
   seedTraining,
   seedMissions,
+  seedSuppliers,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -77,6 +78,7 @@ import {
   type RiskLink,
   type Role,
   type Score,
+  type Supplier,
   type Task,
   type TaskPriority,
   type TaskStatus,
@@ -266,6 +268,20 @@ export interface MissionInput {
   peopleIds?: string[];
   dependencies?: import("@/lib/domain").MissionDependency[];
 }
+export interface SupplierInput {
+  id?: string;
+  name?: string;
+  type?: string;
+  criticality?: string;
+  service?: string;
+  dataAccess?: string;
+  ownerId?: string;
+  status?: string;
+  contractEnd?: string | null;
+  reviewDate?: string | null;
+  assetIds?: string[];
+  notes?: string;
+}
 type RefListKey = "appreciation" | "cause" | "action" | "decision" | "service" | "policy";
 type RefListActionPayload =
   | { op: "add"; listKey: RefListKey; label: string; icon?: string }
@@ -452,6 +468,12 @@ interface AppCtx {
   createMission: (input: MissionInput) => Promise<string | null>;
   updateMission: (id: string, fields: MissionInput) => Promise<string | null>;
   deleteMission: (id: string) => Promise<string | null>;
+  // GRC : fournisseurs & prestataires
+  suppliers: Supplier[];
+  supplierById: (id: string) => Supplier | null;
+  createSupplier: (input: SupplierInput) => Promise<string | null>;
+  updateSupplier: (id: string, fields: SupplierInput) => Promise<string | null>;
+  deleteSupplier: (id: string) => Promise<string | null>;
   subtaskAction: (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput) => Promise<string | null>;
   openTaskId: string | null;
   setOpenTaskId: (id: string | null) => void;
@@ -643,6 +665,8 @@ const reviveCourses = (arr: TrainingCourse[]): TrainingCourse[] => arr.map(reviv
 const reviveDone = (arr: TrainingDone[]): TrainingDone[] => arr.map((d) => ({ ...d, completedAt: new Date(d.completedAt) }));
 const reviveMission = (m: Mission): Mission => ({ ...m, createdAt: new Date(m.createdAt), updatedAt: new Date(m.updatedAt) });
 const reviveMissions = (arr: Mission[]): Mission[] => arr.map(reviveMission);
+const reviveSupplier = (s: Supplier): Supplier => ({ ...s, contractEnd: s.contractEnd ? new Date(s.contractEnd) : null, reviewDate: s.reviewDate ? new Date(s.reviewDate) : null, createdAt: new Date(s.createdAt), updatedAt: new Date(s.updatedAt) });
+const reviveSuppliers = (arr: Supplier[]): Supplier[] => arr.map(reviveSupplier);
 
 /* Sons via Web Audio (aucun fichier requis, marche hors-ligne).
  * Deux timbres distincts : un ping doux pour les messages, un motif à trois
@@ -712,6 +736,7 @@ export function AppProvider({
   initialTrainingCourses,
   initialTrainingDone,
   initialMissions,
+  initialSuppliers,
 }: {
   children: ReactNode;
   demo: boolean;
@@ -742,6 +767,7 @@ export function AppProvider({
   initialTrainingCourses?: TrainingCourse[];
   initialTrainingDone?: TrainingDone[];
   initialMissions?: Mission[];
+  initialSuppliers?: Supplier[];
 }) {
   const [items, setItems] = useState<Item[]>(
     demo ? [] : reviveItems(initialItems ?? [])
@@ -788,6 +814,7 @@ export function AppProvider({
   const [trainingCourses, setTrainingCourses] = useState<TrainingCourse[]>(demo ? seedTraining() : reviveCourses(initialTrainingCourses ?? []));
   const [trainingDone, setTrainingDone] = useState<TrainingDone[]>(demo ? [] : reviveDone(initialTrainingDone ?? []));
   const [missions, setMissions] = useState<Mission[]>(demo ? seedMissions() : reviveMissions(initialMissions ?? []));
+  const [suppliers, setSuppliers] = useState<Supplier[]>(demo ? seedSuppliers() : reviveSuppliers(initialSuppliers ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const [pushEnabled, setPushEnabledState] = useState(true);
@@ -2051,6 +2078,22 @@ export function AppProvider({
   const updateMission = (id: string, fields: MissionInput) => missionAction("update", { id, ...fields });
   const deleteMission = (id: string) => missionAction("delete", { id });
 
+  /* ---------- GRC : Fournisseurs & prestataires ---------- */
+  const supplierById = (id: string): Supplier | null => suppliers.find((s) => s.id === id) ?? null;
+  const supplierAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Fournisseurs indisponibles en mode démo.";
+    const res = await fetch("/api/suppliers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.suppliers) setSuppliers(reviveSuppliers(d.suppliers));
+    if (op === "create") toast("Fournisseur ajouté.", "success");
+    else if (op === "delete") toast("Fournisseur supprimé.", "success");
+    return null;
+  };
+  const createSupplier = (input: SupplierInput) => supplierAction("create", input as Record<string, unknown>);
+  const updateSupplier = (id: string, fields: SupplierInput) => supplierAction("update", { id, ...fields });
+  const deleteSupplier = (id: string) => supplierAction("delete", { id });
+
   /* ---------- Messagerie ---------- */
   const messagesUnread = conversations.reduce((s, c) => s + c.unread, 0);
 
@@ -2378,6 +2421,11 @@ export function AppProvider({
     createMission,
     updateMission,
     deleteMission,
+    suppliers,
+    supplierById,
+    createSupplier,
+    updateSupplier,
+    deleteSupplier,
     openTaskId,
     setOpenTaskId,
     soundEnabled,

@@ -6,7 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.56.0] - 2026-08-07
+## [1.57.0] - 2026-08-07
+
+### Ajouté
+
+- **Module GRC — Fournisseurs & prestataires** (nouvel onglet « Fournisseurs ») : recenser les **tiers qui interagissent avec le SI** — type, **criticité**, prestation/périmètre, **niveau de données accédées** (aucune → sensibles), responsable interne, échéance de contrat et **prochaine revue de sécurité**, avec les **actifs du SI concernés**. Indicateurs : fournisseurs, critiques, accès à des données personnelles/sensibles, revues en retard.
+- **Alimente la CJA** : sur l'onglet Joyaux, chaque actif critique affiche désormais les **prestataires ayant un accès** — une dépendance externe de plus à surveiller.
 
 ### Ajouté
 

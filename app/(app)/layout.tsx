@@ -22,6 +22,7 @@ import { listPlanItems } from "@/lib/db/grcplan";
 import { listDirections } from "@/lib/db/directions";
 import { listCourses, listProgressFor } from "@/lib/db/training";
 import { listMissions } from "@/lib/db/missions";
+import { listSuppliers } from "@/lib/db/suppliers";
 import { getRefLists, getSecuritySettings, getSettings } from "@/lib/db/admin";
 import { maybeRunRemindersInBackground } from "@/lib/reminders/auto";
 import { maybeRunBackupInBackground } from "@/lib/backup/auto";
@@ -74,6 +75,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const trainingCourses = listCourses();
   const trainingDone = listProgressFor(user.id);
   const missions = listMissions();
+  const suppliers = listSuppliers();
 
   return (
     <AppShell
@@ -104,6 +106,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialTrainingCourses={trainingCourses}
       initialTrainingDone={trainingDone}
       initialMissions={missions}
+      initialSuppliers={suppliers}
     >
       {children}
     </AppShell>
