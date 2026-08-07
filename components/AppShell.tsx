@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ControlAssessment, ConversationSummary, Direction, EmailTemplate, FieldControl, GrcPlanItem, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Supplier, Task, TrainingCourse, TrainingDone } from "@/lib/domain";
+import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ControlAssessment, ConversationSummary, Direction, EmailTemplate, FieldControl, GrcPlanItem, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, Profile, Project, RefLists, Risk, Supplier, Task, TrainingCourse, TrainingDone, TrainingProgressEntry } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -88,6 +88,7 @@ export function AppShell({
   initialDirections,
   initialTrainingCourses,
   initialTrainingDone,
+  initialTrainingProgressAll,
   initialMissions,
   initialSuppliers,
 }: {
@@ -119,6 +120,7 @@ export function AppShell({
   initialDirections?: Direction[];
   initialTrainingCourses?: TrainingCourse[];
   initialTrainingDone?: TrainingDone[];
+  initialTrainingProgressAll?: TrainingProgressEntry[];
   initialMissions?: Mission[];
   initialSuppliers?: Supplier[];
 }) {
@@ -151,6 +153,7 @@ export function AppShell({
       initialDirections={initialDirections}
       initialTrainingCourses={initialTrainingCourses}
       initialTrainingDone={initialTrainingDone}
+      initialTrainingProgressAll={initialTrainingProgressAll}
       initialMissions={initialMissions}
       initialSuppliers={initialSuppliers}
     >

@@ -84,6 +84,7 @@ import {
   type TaskStatus,
   type TrainingCourse,
   type TrainingDone,
+  type TrainingProgressEntry,
 } from "@/lib/domain";
 import { ORG_NAME } from "@/lib/config";
 import { fireConfetti } from "@/lib/confetti";
@@ -460,6 +461,7 @@ interface AppCtx {
   // GRC : Académie (entraînement)
   trainingCourses: TrainingCourse[];
   trainingDone: TrainingDone[];
+  trainingProgressAll: TrainingProgressEntry[];
   completeLesson: (lessonId: string, score: number) => Promise<string | null>;
   trainingEdit: (op: string, input: Record<string, unknown>) => Promise<string | null>;
   // GRC : missions & dépendances
@@ -735,6 +737,7 @@ export function AppProvider({
   initialDirections,
   initialTrainingCourses,
   initialTrainingDone,
+  initialTrainingProgressAll,
   initialMissions,
   initialSuppliers,
 }: {
@@ -766,6 +769,7 @@ export function AppProvider({
   initialDirections?: Direction[];
   initialTrainingCourses?: TrainingCourse[];
   initialTrainingDone?: TrainingDone[];
+  initialTrainingProgressAll?: TrainingProgressEntry[];
   initialMissions?: Mission[];
   initialSuppliers?: Supplier[];
 }) {
@@ -813,6 +817,10 @@ export function AppProvider({
   const [directions, setDirections] = useState<Direction[]>(demo ? seedDirections() : reviveDirections(initialDirections ?? []));
   const [trainingCourses, setTrainingCourses] = useState<TrainingCourse[]>(demo ? seedTraining() : reviveCourses(initialTrainingCourses ?? []));
   const [trainingDone, setTrainingDone] = useState<TrainingDone[]>(demo ? [] : reviveDone(initialTrainingDone ?? []));
+  const trainingProgressAll: TrainingProgressEntry[] = useMemo(
+    () => (initialTrainingProgressAll ?? []).map((p) => ({ ...p, completedAt: new Date(p.completedAt) })),
+    [initialTrainingProgressAll]
+  );
   const [missions, setMissions] = useState<Mission[]>(demo ? seedMissions() : reviveMissions(initialMissions ?? []));
   const [suppliers, setSuppliers] = useState<Supplier[]>(demo ? seedSuppliers() : reviveSuppliers(initialSuppliers ?? []));
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
@@ -2414,6 +2422,7 @@ export function AppProvider({
     deleteDirection,
     trainingCourses,
     trainingDone,
+    trainingProgressAll,
     completeLesson,
     trainingEdit,
     missions,

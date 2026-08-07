@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { GraduationCap, Play, Plus, RotateCcw, Settings2 } from "lucide-react";
+import { FileJson, GraduationCap, Play, Plus, RotateCcw, Settings2 } from "lucide-react";
 import { courseProgress, trainingLevel, trainingXp, TRAINING_LEVELS, type TrainingCourse } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
@@ -10,6 +10,7 @@ import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { LessonPlayer } from "@/components/LessonPlayer";
 import { CourseEditorModal } from "@/components/CourseEditorModal";
+import { ImportCourseModal } from "@/components/ImportCourseModal";
 
 export function AcademieTab() {
   const { trainingCourses, trainingDone, me, demo } = useApp();
@@ -17,6 +18,7 @@ export function AcademieTab() {
   const [playId, setPlayId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
   const doneIds = useMemo(() => new Set(trainingDone.map((d) => d.lessonId)), [trainingDone]);
@@ -43,9 +45,14 @@ export function AcademieTab() {
               <Settings2 size={15} /> {editMode ? "Terminer l'édition" : "Gérer le contenu"}
             </button>
             {editMode && (
-              <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-                <Plus size={15} /> Nouveau parcours
-              </button>
+              <>
+                <button onClick={() => setImporting(true)} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-emerald-700 border border-emerald-200 rounded-xl px-3 py-2 hover:bg-emerald-50">
+                  <FileJson size={15} /> Importer (JSON)
+                </button>
+                <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                  <Plus size={15} /> Nouveau parcours
+                </button>
+              </>
             )}
           </div>
         ) : undefined}
@@ -86,6 +93,7 @@ export function AcademieTab() {
 
       {playing && <LessonPlayer course={playing} onClose={() => setPlayId(null)} />}
       {(creating || editing) && <CourseEditorModal course={editing} creating={creating} onClose={() => { setCreating(false); setEditId(null); }} />}
+      {importing && <ImportCourseModal onClose={() => setImporting(false)} />}
     </div>
   );
 }

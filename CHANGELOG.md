@@ -6,7 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
-## [1.57.0] - 2026-08-07
+## [1.58.0] - 2026-08-07
+
+### Ajouté
+
+- **Distinctions — radar de compétences** : l'onglet Distinctions affiche pour chaque membre GRC un **graphe radar** de sa **maîtrise par domaine** (Fondamentaux, Risques, Conformité, Contrôles, Incidents, Décision — déduite de l'Académie) et de son **suivi du plan d'action** (part des actions CAPA menées sans retard).
+- **Académie — import de parcours par JSON** : en mode « Gérer le contenu », un bouton **« Importer (JSON) »** permet de créer un parcours complet (leçons, quiz, études de cas, défis) à partir d'un fichier ou d'un texte JSON, avec un **modèle téléchargeable**. Chaque parcours peut aussi être **exporté en JSON** depuis son éditeur (pour servir de gabarit ou de sauvegarde).
 
 ### Ajouté
 

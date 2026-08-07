@@ -967,6 +967,44 @@ export function courseProgress(course: TrainingCourse, doneIds: Set<string>): { 
 /** Score maximal atteignable pour une leçon (pour l'affichage). */
 export const lessonMaxScore = 100;
 
+/** Progression d'apprentissage d'un membre (pour agréger tous les apprenants). */
+export interface TrainingProgressEntry extends TrainingDone {
+  userId: string;
+}
+
+/** Axes de compétence GRC : regroupement des catégories de l'Académie. */
+export const COMPETENCY_GROUPS: { label: string; categories: string[] }[] = [
+  { label: "Fondamentaux", categories: ["Fondamentaux cyber", "Fondamentaux GRC"] },
+  { label: "Risques", categories: ["Gestion des risques"] },
+  { label: "Conformité", categories: ["Conformité & politiques"] },
+  { label: "Contrôles", categories: ["Contrôles & audit"] },
+  { label: "Incidents", categories: ["Incidents & non-conformités"] },
+  { label: "Décision", categories: ["Décision & pilotage"] },
+];
+export interface RadarAxis { axis: string; value: number }
+
+/** Radar de compétences d'un membre : maîtrise par domaine (Académie) + suivi du
+ *  plan d'action (CAPA menées sans retard). Valeurs 0–100. */
+export function competencyRadar(
+  courses: TrainingCourse[],
+  done: TrainingDone[],
+  capaActions: CapaAction[],
+  userId: string,
+  now: Date
+): RadarAxis[] {
+  const score = new Map(done.map((d) => [d.lessonId, d.score]));
+  const axes: RadarAxis[] = COMPETENCY_GROUPS.map((g) => {
+    const lessons = courses.filter((c) => g.categories.includes(c.category)).flatMap((c) => c.lessons);
+    if (lessons.length === 0) return { axis: g.label, value: 0 };
+    const sum = lessons.reduce((s, l) => s + (score.get(l.id) ?? 0), 0);
+    return { axis: g.label, value: Math.round(sum / lessons.length) };
+  });
+  const owned = capaActions.filter((a) => a.ownerId === userId);
+  const late = owned.filter((a) => isCapaLate(a, now)).length;
+  axes.push({ axis: "Plan d'action", value: owned.length ? Math.round((100 * (owned.length - late)) / owned.length) : 0 });
+  return axes;
+}
+
 /* ==================================================================
  *  Module GRC : Missions & dépendances de l'organisation.
  *  Base de l'analyse des joyaux (CJA) : ce que l'organisation doit

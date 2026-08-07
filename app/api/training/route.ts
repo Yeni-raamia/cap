@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
 import {
-  courseExists, createCourse, createLesson, deleteCourse, deleteLesson,
+  courseExists, createCourse, createLesson, deleteCourse, deleteLesson, importCourse,
   lessonExists, listCourses, listProgressFor, markLessonDone, updateCourse, updateLesson,
 } from "@/lib/db/training";
 import { logActivity } from "@/lib/db/admin";
@@ -37,7 +37,18 @@ export async function POST(request: Request) {
 
   const typeOf = (v: unknown): LessonType | undefined => (typeof v === "string" && LESSON_TYPES.includes(v as LessonType) ? (v as LessonType) : undefined);
 
-  if (op === "course.create") {
+  if (op === "course.import") {
+    const course = body?.course;
+    if (!course || typeof course !== "object" || !String(course?.title || "").trim()) {
+      return NextResponse.json({ error: "JSON invalide : un objet parcours avec un « title » est attendu." }, { status: 400 });
+    }
+    if (course.lessons !== undefined && !Array.isArray(course.lessons)) {
+      return NextResponse.json({ error: "JSON invalide : « lessons » doit être une liste." }, { status: 400 });
+    }
+    const res = importCourse(course, user.id);
+    logActivity(user.id, "training.import", `${String(course.title)} (${res.lessons} leçons)`);
+    return NextResponse.json({ courses: listCourses(), imported: res });
+  } else if (op === "course.create") {
     const title = String(body?.title || "").trim();
     if (!title) return NextResponse.json({ error: "Titre du parcours requis." }, { status: 400 });
     createCourse({ title, description: String(body?.description || ""), category: String(body?.category || ""), icon: String(body?.icon || ""), badge: String(body?.badge || ""), createdBy: user.id });

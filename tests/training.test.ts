@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { courseProgress, trainingLevel, trainingXp, type TrainingCourse, type TrainingDone, type TrainingLesson } from "@/lib/domain";
+import { competencyRadar, courseProgress, trainingLevel, trainingXp, type CapaAction, type TrainingCourse, type TrainingDone, type TrainingLesson } from "@/lib/domain";
 import { CURRICULUM } from "@/lib/data/trainingCurriculum";
 
 const lesson = (id: string, xp: number): TrainingLesson =>
@@ -41,6 +41,30 @@ describe("courseProgress", () => {
   });
   it("parcours vide = 0%", () => {
     expect(courseProgress(course("c", []), new Set()).pct).toBe(0);
+  });
+});
+
+describe("competencyRadar", () => {
+  const courseCat = (cat: string, lessons: TrainingLesson[]): TrainingCourse => course("c-" + cat, lessons.map((l) => ({ ...l, courseId: "c-" + cat }))) as TrainingCourse & { category: string };
+  const capa = (o: Partial<CapaAction>): CapaAction => ({ ownerId: "u1", status: "En cours", dueDate: null, ...o } as unknown as CapaAction);
+
+  it("maîtrise = moyenne des scores sur les leçons du domaine + axe Plan d'action", () => {
+    const risques = { ...courseCat("Gestion des risques", [lesson("r1", 20), lesson("r2", 20)]), category: "Gestion des risques" };
+    const radar = competencyRadar([risques], [done("r1", 100), done("r2", 50)], [], "u1", new Date());
+    const risquesAxis = radar.find((a) => a.axis === "Risques");
+    expect(risquesAxis?.value).toBe(75); // (100 + 50) / 2
+    // Un domaine sans leçon terminée → 0
+    expect(radar.find((a) => a.axis === "Conformité")?.value).toBe(0);
+    // L'axe Plan d'action est toujours présent
+    expect(radar.some((a) => a.axis === "Plan d'action")).toBe(true);
+  });
+
+  it("le Plan d'action pénalise les actions en retard", () => {
+    const past = new Date("2020-01-01");
+    const owned = [capa({ ownerId: "u1", status: "En cours", dueDate: past }), capa({ ownerId: "u1", status: "En cours", dueDate: new Date("2999-01-01") })];
+    const radar = competencyRadar([], [], owned, "u1", new Date());
+    // 1 en retard sur 2 → 50
+    expect(radar.find((a) => a.axis === "Plan d'action")?.value).toBe(50);
   });
 });
 

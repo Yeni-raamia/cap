@@ -109,6 +109,11 @@ export function listProgressFor(userId: string): TrainingDone[] {
   return (getDb().prepare("select lesson_id, score, completed_at from training_progress where user_id=?").all(userId) as { lesson_id: string; score: number; completed_at: string }[])
     .map((r) => ({ lessonId: r.lesson_id, score: r.score, completedAt: new Date(r.completed_at) }));
 }
+/** Progression de tous les apprenants (pour le radar de compétences par membre). */
+export function listAllProgress(): import("@/lib/domain").TrainingProgressEntry[] {
+  return (getDb().prepare("select user_id, lesson_id, score, completed_at from training_progress").all() as { user_id: string; lesson_id: string; score: number; completed_at: string }[])
+    .map((r) => ({ userId: r.user_id, lessonId: r.lesson_id, score: r.score, completedAt: new Date(r.completed_at) }));
+}
 export function markLessonDone(userId: string, lessonId: string, score: number): void {
   const s = Math.max(0, Math.min(100, Math.round(score)));
   getDb().prepare(
@@ -176,4 +181,33 @@ export function updateLesson(id: string, input: LessonFields): void {
 }
 export function deleteLesson(id: string): void {
   getDb().prepare("delete from training_lessons where id=?").run(id);
+}
+
+/* ---------- Import d'un parcours complet (JSON) ---------- */
+interface ImportLesson { type?: string; title?: string; content?: string; xp?: number; questions?: unknown[]; steps?: unknown[]; challengeHref?: string }
+interface ImportCourse { title?: string; description?: string; category?: string; icon?: string; badge?: string; lessons?: ImportLesson[] }
+export function importCourse(data: ImportCourse, createdBy: string): { id: string; lessons: number } {
+  const id = createCourse({ title: String(data.title || "").trim() || "Parcours importé", description: String(data.description || ""), category: String(data.category || ""), icon: String(data.icon || ""), badge: String(data.badge || ""), createdBy });
+  let n = 0;
+  (Array.isArray(data.lessons) ? data.lessons : []).forEach((l) => {
+    const title = String(l?.title || "").trim();
+    if (!title) return;
+    const questions = Array.isArray(l?.questions)
+      ? l.questions.map((q) => ({ id: String((q as { id?: unknown })?.id || randomUUID()), prompt: String((q as { prompt?: unknown })?.prompt || ""), options: Array.isArray((q as { options?: unknown })?.options) ? (q as { options: unknown[] }).options.map(String) : [], correct: Number((q as { correct?: unknown })?.correct) || 0, explanation: String((q as { explanation?: unknown })?.explanation || "") }))
+      : undefined;
+    const steps = Array.isArray(l?.steps)
+      ? l.steps.map((s) => ({ id: String((s as { id?: unknown })?.id || randomUUID()), prompt: String((s as { prompt?: unknown })?.prompt || ""), options: Array.isArray((s as { options?: unknown })?.options) ? (s as { options: unknown[] }).options.map((o) => ({ label: String((o as { label?: unknown })?.label || ""), feedback: String((o as { feedback?: unknown })?.feedback || ""), score: Math.max(0, Math.min(100, Number((o as { score?: unknown })?.score) || 0)) })) : [] }))
+      : undefined;
+    createLesson(id, {
+      title,
+      type: LESSON_TYPES.includes(l?.type as LessonType) ? (l!.type as LessonType) : "lesson",
+      content: String(l?.content || ""),
+      xp: Number.isFinite(l?.xp) ? Number(l!.xp) : 20,
+      questions: questions as TrainingLesson["questions"] | undefined,
+      steps: steps as TrainingLesson["steps"] | undefined,
+      challengeHref: typeof l?.challengeHref === "string" ? l.challengeHref : "",
+    });
+    n++;
+  });
+  return { id, lessons: n };
 }

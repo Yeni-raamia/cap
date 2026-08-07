@@ -20,7 +20,7 @@ import { listFieldControls } from "@/lib/db/fieldcontrols";
 import { listCapaActions } from "@/lib/db/capa";
 import { listPlanItems } from "@/lib/db/grcplan";
 import { listDirections } from "@/lib/db/directions";
-import { listCourses, listProgressFor } from "@/lib/db/training";
+import { listAllProgress, listCourses, listProgressFor } from "@/lib/db/training";
 import { listMissions } from "@/lib/db/missions";
 import { listSuppliers } from "@/lib/db/suppliers";
 import { getRefLists, getSecuritySettings, getSettings } from "@/lib/db/admin";
@@ -74,6 +74,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const directions = listDirections();
   const trainingCourses = listCourses();
   const trainingDone = listProgressFor(user.id);
+  const trainingProgressAll = listAllProgress();
   const missions = listMissions();
   const suppliers = listSuppliers();
 
@@ -105,6 +106,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialDirections={directions}
       initialTrainingCourses={trainingCourses}
       initialTrainingDone={trainingDone}
+      initialTrainingProgressAll={trainingProgressAll}
       initialMissions={missions}
       initialSuppliers={suppliers}
     >

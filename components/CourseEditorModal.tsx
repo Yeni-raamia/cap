@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GraduationCap, Plus, Trash2, X } from "lucide-react";
+import { Download, GraduationCap, Plus, Trash2, X } from "lucide-react";
 import {
   LESSON_TYPE_META,
   LESSON_TYPES,
@@ -51,6 +51,15 @@ export function CourseEditorModal({ course, creating, onClose }: { course: Train
     if (!window.confirm("Supprimer cette leçon ?")) return;
     await trainingEdit("lesson.delete", { id });
   };
+  const exportJson = () => {
+    if (!live) return;
+    const data = { title: live.title, description: live.description, category: live.category, icon: live.icon, badge: live.badge, lessons: live.lessons.map((l) => ({ type: l.type, title: l.title, content: l.content, xp: l.xp, ...(l.questions.length ? { questions: l.questions } : {}), ...(l.steps.length ? { steps: l.steps } : {}), ...(l.challengeHref ? { challengeHref: l.challengeHref } : {}) })) };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${live.ref}.json`; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 backdrop-blur-sm p-4 overflow-y-auto animate-fade" onClick={onClose}>
@@ -95,6 +104,7 @@ export function CourseEditorModal({ course, creating, onClose }: { course: Train
           </label>
           <div className="flex items-center gap-2">
             <button onClick={saveCourse} disabled={busy || !title.trim()} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-4 py-2 disabled:opacity-50">{creating ? "Créer le parcours" : "Enregistrer"}</button>
+            {!creating && live && <button onClick={exportJson} className="inline-flex items-center gap-1 text-[12px] text-slate-600 border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50"><Download size={14} /> Exporter JSON</button>}
             {!creating && live && <button onClick={removeCourse} className="ml-auto inline-flex items-center gap-1 text-[12px] text-rose-600 border border-rose-200 rounded-lg px-3 py-2 hover:bg-rose-50"><Trash2 size={14} /> Supprimer le parcours</button>}
           </div>
 
