@@ -16,6 +16,7 @@ import {
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
+import { IncidentsRapportPdf } from "@/components/grc/IncidentsRapportPdf";
 import { EmptyState } from "@/components/EmptyState";
 import { IncidentModal } from "@/components/IncidentModal";
 
@@ -57,11 +58,16 @@ export function IncidentsTab() {
       <GrcTabHeader
         title="Gestion des incidents"
         subtitle="Registre des incidents de sécurité (cycle ISO 27035) : déclaration → qualification → traitement → résolution → retour d'expérience."
-        right={canCreate ? (
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-            <Plus size={15} /> Déclarer un incident
-          </button>
-        ) : undefined}
+        right={
+          <div className="flex items-center gap-2">
+            <IncidentsRapportPdf />
+            {canCreate && (
+              <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={15} /> Déclarer un incident
+              </button>
+            )}
+          </div>
+        }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

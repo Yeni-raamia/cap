@@ -8,6 +8,7 @@ import { scoreFramework, scoreGroup } from "@/lib/grc/scoring";
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
+import { ConformiteRapportPdf } from "@/components/grc/ConformiteRapportPdf";
 import { ControlAssessmentModal } from "@/components/ControlAssessmentModal";
 
 const pctTone = (p: number) => (p >= 70 ? "text-emerald-600" : p >= 40 ? "text-amber-600" : "text-rose-600");
@@ -48,7 +49,11 @@ export function ConformiteTab() {
 
   return (
     <div className="space-y-5">
-      <GrcTabHeader title="Conformité" subtitle="Évaluer la posture face aux référentiels : applicabilité (SoA), statut d'implémentation et maturité par mesure." />
+      <GrcTabHeader
+        title="Conformité"
+        subtitle="Évaluer la posture face aux référentiels : applicabilité (SoA), statut d'implémentation et maturité par mesure."
+        right={<ConformiteRapportPdf />}
+      />
 
       {/* Sélecteur de référentiel */}
       <div className="flex items-center gap-2 flex-wrap">

@@ -14,6 +14,7 @@ import {
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
+import { ContinuiteRapportPdf } from "@/components/grc/ContinuiteRapportPdf";
 import { EmptyState } from "@/components/EmptyState";
 import { ContinuityModal } from "@/components/ContinuityModal";
 
@@ -58,11 +59,16 @@ export function ContinuiteTab() {
       <GrcTabHeader
         title="Continuité d'activité"
         subtitle="BIA (analyse d'impact) et plans de continuité/reprise (PCA/PRA) : pour chaque activité critique, l'impact d'une interruption et comment reprendre — DMIA, RTO, RPO."
-        right={canCreate ? (
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-            <Plus size={15} /> Nouveau plan
-          </button>
-        ) : undefined}
+        right={
+          <div className="flex items-center gap-2">
+            <ContinuiteRapportPdf />
+            {canCreate && (
+              <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={15} /> Nouveau plan
+              </button>
+            )}
+          </div>
+        }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

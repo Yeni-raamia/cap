@@ -13,6 +13,7 @@ import {
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
+import { RgpdRapportPdf } from "@/components/grc/RgpdRapportPdf";
 import { EmptyState } from "@/components/EmptyState";
 import { ProcessingModal } from "@/components/ProcessingModal";
 
@@ -51,11 +52,16 @@ export function RgpdTab() {
       <GrcTabHeader
         title="RGPD — Traitements & AIPD"
         subtitle="Registre des activités de traitement (ROPA, art. 30) et analyses d'impact (AIPD/PIA, art. 35) — relié aux violations de données et aux sous-traitants."
-        right={canCreate ? (
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-            <Plus size={15} /> Nouveau traitement
-          </button>
-        ) : undefined}
+        right={
+          <div className="flex items-center gap-2">
+            <RgpdRapportPdf />
+            {canCreate && (
+              <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={15} /> Nouveau traitement
+              </button>
+            )}
+          </div>
+        }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -6,6 +6,19 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.63.0] - 2026-08-08
+
+### Ajouté
+
+- **Politiques — avancement de l'acceptation par direction** : nouveau graphe (barres empilées) montrant, pour chaque direction de l'organigramme, la répartition des diffusions le long du cycle (Diffusée → Consultée → Comprise → Applicable) et le **taux d'applicabilité**. S'appuie sur le rattachement direction ↔ services de l'onglet Directions.
+- **Rapports imprimables (PDF) dans tout le module GRC** : bouton « Rapport PDF » ajouté aux onglets pertinents pour un rapport, chacun avec un en-tête (logo de l'organisation, titre, date), des indicateurs de synthèse et le registre détaillé — fiables à l'impression (couleurs forcées) :
+  - **Politiques** (dont l'avancement de l'acceptation par direction), **Conformité** (posture par référentiel + écarts), **Actifs** (registre C/I/D), **Contrôles terrain** (avancement + écarts), **Plan d'actions (CAPA)**, **Incidents** (registre ISO 27035), **Continuité** (BIA/PCA), **RGPD** (registre des traitements ROPA + AIPD), **Missions & dépendances**, **Fournisseurs & prestataires**, **Revue de direction** (posture GRC + document ISO §9.3 des revues).
+  - Ces rapports viennent compléter ceux déjà présents (Risques, Joyaux).
+
+### Interne
+
+- Nouvelle brique partagée `components/grc/ReportKit.tsx` (chrome commun, styles de tableau, encadrés KPI, barres imprimables) pour homogénéiser tous les rapports du module.
+
 ## [1.62.0] - 2026-08-07
 
 ### Ajouté

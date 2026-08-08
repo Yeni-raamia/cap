@@ -17,6 +17,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { PolicyModal } from "@/components/PolicyModal";
 import { PolicyTrackingModal } from "@/components/PolicyTrackingModal";
 import { PolitiquesStats } from "@/components/grc/PolitiquesStats";
+import { PolitiquesParDirection } from "@/components/grc/PolitiquesParDirection";
+import { PolitiquesRapportPdf } from "@/components/grc/PolitiquesRapportPdf";
 
 const statusTone: Record<string, string> = {
   Brouillon: "bg-slate-100 text-slate-600",
@@ -60,11 +62,16 @@ export function PolitiquesTab() {
       <GrcTabHeader
         title="Politiques de sécurité"
         subtitle="Diffuser les politiques et suivre, par direction/service, leur cycle : Diffusée → Consultée → Comprise → Applicable."
-        right={canCreate ? (
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-            <Plus size={15} /> Nouvelle politique
-          </button>
-        ) : undefined}
+        right={
+          <div className="flex items-center gap-2">
+            <PolitiquesRapportPdf />
+            {canCreate && (
+              <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={15} /> Nouvelle politique
+              </button>
+            )}
+          </div>
+        }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -75,6 +82,7 @@ export function PolitiquesTab() {
       </div>
 
       {policies.length > 0 && <PolitiquesStats policies={policies} />}
+      {policies.length > 0 && <PolitiquesParDirection />}
 
       <Card className="p-2.5">
         <div className="flex items-center gap-2 flex-wrap">

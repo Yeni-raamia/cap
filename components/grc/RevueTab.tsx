@@ -8,6 +8,7 @@ import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { Ring } from "@/components/dataviz";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
+import { RevueRapportPdf } from "@/components/grc/RevueRapportPdf";
 import { EmptyState } from "@/components/EmptyState";
 import { ReviewModal } from "@/components/ReviewModal";
 
@@ -47,11 +48,16 @@ export function RevueTab() {
       <GrcTabHeader
         title="Revue de direction & pilotage"
         subtitle="Tableau de bord synthétique de la posture GRC (agrège tous les onglets) et revues de direction (ISO 27001 §9.3)."
-        right={canCreate ? (
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-            <Plus size={15} /> Nouvelle revue
-          </button>
-        ) : undefined}
+        right={
+          <div className="flex items-center gap-2">
+            <RevueRapportPdf />
+            {canCreate && (
+              <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={15} /> Nouvelle revue
+              </button>
+            )}
+          </div>
+        }
       />
 
       {/* Posture + KPIs */}

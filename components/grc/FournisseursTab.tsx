@@ -14,6 +14,7 @@ import {
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
+import { FournisseursRapportPdf } from "@/components/grc/FournisseursRapportPdf";
 import { EmptyState } from "@/components/EmptyState";
 import { SupplierModal } from "@/components/SupplierModal";
 
@@ -53,11 +54,16 @@ export function FournisseursTab() {
       <GrcTabHeader
         title="Fournisseurs & prestataires"
         subtitle="Recenser les tiers qui interagissent avec le SI — leur criticité, les données qu'ils accèdent, les actifs concernés et le suivi contractuel. Dépendances externes pour la CJA."
-        right={canCreate ? (
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-            <Plus size={15} /> Nouveau fournisseur
-          </button>
-        ) : undefined}
+        right={
+          <div className="flex items-center gap-2">
+            <FournisseursRapportPdf />
+            {canCreate && (
+              <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={15} /> Nouveau fournisseur
+              </button>
+            )}
+          </div>
+        }
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
