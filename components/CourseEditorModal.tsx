@@ -20,7 +20,7 @@ const inputCls = "w-full text-[13px] border border-slate-200 dark:border-slate-7
 const labelCls = "block text-[11px] font-medium text-slate-500 mb-1";
 
 /** Éditeur d'un parcours : métadonnées + gestion des leçons (formateur/admin). */
-export function CourseEditorModal({ course, creating, onClose }: { course: TrainingCourse | null; creating: boolean; onClose: () => void }) {
+export function CourseEditorModal({ course, creating, track = "grc", onClose }: { course: TrainingCourse | null; creating: boolean; track?: string; onClose: () => void }) {
   const { trainingCourses, trainingEdit } = useApp();
   const live = course ? trainingCourses.find((c) => c.id === course.id) ?? course : null;
 
@@ -38,7 +38,7 @@ export function CourseEditorModal({ course, creating, onClose }: { course: Train
     if (!title.trim()) return;
     setBusy(true); setErr(null);
     const payload = { title: title.trim(), description, category, icon, badge, published };
-    const e = creating ? await trainingEdit("course.create", payload) : live ? await trainingEdit("course.update", { id: live.id, ...payload }) : "—";
+    const e = creating ? await trainingEdit("course.create", { ...payload, track }) : live ? await trainingEdit("course.update", { id: live.id, ...payload }) : "—";
     setBusy(false);
     if (e) setErr(e); else if (creating) onClose();
   };

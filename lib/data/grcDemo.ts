@@ -30,7 +30,8 @@ import type {
   TrainingCourse,
   TrainingLesson,
 } from "../domain";
-import { CURRICULUM } from "./trainingCurriculum";
+import { CURRICULUM, type CourseSeed } from "./trainingCurriculum";
+import { AUDIT_CURRICULUM } from "./auditCurriculum";
 import { STARTER_AUDIT_GRIDS, starterQuestions } from "./auditGrids";
 
 const NOW = () => new Date();
@@ -40,36 +41,23 @@ const Y = () => NOW().getFullYear();
 /* ---------- Académie (curriculum de démonstration) ---------- */
 export function seedTraining(): TrainingCourse[] {
   const year = Y();
-  return CURRICULUM.map((c, ci): TrainingCourse => {
-    const cid = `tc${ci + 1}`;
-    const lessons: TrainingLesson[] = c.lessons.map((l, li) => ({
-      id: `${cid}-l${li + 1}`,
-      courseId: cid,
-      order: li,
-      type: l.type,
-      title: l.title,
-      content: l.content,
-      xp: l.xp,
-      questions: l.questions ?? [],
-      steps: l.steps ?? [],
-      challengeHref: l.challengeHref ?? "",
-    }));
-    return {
-      id: cid,
-      ref: `ACAD-${year}-${String(ci + 1).padStart(3, "0")}`,
-      title: c.title,
-      description: c.description,
-      category: c.category,
-      icon: c.icon,
-      badge: c.badge,
-      order: ci,
-      published: true,
-      lessons,
-      createdBy: "u1",
-      createdAt: day(-120),
-      updatedAt: day(-30),
-    };
-  });
+  const mapCurriculum = (list: CourseSeed[], track: string, prefix: string, offset: number): TrainingCourse[] =>
+    list.map((c, ci): TrainingCourse => {
+      const cid = `${prefix}${ci + 1}`;
+      const lessons: TrainingLesson[] = c.lessons.map((l, li) => ({
+        id: `${cid}-l${li + 1}`, courseId: cid, order: li, type: l.type, title: l.title, content: l.content, xp: l.xp,
+        questions: l.questions ?? [], steps: l.steps ?? [], challengeHref: l.challengeHref ?? "",
+      }));
+      return {
+        id: cid, ref: `ACAD-${year}-${String(offset + ci + 1).padStart(3, "0")}`,
+        title: c.title, description: c.description, category: c.category, icon: c.icon, badge: c.badge,
+        track, order: ci, published: true, lessons, createdBy: "u1", createdAt: day(-120), updatedAt: day(-30),
+      };
+    });
+  return [
+    ...mapCurriculum(CURRICULUM, "grc", "tc", 0),
+    ...mapCurriculum(AUDIT_CURRICULUM, "audit", "tac", CURRICULUM.length),
+  ];
 }
 
 /* ---------- Revue de direction ---------- */

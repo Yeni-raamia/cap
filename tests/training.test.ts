@@ -5,7 +5,7 @@ import { CURRICULUM } from "@/lib/data/trainingCurriculum";
 const lesson = (id: string, xp: number): TrainingLesson =>
   ({ id, courseId: "c", order: 0, type: "lesson", title: id, content: "", xp, questions: [], steps: [], challengeHref: "" });
 const course = (id: string, lessons: TrainingLesson[]): TrainingCourse =>
-  ({ id, ref: "ACAD", title: id, description: "", category: "", icon: "🎓", badge: "", order: 0, published: true, lessons, createdBy: null, createdAt: new Date(), updatedAt: new Date() });
+  ({ id, ref: "ACAD", title: id, description: "", category: "", icon: "🎓", badge: "", track: "grc", order: 0, published: true, lessons, createdBy: null, createdAt: new Date(), updatedAt: new Date() });
 const done = (lessonId: string, score = 100): TrainingDone => ({ lessonId, score, completedAt: new Date() });
 
 describe("trainingLevel", () => {

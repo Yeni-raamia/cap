@@ -922,6 +922,7 @@ export interface TrainingCourse {
   category: string;
   icon: string; // emoji
   badge: string; // certification décernée à 100 % (ex. « Analyste de risque certifié »)
+  track: string; // filière : "grc" (Académie GRC) ou "audit" (Académie Audit)
   order: number;
   published: boolean;
   lessons: TrainingLesson[];

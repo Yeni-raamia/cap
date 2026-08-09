@@ -5,13 +5,14 @@
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
 import { LESSON_TYPES, type LessonType, type TrainingCourse, type TrainingDone, type TrainingLesson } from "@/lib/domain";
-import { CURRICULUM } from "@/lib/data/trainingCurriculum";
+import { CURRICULUM, type CourseSeed } from "@/lib/data/trainingCurriculum";
+import { AUDIT_CURRICULUM } from "@/lib/data/auditCurriculum";
 
 const now = () => new Date().toISOString();
 
 interface CourseRow {
   id: string; ref: string; title: string; description: string; category: string;
-  icon: string; badge: string; ordre: number; published: number;
+  icon: string; badge: string; track: string; ordre: number; published: number;
   created_by: string | null; created_at: string; updated_at: string;
 }
 interface LessonRow {
@@ -38,7 +39,7 @@ function mapLesson(r: LessonRow): TrainingLesson {
 function mapCourse(r: CourseRow, lessons: TrainingLesson[]): TrainingCourse {
   return {
     id: r.id, ref: r.ref, title: r.title, description: r.description, category: r.category,
-    icon: r.icon, badge: r.badge, order: r.ordre, published: r.published === 1, lessons,
+    icon: r.icon, badge: r.badge, track: r.track || "grc", order: r.ordre, published: r.published === 1, lessons,
     createdBy: r.created_by, createdAt: new Date(r.created_at), updatedAt: new Date(r.updated_at),
   };
 }
@@ -62,17 +63,15 @@ function ensureCurriculum(): void {
   if (curriculumSynced) return;
   curriculumSynced = true;
   const db = getDb();
-  const insC = db.prepare("insert into training_courses (id, ref, title, description, category, icon, badge, ordre, published, created_by) values (?,?,?,?,?,?,?,?,1,null)");
+  const insC = db.prepare("insert into training_courses (id, ref, title, description, category, icon, badge, track, ordre, published, created_by) values (?,?,?,?,?,?,?,?,?,1,null)");
   const insL = db.prepare("insert into training_lessons (id, course_id, ordre, type, title, content, xp, payload) values (?,?,?,?,?,?,?,?)");
-  const payload = (l: (typeof CURRICULUM)[number]["lessons"][number]) => JSON.stringify({ questions: l.questions ?? [], steps: l.steps ?? [], challengeHref: l.challengeHref ?? "" });
-  const tx = db.transaction(() => {
-    const existing = db.prepare("select id, title from training_courses").all() as { id: string; title: string }[];
-    const byTitle = new Map(existing.map((c) => [c.title, c.id]));
-    CURRICULUM.forEach((c, ci) => {
+  const payload = (l: CourseSeed["lessons"][number]) => JSON.stringify({ questions: l.questions ?? [], steps: l.steps ?? [], challengeHref: l.challengeHref ?? "" });
+  const syncList = (list: CourseSeed[], track: string, byTitle: Map<string, string>) => {
+    list.forEach((c, ci) => {
       let cid = byTitle.get(c.title);
       if (!cid) {
         cid = randomUUID();
-        insC.run(cid, nextRef(db), c.title, c.description, c.category, c.icon, c.badge, ci);
+        insC.run(cid, nextRef(db), c.title, c.description, c.category, c.icon, c.badge, track, ci);
       }
       const lTitles = new Set((db.prepare("select title from training_lessons where course_id=?").all(cid) as { title: string }[]).map((r) => r.title));
       let ordre = (db.prepare("select coalesce(max(ordre),-1)+1 n from training_lessons where course_id=?").get(cid) as { n: number }).n;
@@ -81,6 +80,12 @@ function ensureCurriculum(): void {
         insL.run(randomUUID(), cid, ordre++, l.type, l.title, l.content, l.xp, payload(l));
       });
     });
+  };
+  const tx = db.transaction(() => {
+    const existing = db.prepare("select id, title from training_courses").all() as { id: string; title: string }[];
+    const byTitle = new Map(existing.map((c) => [c.title, c.id]));
+    syncList(CURRICULUM, "grc", byTitle);
+    syncList(AUDIT_CURRICULUM, "audit", byTitle);
   });
   tx();
 }
@@ -124,13 +129,13 @@ export function markLessonDone(userId: string, lessonId: string, score: number):
 export const lessonExists = (id: string) => Boolean(getDb().prepare("select 1 from training_lessons where id=?").get(id));
 
 /* ---------- Édition (formateur / admin) ---------- */
-interface CourseFields { title?: string; description?: string; category?: string; icon?: string; badge?: string; published?: boolean }
+interface CourseFields { title?: string; description?: string; category?: string; icon?: string; badge?: string; published?: boolean; track?: string }
 export function createCourse(input: CourseFields & { title: string; createdBy: string }): string {
   const id = randomUUID();
   const db = getDb();
   const ordre = (db.prepare("select coalesce(max(ordre),-1)+1 n from training_courses").get() as { n: number }).n;
-  db.prepare("insert into training_courses (id, ref, title, description, category, icon, badge, ordre, published, created_by) values (?,?,?,?,?,?,?,?,?,?)").run(
-    id, nextRef(db), input.title, input.description ?? "", input.category ?? "", input.icon || "🎓", input.badge ?? "", ordre, input.published === false ? 0 : 1, input.createdBy
+  db.prepare("insert into training_courses (id, ref, title, description, category, icon, badge, track, ordre, published, created_by) values (?,?,?,?,?,?,?,?,?,?,?)").run(
+    id, nextRef(db), input.title, input.description ?? "", input.category ?? "", input.icon || "🎓", input.badge ?? "", input.track === "audit" ? "audit" : "grc", ordre, input.published === false ? 0 : 1, input.createdBy
   );
   return id;
 }
@@ -185,9 +190,9 @@ export function deleteLesson(id: string): void {
 
 /* ---------- Import d'un parcours complet (JSON) ---------- */
 interface ImportLesson { type?: string; title?: string; content?: string; xp?: number; questions?: unknown[]; steps?: unknown[]; challengeHref?: string }
-interface ImportCourse { title?: string; description?: string; category?: string; icon?: string; badge?: string; lessons?: ImportLesson[] }
-export function importCourse(data: ImportCourse, createdBy: string): { id: string; lessons: number } {
-  const id = createCourse({ title: String(data.title || "").trim() || "Parcours importé", description: String(data.description || ""), category: String(data.category || ""), icon: String(data.icon || ""), badge: String(data.badge || ""), createdBy });
+interface ImportCourse { title?: string; description?: string; category?: string; icon?: string; badge?: string; track?: string; lessons?: ImportLesson[] }
+export function importCourse(data: ImportCourse, createdBy: string, track = "grc"): { id: string; lessons: number } {
+  const id = createCourse({ title: String(data.title || "").trim() || "Parcours importé", description: String(data.description || ""), category: String(data.category || ""), icon: String(data.icon || ""), badge: String(data.badge || ""), track: data.track === "audit" ? "audit" : track, createdBy });
   let n = 0;
   (Array.isArray(data.lessons) ? data.lessons : []).forEach((l) => {
     const title = String(l?.title || "").trim();

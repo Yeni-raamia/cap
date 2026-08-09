@@ -10,9 +10,11 @@ import { GrillesTab } from "@/components/audit/GrillesTab";
 import { AuditsTab } from "@/components/audit/AuditsTab";
 import { ConstatsTab } from "@/components/audit/ConstatsTab";
 import { AuditeursTab } from "@/components/audit/AuditeursTab";
+import { AcademieTab } from "@/components/grc/AcademieTab";
 
 const TABS = [
   { id: "dashboard", label: "Tableau de bord" },
+  { id: "academie", label: "Académie" },
   { id: "programme", label: "Programme" },
   { id: "audits", label: "Audits" },
   { id: "constats", label: "Constats" },
@@ -51,6 +53,7 @@ function AuditInner() {
       </div>
 
       {active === "dashboard" && <AuditDashboardTab onTab={setTab} />}
+      {active === "academie" && <AcademieTab track="audit" title="Académie Audit" subtitle="Monter en compétence sur la méthode d'audit (ISO 19011), les principes (indépendance, preuves, approche par les risques) et des cas d'études réels." levelLabel="Niveau de compétence Audit" />}
       {active === "programme" && <ProgrammeTab />}
       {active === "audits" && <AuditsTab />}
       {active === "constats" && <ConstatsTab />}

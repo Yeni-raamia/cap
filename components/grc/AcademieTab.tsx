@@ -12,7 +12,7 @@ import { LessonPlayer } from "@/components/LessonPlayer";
 import { CourseEditorModal } from "@/components/CourseEditorModal";
 import { ImportCourseModal } from "@/components/ImportCourseModal";
 
-export function AcademieTab() {
+export function AcademieTab({ track = "grc", title = "Académie GRC", subtitle = "Un espace d'apprentissage ludique pour monter en compétence : leçons, quiz, études de cas décisionnelles et défis pratiques.", levelLabel = "Niveau de compétence GRC" }: { track?: string; title?: string; subtitle?: string; levelLabel?: string } = {}) {
   const { trainingCourses, trainingDone, me, demo } = useApp();
   const canEdit = !demo && (me.role === "manager" || me.role === "directeur" || me.role === "admin");
   const [playId, setPlayId] = useState<string | null>(null);
@@ -22,9 +22,11 @@ export function AcademieTab() {
   const [editMode, setEditMode] = useState(false);
 
   const doneIds = useMemo(() => new Set(trainingDone.map((d) => d.lessonId)), [trainingDone]);
-  const courses = useMemo(() => [...trainingCourses].sort((a, b) => a.order - b.order).filter((c) => c.published || canEdit), [trainingCourses, canEdit]);
+  // Parcours de la filière courante (les parcours sans marqueur sont considérés GRC).
+  const trackCourses = useMemo(() => trainingCourses.filter((c) => (c.track || "grc") === track), [trainingCourses, track]);
+  const courses = useMemo(() => [...trackCourses].sort((a, b) => a.order - b.order).filter((c) => c.published || canEdit), [trackCourses, canEdit]);
 
-  const xp = useMemo(() => trainingXp(trainingCourses, trainingDone), [trainingCourses, trainingDone]);
+  const xp = useMemo(() => trainingXp(trackCourses, trainingDone), [trackCourses, trainingDone]);
   const lvl = trainingLevel(xp);
   const certifications = useMemo(
     () => courses.filter((c) => c.lessons.length > 0 && courseProgress(c, doneIds).pct === 100),
@@ -37,8 +39,8 @@ export function AcademieTab() {
   return (
     <div className="space-y-5">
       <GrcTabHeader
-        title="Académie GRC"
-        subtitle="Un espace d'apprentissage ludique pour monter en compétence : leçons, quiz, études de cas décisionnelles et défis pratiques."
+        title={title}
+        subtitle={subtitle}
         right={canEdit ? (
           <div className="flex items-center gap-2">
             <button onClick={() => setEditMode((v) => !v)} className={`inline-flex items-center gap-1.5 text-[13px] font-medium rounded-xl px-3 py-2 border ${editMode ? "bg-slate-900 text-white border-slate-900" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
@@ -63,7 +65,7 @@ export function AcademieTab() {
         <div className="flex items-center gap-4 flex-wrap">
           <Ring value={lvl.progressPct} size={76} stroke={8} color="#10b981"><span className="text-[22px]">{lvl.icon}</span></Ring>
           <div className="min-w-0">
-            <div className="text-[11px] text-slate-500">Niveau de compétence GRC</div>
+            <div className="text-[11px] text-slate-500">{levelLabel}</div>
             <div className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">{lvl.name}</div>
             <div className="text-[12px] text-slate-500 mt-0.5">
               <b className="text-emerald-600">{xp} XP</b>
@@ -92,8 +94,8 @@ export function AcademieTab() {
       )}
 
       {playing && <LessonPlayer course={playing} onClose={() => setPlayId(null)} />}
-      {(creating || editing) && <CourseEditorModal course={editing} creating={creating} onClose={() => { setCreating(false); setEditId(null); }} />}
-      {importing && <ImportCourseModal onClose={() => setImporting(false)} />}
+      {(creating || editing) && <CourseEditorModal course={editing} creating={creating} track={track} onClose={() => { setCreating(false); setEditId(null); }} />}
+      {importing && <ImportCourseModal track={track} onClose={() => setImporting(false)} />}
     </div>
   );
 }

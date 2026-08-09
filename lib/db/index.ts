@@ -383,6 +383,7 @@ create table if not exists training_courses (
   id text primary key, ref text not null,
   title text not null default '', description text not null default '', category text not null default '',
   icon text not null default '🎓', badge text not null default '', ordre integer not null default 0, published integer not null default 1,
+  track text not null default 'grc',
   created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
 create table if not exists training_lessons (
@@ -675,6 +676,11 @@ function ensureColumns(db: Database.Database) {
   }
   if (!scols.includes("ip")) {
     db.exec("alter table sessions add column ip text");
+  }
+  // Académie : filière du parcours (grc / audit) — les parcours existants restent GRC.
+  const tccols = (db.prepare("pragma table_info(training_courses)").all() as { name: string }[]).map((c) => c.name);
+  if (tccols.length > 0 && !tccols.includes("track")) {
+    db.exec("alter table training_courses add column track text not null default 'grc'");
   }
   // Négligences : reconstruction si ancien schéma (item_id NOT NULL/UNIQUE, sans objet/service/concerne).
   const ncols = (db.prepare("pragma table_info(negligences)").all() as { name: string }[]).map((c) => c.name);

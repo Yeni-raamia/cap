@@ -6,6 +6,14 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.69.0] - 2026-08-09
+
+### Ajouté
+
+- **Académie Audit** (nouvel onglet « Académie » du module Audit) — un espace de formation dédié à l'audit, **réutilisant l'infrastructure de l'Académie GRC** (leçons, quiz, études de cas, défis, progression et niveau de compétence), mais avec sa **propre filière** et son propre niveau. Curriculum de départ centré sur la **méthode ISO 19011**, les **principes** (indépendance, présentation impartiale, approche fondée sur les preuves et par les risques) et des **cas d'études réels** (audit des sauvegardes, durcissement Active Directory…).
+  - Les parcours sont désormais rangés par **filière** (`GRC` / `Audit`) : chaque académie n'affiche que ses parcours et calcule un niveau de compétence distinct. La création/import de parcours hérite de la filière de l'académie où l'on se trouve.
+  - Les nouveaux parcours Audit apparaissent automatiquement (complément idempotent, sans doublon) ; les parcours existants restent en filière GRC.
+
 ## [1.68.0] - 2026-08-09
 
 ### Ajouté

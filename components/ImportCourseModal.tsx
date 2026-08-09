@@ -26,7 +26,7 @@ const TEMPLATE = {
 };
 
 /** Importer un parcours de l'Académie à partir d'un fichier / texte JSON. */
-export function ImportCourseModal({ onClose }: { onClose: () => void }) {
+export function ImportCourseModal({ track = "grc", onClose }: { track?: string; onClose: () => void }) {
   const { trainingEdit } = useApp();
   const [text, setText] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export function ImportCourseModal({ onClose }: { onClose: () => void }) {
     if (!c || typeof c !== "object" || typeof c.title !== "string" || !c.title.trim()) return setErr("Le JSON doit contenir un « title ».");
     if (c.lessons !== undefined && !Array.isArray(c.lessons)) return setErr("« lessons » doit être une liste.");
     setBusy(true);
-    const e = await trainingEdit("course.import", { course: parsed as Record<string, unknown> });
+    const e = await trainingEdit("course.import", { course: parsed as Record<string, unknown>, track });
     setBusy(false);
     if (!e) onClose();
   };
