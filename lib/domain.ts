@@ -772,7 +772,7 @@ export const CAPA_TYPES = ["Corrective", "Préventive"];
 export const CAPA_STATUS = ["Ouverte", "En cours", "Réalisée", "Vérifiée", "Clôturée"];
 export const CAPA_PRIORITIES = ["Basse", "Normale", "Haute", "Critique"];
 /** Origine d'une action : écart de contrôle, non-conformité, risque, incident, ou saisie manuelle. */
-export type CapaSource = "controle" | "nonconformite" | "risque" | "incident" | "manuel";
+export type CapaSource = "controle" | "nonconformite" | "risque" | "incident" | "audit" | "manuel";
 export const CAPA_STATUS_TONE: Record<string, string> = {
   Ouverte: "bg-slate-100 text-slate-600",
   "En cours": "bg-sky-100 text-sky-700",
@@ -1503,6 +1503,18 @@ export function computeAuditScore(questions: AuditQuestion[], responses: AuditRe
 }
 /** Tonalité (couleur texte) selon le score. */
 export const auditScoreTone = (pct: number): string => (pct >= 80 ? "text-emerald-600" : pct >= 50 ? "text-amber-600" : "text-rose-600");
+
+/** Clé de cible d'un audit (actif ou libellé libre) — pour rapprocher les ré-audits. */
+export const auditTargetKey = (a: Audit): string => (a.targetAssetId ? `asset:${a.targetAssetId}` : `label:${a.targetLabel.trim().toLowerCase()}`);
+const auditTime = (a: Audit): number => (a.date ? a.date.getTime() : a.createdAt.getTime());
+/** Audit précédent portant sur la même grille ET la même cible (le plus récent avant celui-ci). */
+export function previousAudit(current: Audit, all: Audit[]): Audit | null {
+  const key = auditTargetKey(current);
+  const t = auditTime(current);
+  const prior = all.filter((a) => a.id !== current.id && a.gridId === current.gridId && auditTargetKey(a) === key && auditTime(a) < t);
+  prior.sort((a, b) => auditTime(b) - auditTime(a));
+  return prior[0] ?? null;
+}
 
 /** Listes de référence par défaut (seed + repli si la base est vide). */
 export const DEFAULT_REF_LISTS: RefLists = {

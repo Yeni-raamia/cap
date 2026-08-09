@@ -1,19 +1,21 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ClipboardList, Plus, Search } from "lucide-react";
+import { ClipboardList, FileUp, Plus, Search } from "lucide-react";
 import { AUDIT_CATEGORIES, gridDomains, type AuditGrid } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { AuditGridModal } from "@/components/AuditGridModal";
+import { ImportGridModal } from "@/components/audit/ImportGridModal";
 
 export function GrillesTab() {
   const { auditGrids, audits, readOnly } = useApp();
   const [search, setSearch] = useState("");
   const [fCat, setFCat] = useState("");
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -34,9 +36,14 @@ export function GrillesTab() {
         title="Grilles d'audit"
         subtitle="Bibliothèque de référentiels réutilisables (questions Oui/Partiel/Non par domaine). Modifiables et déclinables en audits."
         right={canCreate ? (
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-            <Plus size={15} /> Nouvelle grille
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setImporting(true)} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800">
+              <FileUp size={15} /> Importer JSON
+            </button>
+            <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+              <Plus size={15} /> Nouvelle grille
+            </button>
+          </div>
         ) : undefined}
       />
 
@@ -64,6 +71,7 @@ export function GrillesTab() {
       )}
 
       {(creating || editing) && <AuditGridModal grid={editing} creating={creating} onClose={() => { setCreating(false); setEditId(null); }} />}
+      {importing && <ImportGridModal onClose={() => setImporting(false)} />}
     </div>
   );
 }

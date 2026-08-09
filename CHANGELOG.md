@@ -6,6 +6,16 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.66.0] - 2026-08-09
+
+### Ajouté
+
+- **Module Audit — Lot 2** : le module d'audit technique se relie au reste de Cap et devient exploitable de bout en bout.
+  - **Constats → plan d'actions (CAPA)** : depuis un audit, chaque réponse « Non »/« Partiel » peut générer une **action corrective** du module GRC en un clic (origine « Audit technique », pré-remplie avec l'observation et la criticité). Le constat déjà traité affiche « action créée » (pas de doublon).
+  - **Import / export JSON des grilles** : bouton « Importer JSON » (fichier ou copier-coller, un objet grille ou un tableau) et « Exporter JSON » depuis l'éditeur de grille, pour partager et versionner les référentiels.
+  - **Rapport d'audit imprimable (PDF)** : score par domaine, constats, détail des réponses et synthèse — avec en-tête (logo, cible, date) et comparaison au ré-audit.
+  - **Tendance de ré-audit** : chaque audit se compare automatiquement au précédent audit portant sur la **même grille et la même cible** (delta de points affiché dans la fiche, la liste et le rapport).
+
 ## [1.65.0] - 2026-08-09
 
 ### Ajouté

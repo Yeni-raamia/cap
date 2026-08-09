@@ -6,7 +6,7 @@ import { getDb } from "./index";
 import { CAPA_PRIORITIES, CAPA_STATUS, CAPA_TYPES, type CapaAction, type CapaSource } from "@/lib/domain";
 
 const now = () => new Date().toISOString();
-const SOURCES: CapaSource[] = ["controle", "nonconformite", "risque", "incident", "manuel"];
+const SOURCES: CapaSource[] = ["controle", "nonconformite", "risque", "incident", "audit", "manuel"];
 
 interface CapaRow {
   id: string;

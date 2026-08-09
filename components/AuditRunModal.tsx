@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ClipboardCheck, Star, Target, Trash2, X } from "lucide-react";
+import { ClipboardCheck, Star, Target, Trash2, TrendingDown, TrendingUp, Wrench, X } from "lucide-react";
 import {
-  AUDIT_ANSWER_TONE, AUDIT_STATUS, auditScoreTone, computeAuditScore, fmt, gridDomains,
+  AUDIT_ANSWER_TONE, AUDIT_STATUS, auditScoreTone, computeAuditScore, fmt, gridDomains, previousAudit,
   type Audit, type AuditResponse,
 } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { AuditRadar } from "./audit/AuditRadar";
+import { AuditRapportPdf } from "./audit/AuditRapportPdf";
 
 const ANSWER_BUTTONS = ["Oui", "Partiel", "Non", "Non applicable"];
 const inputCls = "w-full text-[12px] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-900 outline-none focus:border-emerald-400";
@@ -15,7 +16,7 @@ const inputCls = "w-full text-[12px] border border-slate-200 dark:border-slate-7
 type Resp = { answer: string; note: string; evidence: string };
 
 export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () => void }) {
-  const { demo, assetById, profileById, updateAudit, deleteAudit } = useApp();
+  const { demo, audits, capaActions, assetById, profileById, updateAudit, deleteAudit, createCapa } = useApp();
   const canEdit = !demo;
 
   const [resp, setResp] = useState<Record<string, Resp>>(() => {
@@ -34,6 +35,29 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
     [resp]
   );
   const score = useMemo(() => computeAuditScore(audit.questions, responsesArr), [audit.questions, responsesArr]);
+
+  // Tendance de ré-audit : delta vs l'audit précédent (même grille + même cible).
+  const prev = useMemo(() => previousAudit(audit, audits), [audit, audits]);
+  const prevScore = useMemo(() => (prev ? computeAuditScore(prev.questions, prev.responses).global : null), [prev]);
+  const delta = prevScore !== null ? score.global - prevScore : null;
+
+  const capaKey = (qid: string) => `${audit.id}:${qid}`;
+  const hasCapa = (qid: string) => capaActions.some((a) => a.sourceType === "audit" && a.sourceId === capaKey(qid));
+  const [capaBusy, setCapaBusy] = useState<string | null>(null);
+  const makeCapa = async (qid: string) => {
+    const q = audit.questions.find((x) => x.id === qid);
+    if (!q) return;
+    setCapaBusy(qid);
+    await createCapa({
+      title: `Constat audit ${audit.ref} — ${q.text}`.slice(0, 160),
+      description: [resp[qid]?.note, q.guidance].filter(Boolean).join(" — "),
+      type: "Corrective",
+      priority: q.critical ? "Haute" : "Normale",
+      sourceType: "audit",
+      sourceId: capaKey(qid),
+    });
+    setCapaBusy(null);
+  };
 
   const setAnswer = (qid: string, answer: string) => setResp((m) => ({ ...m, [qid]: { answer, note: m[qid]?.note ?? "", evidence: m[qid]?.evidence ?? "" } }));
   const setField = (qid: string, f: Partial<Resp>) => setResp((m) => ({ ...m, [qid]: { answer: m[qid]?.answer ?? "À vérifier", note: m[qid]?.note ?? "", evidence: m[qid]?.evidence ?? "", ...f } }));
@@ -65,7 +89,8 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
               <Target size={11} /> {targetName || "—"} · {audit.gridName}{audit.date ? ` · ${fmt(audit.date)}` : ""} · {profileById(audit.auditorId).nom}
             </div>
           </div>
-          <button onClick={onClose} aria-label="Fermer" className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+          <AuditRapportPdf audit={audit} />
+          <button onClick={onClose} aria-label="Fermer" className="text-slate-400 hover:text-slate-600 self-start"><X size={18} /></button>
         </div>
 
         {/* Synthèse live : score + radar */}
@@ -79,6 +104,12 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
               <div><span className="font-semibold text-slate-700 dark:text-slate-200">{score.answered}/{score.total}</span> évaluées</div>
               <div><span className={`font-semibold ${score.gaps ? "text-rose-600" : "text-slate-700 dark:text-slate-200"}`}>{score.gaps}</span> constat{score.gaps > 1 ? "s" : ""}{score.criticalGaps > 0 ? ` (${score.criticalGaps} crit.)` : ""}</div>
             </div>
+            {delta !== null && (
+              <div className={`inline-flex items-center gap-1 text-[11px] font-medium md:mt-1 ${delta >= 0 ? "text-emerald-600" : "text-rose-600"}`} title={`Audit précédent : ${prevScore}%${prev?.date ? ` (${fmt(prev.date)})` : ""}`}>
+                {delta >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                {delta > 0 ? "+" : ""}{delta} pts vs préc.
+              </div>
+            )}
           </div>
           <div><AuditRadar data={score.byDomain} height={200} /></div>
         </div>
@@ -134,6 +165,17 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
                           <div className="grid sm:grid-cols-2 gap-1.5 mt-2">
                             <input value={r.note ?? ""} onChange={(e) => setField(q.id, { note: e.target.value })} disabled={!canEdit} placeholder="Observation / écart constaté" className={inputCls} />
                             <input value={r.evidence ?? ""} onChange={(e) => setField(q.id, { evidence: e.target.value })} disabled={!canEdit} placeholder="Preuve / référence" className={inputCls} />
+                          </div>
+                        )}
+                        {r && (r.answer === "Non" || r.answer === "Partiel") && (
+                          <div className="mt-1.5">
+                            {hasCapa(q.id) ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700"><Wrench size={12} /> Action corrective créée</span>
+                            ) : canEdit ? (
+                              <button onClick={() => makeCapa(q.id)} disabled={capaBusy === q.id} className="inline-flex items-center gap-1 text-[11px] font-medium text-sky-700 bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/30 rounded-full px-2.5 py-0.5 hover:bg-sky-100 disabled:opacity-50">
+                                <Wrench size={12} /> Créer une action corrective
+                              </button>
+                            ) : null}
                           </div>
                         )}
                       </div>

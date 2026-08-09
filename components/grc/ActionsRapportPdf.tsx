@@ -11,7 +11,7 @@ const PRIO_HEX: Record<string, { bg: string; fg: string }> = {
   Basse: { bg: "#f1f5f9", fg: "#475569" },
 };
 const prioBadge = (p: string) => ({ background: PRIO_HEX[p]?.bg ?? "#f1f5f9", color: PRIO_HEX[p]?.fg ?? "#475569", fontSize: 10, fontWeight: 600, padding: "1px 6px", borderRadius: 4, WebkitPrintColorAdjust: "exact" as const, printColorAdjust: "exact" as const });
-const SOURCE_LABEL: Record<string, string> = { controle: "Contrôle", nonconformite: "Non-conformité", risque: "Risque", incident: "Incident", manuel: "Manuel" };
+const SOURCE_LABEL: Record<string, string> = { controle: "Contrôle", nonconformite: "Non-conformité", risque: "Risque", incident: "Incident", audit: "Audit", manuel: "Manuel" };
 
 /** Rapport imprimable : plan d'actions correctives et préventives (CAPA). */
 export function ActionsRapportPdf() {

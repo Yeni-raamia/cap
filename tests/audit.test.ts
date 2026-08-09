@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeAuditScore, gridDomains, type AuditQuestion, type AuditResponse } from "@/lib/domain";
+import { computeAuditScore, gridDomains, previousAudit, type Audit, type AuditQuestion, type AuditResponse } from "@/lib/domain";
 
 const q = (id: string, domain: string, o: Partial<AuditQuestion> = {}): AuditQuestion =>
   ({ id, domain, text: `Q ${id}`, guidance: "", weight: 1, critical: false, ...o });
@@ -62,5 +62,36 @@ describe("computeAuditScore", () => {
     const s = computeAuditScore(qs, [r("1", "Non"), r("2", "Partiel"), r("3", "Oui")]);
     expect(s.gaps).toBe(2); // Q1 Non + Q2 Partiel
     expect(s.criticalGaps).toBe(1); // seule Q1 est critique ET en écart
+  });
+});
+
+describe("previousAudit", () => {
+  const mk = (o: Partial<Audit> & { id: string }): Audit =>
+    ({ ref: o.id, title: "", gridId: "g1", gridName: "", category: "", questions: [], targetAssetId: null, targetLabel: "SRV-1", auditorId: "u", date: null, status: "Terminé", responses: [], summary: "", createdBy: null, createdAt: new Date("2026-01-01"), updatedAt: new Date("2026-01-01"), ...o } as Audit);
+
+  it("retourne l'audit précédent même grille + même cible, le plus récent avant", () => {
+    const all = [
+      mk({ id: "a", date: new Date("2026-01-10") }),
+      mk({ id: "b", date: new Date("2026-03-10") }),
+      mk({ id: "c", date: new Date("2026-06-10") }),
+    ];
+    expect(previousAudit(all[2], all)?.id).toBe("b"); // avant c (juin) → b (mars)
+    expect(previousAudit(all[0], all)?.id).toBeUndefined(); // rien avant a
+  });
+
+  it("ignore une grille ou une cible différente", () => {
+    const cur = mk({ id: "cur", date: new Date("2026-06-01") });
+    const all = [
+      mk({ id: "autreGrille", gridId: "g2", date: new Date("2026-01-01") }),
+      mk({ id: "autreCible", targetLabel: "SRV-2", date: new Date("2026-02-01") }),
+      cur,
+    ];
+    expect(previousAudit(cur, all)).toBeNull();
+  });
+
+  it("rapproche par actif quand la cible est un actif du registre", () => {
+    const cur = mk({ id: "cur", targetAssetId: "asset-9", targetLabel: "", date: new Date("2026-06-01") });
+    const older = mk({ id: "older", targetAssetId: "asset-9", targetLabel: "", date: new Date("2026-01-01") });
+    expect(previousAudit(cur, [older, cur])?.id).toBe("older");
   });
 });

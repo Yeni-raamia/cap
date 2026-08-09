@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ClipboardList, GripVertical, Plus, Star, Trash2, X } from "lucide-react";
+import { ClipboardList, Download, GripVertical, Plus, Star, Trash2, X } from "lucide-react";
 import { AUDIT_CATEGORIES, AUDIT_SOURCES, gridDomains, type AuditGrid, type AuditQuestion } from "@/lib/domain";
 import { useApp } from "./app-context";
 
@@ -48,6 +48,16 @@ export function AuditGridModal({ grid, creating, onClose }: { grid: AuditGrid | 
     const e = creating ? await createAuditGrid(payload) : grid ? await updateAuditGrid(grid.id, payload) : "—";
     setBusy(false);
     if (e) setErr(e); else onClose();
+  };
+  const exportJson = () => {
+    const data = { name: name.trim() || "grille", category, source, description, questions: cleanQuestions().map(({ domain, text, guidance, weight, critical }) => ({ domain, text, guidance, weight, critical })) };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(name.trim() || "grille").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
   const del = async () => {
     if (!grid || (typeof window !== "undefined" && !window.confirm(`Supprimer la grille « ${grid.ref} » ?`))) return;
@@ -128,6 +138,7 @@ export function AuditGridModal({ grid, creating, onClose }: { grid: AuditGrid | 
         {canEdit && (
           <div className="flex items-center gap-2 p-4 border-t border-slate-100 dark:border-slate-800 sticky bottom-0 bg-white dark:bg-slate-900">
             <button onClick={save} disabled={busy || !name.trim()} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-4 py-2 disabled:opacity-50"><ClipboardList size={15} /> {creating ? "Créer la grille" : "Enregistrer"}</button>
+            <button onClick={exportJson} disabled={questions.length === 0} className="inline-flex items-center gap-1 text-[12px] text-slate-600 border border-slate-200 rounded-lg px-3 py-2 hover:bg-slate-50 disabled:opacity-40"><Download size={14} /> Exporter JSON</button>
             {!creating && grid && <button onClick={del} disabled={busy} className="ml-auto inline-flex items-center gap-1 text-[12px] text-rose-600 border border-rose-200 rounded-lg px-3 py-2 hover:bg-rose-50"><Trash2 size={14} /> Supprimer</button>}
           </div>
         )}

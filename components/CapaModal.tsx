@@ -16,6 +16,8 @@ const SOURCE_LABELS: Record<string, string> = {
   controle: "Contrôle terrain",
   nonconformite: "Non-conformité",
   risque: "Risque",
+  incident: "Incident",
+  audit: "Audit technique",
   manuel: "Saisie manuelle",
 };
 

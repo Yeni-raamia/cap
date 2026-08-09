@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ClipboardCheck, Plus, Search, Target } from "lucide-react";
-import { AUDIT_STATUS_TONE, auditScoreTone, computeAuditScore, type Audit } from "@/lib/domain";
+import { ClipboardCheck, Plus, Search, Target, TrendingDown, TrendingUp } from "lucide-react";
+import { AUDIT_STATUS_TONE, auditScoreTone, computeAuditScore, previousAudit, type Audit } from "@/lib/domain";
 import { fmt } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
@@ -63,11 +63,18 @@ export function AuditsTab() {
         <div className="grid md:grid-cols-2 gap-3">
           {filtered.map((a) => {
             const sc = computeAuditScore(a.questions, a.responses);
+            const prev = previousAudit(a, audits);
+            const dl = prev ? sc.global - computeAuditScore(prev.questions, prev.responses).global : null;
             return (
               <button key={a.id} onClick={() => setRunId(a.id)} className="text-left rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft p-4 hover:-translate-y-0.5 transition-transform">
                 <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   <Token>{a.ref}</Token>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full ${AUDIT_STATUS_TONE[a.status] ?? "bg-slate-100 text-slate-500"}`}>{a.status}</span>
+                  {dl !== null && dl !== 0 && (
+                    <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium ${dl > 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                      {dl > 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}{dl > 0 ? "+" : ""}{dl}
+                    </span>
+                  )}
                   <span className={`ml-auto text-xl font-bold ${auditScoreTone(sc.global)}`}>{sc.global}%</span>
                 </div>
                 <div className="text-[14px] font-semibold text-slate-800 dark:text-slate-100 leading-snug">{a.title}</div>
