@@ -11,6 +11,7 @@ import {
   BookUser,
   CalendarDays,
   CalendarRange,
+  ClipboardCheck,
   Compass,
   Share2,
   FileWarning,
@@ -47,6 +48,7 @@ const ICONS: Record<string, LucideIcon> = {
   Settings,
   Share2,
   ShieldCheck,
+  ClipboardCheck,
 };
 
 export function Sidebar() {

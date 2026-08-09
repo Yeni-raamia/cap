@@ -6,6 +6,9 @@
  * ================================================================== */
 import type {
   Asset,
+  Audit,
+  AuditGrid,
+  AuditResponse,
   CapaAction,
   CheckItem,
   ContinuityPlan,
@@ -26,6 +29,7 @@ import type {
   TrainingLesson,
 } from "../domain";
 import { CURRICULUM } from "./trainingCurriculum";
+import { STARTER_AUDIT_GRIDS, starterQuestions } from "./auditGrids";
 
 const NOW = () => new Date();
 const day = (offset: number) => new Date(NOW().getTime() + offset * 864e5);
@@ -400,5 +404,49 @@ export function seedPlan(): GrcPlanItem[] {
     base({ id: "dpl3", ref: "PLAN-2026-003", title: "Revue des accès à privilèges", category: "Audit / Contrôle", quarter: "T1", ownerId: "u6", priority: "Haute", status: "Terminé", progress: 100 }),
     base({ id: "dpl4", ref: "PLAN-2026-004", title: "Cartographie des risques (mise à jour annuelle)", category: "Gestion des risques", quarter: "T2", ownerId: "u1", priority: "Haute", status: "En cours", progress: 45 }),
     base({ id: "dpl5", ref: "PLAN-2026-005", title: "Refonte du corpus documentaire (politiques)", category: "Politiques", quarter: "T3", ownerId: "u3", priority: "Normale", status: "À planifier", progress: 0 }),
+  ];
+}
+
+/* ---------- Audit : grilles de départ + audits de démonstration ---------- */
+export function seedAuditGrids(): AuditGrid[] {
+  return STARTER_AUDIT_GRIDS.map((g, i) => ({
+    id: `gid${i + 1}`,
+    ref: `GRID-${Y()}-${String(i + 1).padStart(3, "0")}`,
+    name: g.name,
+    category: g.category,
+    source: g.source,
+    description: g.description,
+    questions: starterQuestions(g),
+    createdBy: "u6",
+    createdAt: day(-120),
+    updatedAt: day(-30),
+  }));
+}
+
+export function seedAudits(): Audit[] {
+  const grids = seedAuditGrids();
+  const byKey = (k: string) => grids.find((g) => g.questions[0]?.id.startsWith(k + "-"))!;
+  const resp = (ans: Record<string, string>): AuditResponse[] =>
+    Object.entries(ans).map(([questionId, answer]) => ({ questionId, answer, note: "", evidence: "" }));
+
+  const backup = byKey("backup");
+  const ad = byKey("ad");
+  return [
+    {
+      id: "aud1", ref: `AUD-${Y()}-001`, title: "Audit sauvegardes — SRV-BACKUP-01",
+      gridId: backup.id, gridName: backup.name, category: backup.category, questions: backup.questions,
+      targetAssetId: null, targetLabel: "SRV-BACKUP-01", auditorId: "u6", date: day(-14), status: "Terminé",
+      responses: resp({ "backup-q1": "Oui", "backup-q2": "Partiel", "backup-q3": "Oui", "backup-q4": "Oui", "backup-q5": "Partiel", "backup-q6": "Oui", "backup-q7": "Non" }),
+      summary: "Bon niveau global ; renforcer l'immuabilité et la supervision des échecs.",
+      createdBy: "u6", createdAt: day(-14), updatedAt: day(-13),
+    },
+    {
+      id: "aud2", ref: `AUD-${Y()}-002`, title: "Durcissement AD — Contrôleurs de domaine",
+      gridId: ad.id, gridName: ad.name, category: ad.category, questions: ad.questions,
+      targetAssetId: null, targetLabel: "AD — Forêt principale", auditorId: "u6", date: day(-3), status: "En cours",
+      responses: resp({ "ad-q1": "Partiel", "ad-q2": "Non", "ad-q3": "Oui", "ad-q4": "Partiel", "ad-q6": "Oui" }),
+      summary: "",
+      createdBy: "u6", createdAt: day(-3), updatedAt: day(-1),
+    },
   ];
 }

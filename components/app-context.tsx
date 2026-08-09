@@ -31,6 +31,8 @@ import {
   seedIncidents,
   seedProcessing,
   seedReviews,
+  seedAuditGrids,
+  seedAudits,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -86,6 +88,8 @@ import {
   type RiskLink,
   type Role,
   type Score,
+  type Audit,
+  type AuditGrid,
   type Supplier,
   type Task,
   type TaskPriority,
@@ -290,6 +294,26 @@ export interface SupplierInput {
   reviewDate?: string | null;
   assetIds?: string[];
   notes?: string;
+}
+export interface AuditGridInput {
+  id?: string;
+  name?: string;
+  category?: string;
+  source?: string;
+  description?: string;
+  questions?: import("@/lib/domain").AuditQuestion[];
+}
+export interface AuditInput {
+  id?: string;
+  title?: string;
+  gridId?: string;
+  targetAssetId?: string | null;
+  targetLabel?: string;
+  auditorId?: string;
+  date?: string | null;
+  status?: string;
+  responses?: import("@/lib/domain").AuditResponse[];
+  summary?: string;
 }
 export interface ReviewInput {
   id?: string;
@@ -562,6 +586,16 @@ interface AppCtx {
   createSupplier: (input: SupplierInput) => Promise<string | null>;
   updateSupplier: (id: string, fields: SupplierInput) => Promise<string | null>;
   deleteSupplier: (id: string) => Promise<string | null>;
+  auditGrids: AuditGrid[];
+  auditGridById: (id: string) => AuditGrid | null;
+  createAuditGrid: (input: AuditGridInput) => Promise<string | null>;
+  updateAuditGrid: (id: string, fields: AuditGridInput) => Promise<string | null>;
+  deleteAuditGrid: (id: string) => Promise<string | null>;
+  audits: Audit[];
+  auditById: (id: string) => Audit | null;
+  createAudit: (input: AuditInput) => Promise<string | null>;
+  updateAudit: (id: string, fields: AuditInput) => Promise<string | null>;
+  deleteAudit: (id: string) => Promise<string | null>;
   // GRC : continuité d'activité (BIA/PCA)
   continuityPlans: ContinuityPlan[];
   continuityById: (id: string) => ContinuityPlan | null;
@@ -780,6 +814,10 @@ const reviveMission = (m: Mission): Mission => ({ ...m, createdAt: new Date(m.cr
 const reviveMissions = (arr: Mission[]): Mission[] => arr.map(reviveMission);
 const reviveSupplier = (s: Supplier): Supplier => ({ ...s, contractEnd: s.contractEnd ? new Date(s.contractEnd) : null, reviewDate: s.reviewDate ? new Date(s.reviewDate) : null, createdAt: new Date(s.createdAt), updatedAt: new Date(s.updatedAt) });
 const reviveSuppliers = (arr: Supplier[]): Supplier[] => arr.map(reviveSupplier);
+const reviveAuditGrid = (g: AuditGrid): AuditGrid => ({ ...g, createdAt: new Date(g.createdAt), updatedAt: new Date(g.updatedAt) });
+const reviveAuditGrids = (arr: AuditGrid[]): AuditGrid[] => arr.map(reviveAuditGrid);
+const reviveAudit = (a: Audit): Audit => ({ ...a, date: a.date ? new Date(a.date) : null, createdAt: new Date(a.createdAt), updatedAt: new Date(a.updatedAt) });
+const reviveAudits = (arr: Audit[]): Audit[] => arr.map(reviveAudit);
 const revivePlan2 = (p: ContinuityPlan): ContinuityPlan => ({ ...p, lastTestDate: p.lastTestDate ? new Date(p.lastTestDate) : null, reviewDate: p.reviewDate ? new Date(p.reviewDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
 const reviveContinuity = (arr: ContinuityPlan[]): ContinuityPlan[] => arr.map(revivePlan2);
 const reviveIncident = (i: Incident): Incident => ({ ...i, detectedAt: i.detectedAt ? new Date(i.detectedAt) : null, resolvedAt: i.resolvedAt ? new Date(i.resolvedAt) : null, createdAt: new Date(i.createdAt), updatedAt: new Date(i.updatedAt) });
@@ -859,6 +897,8 @@ export function AppProvider({
   initialTrainingProgressAll,
   initialMissions,
   initialSuppliers,
+  initialAuditGrids,
+  initialAudits,
   initialContinuityPlans,
   initialIncidents,
   initialProcessing,
@@ -895,6 +935,8 @@ export function AppProvider({
   initialTrainingProgressAll?: TrainingProgressEntry[];
   initialMissions?: Mission[];
   initialSuppliers?: Supplier[];
+  initialAuditGrids?: AuditGrid[];
+  initialAudits?: Audit[];
   initialContinuityPlans?: ContinuityPlan[];
   initialIncidents?: Incident[];
   initialProcessing?: ProcessingActivity[];
@@ -950,6 +992,8 @@ export function AppProvider({
   );
   const [missions, setMissions] = useState<Mission[]>(demo ? seedMissions() : reviveMissions(initialMissions ?? []));
   const [suppliers, setSuppliers] = useState<Supplier[]>(demo ? seedSuppliers() : reviveSuppliers(initialSuppliers ?? []));
+  const [auditGrids, setAuditGrids] = useState<AuditGrid[]>(demo ? seedAuditGrids() : reviveAuditGrids(initialAuditGrids ?? []));
+  const [audits, setAudits] = useState<Audit[]>(demo ? seedAudits() : reviveAudits(initialAudits ?? []));
   const [continuityPlans, setContinuityPlans] = useState<ContinuityPlan[]>(demo ? seedContinuity() : reviveContinuity(initialContinuityPlans ?? []));
   const [incidents, setIncidents] = useState<Incident[]>(demo ? seedIncidents() : reviveIncidents(initialIncidents ?? []));
   const [processing, setProcessing] = useState<ProcessingActivity[]>(demo ? seedProcessing() : reviveProcessing(initialProcessing ?? []));
@@ -2233,6 +2277,46 @@ export function AppProvider({
   const updateSupplier = (id: string, fields: SupplierInput) => supplierAction("update", { id, ...fields });
   const deleteSupplier = (id: string) => supplierAction("delete", { id });
 
+  /* ---------- Audit : grilles d'audit technique ---------- */
+  const auditGridById = (id: string): AuditGrid | null => auditGrids.find((g) => g.id === id) ?? null;
+  const auditGridAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Grilles d'audit indisponibles en mode démo.";
+    const res = await fetch("/api/audit-grids", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.auditGrids) setAuditGrids(reviveAuditGrids(d.auditGrids));
+    if (op === "create") toast("Grille créée.", "success");
+    else if (op === "delete") toast("Grille supprimée.", "success");
+    return null;
+  };
+  const createAuditGrid = (input: AuditGridInput) => auditGridAction("create", input as Record<string, unknown>);
+  const updateAuditGrid = (id: string, fields: AuditGridInput) => auditGridAction("update", { id, ...fields });
+  const deleteAuditGrid = (id: string) => auditGridAction("delete", { id });
+
+  /* ---------- Audit : audits réalisés ---------- */
+  const auditById = (id: string): Audit | null => audits.find((a) => a.id === id) ?? null;
+  const auditAction = async (op: "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Audits indisponibles en mode démo.";
+    const res = await fetch("/api/audits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.audits) setAudits(reviveAudits(d.audits));
+    if (op === "delete") toast("Audit supprimé.", "success");
+    return null;
+  };
+  // createAudit renvoie l'id du nouvel audit (ou null en cas d'échec) pour ouvrir le questionnaire aussitôt.
+  const createAudit = async (input: AuditInput): Promise<string | null> => {
+    if (demo) { toast("Audits indisponibles en mode démo.", "error"); return null; }
+    const res = await fetch("/api/audits", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op: "create", ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return null; }
+    if (d.audits) setAudits(reviveAudits(d.audits));
+    toast("Audit créé.", "success");
+    return d.audit?.id ?? null;
+  };
+  const updateAudit = (id: string, fields: AuditInput) => auditAction("update", { id, ...fields });
+  const deleteAudit = (id: string) => auditAction("delete", { id });
+
   /* ---------- GRC : Continuité d'activité (BIA/PCA) ---------- */
   const continuityById = (id: string): ContinuityPlan | null => continuityPlans.find((p) => p.id === id) ?? null;
   const continuityAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
@@ -2631,6 +2715,16 @@ export function AppProvider({
     createSupplier,
     updateSupplier,
     deleteSupplier,
+    auditGrids,
+    auditGridById,
+    createAuditGrid,
+    updateAuditGrid,
+    deleteAuditGrid,
+    audits,
+    auditById,
+    createAudit,
+    updateAudit,
+    deleteAudit,
     continuityPlans,
     continuityById,
     createContinuity,

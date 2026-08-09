@@ -23,6 +23,8 @@ import { listDirections } from "@/lib/db/directions";
 import { listAllProgress, listCourses, listProgressFor } from "@/lib/db/training";
 import { listMissions } from "@/lib/db/missions";
 import { listSuppliers } from "@/lib/db/suppliers";
+import { ensureAuditGrids, listAuditGrids } from "@/lib/db/auditgrids";
+import { listAudits } from "@/lib/db/audits";
 import { listContinuityPlans } from "@/lib/db/continuity";
 import { listIncidents } from "@/lib/db/incidents";
 import { listProcessing } from "@/lib/db/rgpd";
@@ -81,6 +83,9 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const trainingProgressAll = listAllProgress();
   const missions = listMissions();
   const suppliers = listSuppliers();
+  ensureAuditGrids(); // amorce la bibliothèque de grilles d'audit si vide
+  const auditGrids = listAuditGrids();
+  const audits = listAudits();
   const continuityPlans = listContinuityPlans();
   const incidents = listIncidents();
   const processing = listProcessing();
@@ -117,6 +122,8 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialTrainingProgressAll={trainingProgressAll}
       initialMissions={missions}
       initialSuppliers={suppliers}
+      initialAuditGrids={auditGrids}
+      initialAudits={audits}
       initialContinuityPlans={continuityPlans}
       initialIncidents={incidents}
       initialProcessing={processing}

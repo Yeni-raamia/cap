@@ -6,6 +6,17 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.65.0] - 2026-08-09
+
+### Ajouté
+
+- **Nouveau module Audit** (entrée de menu « Audit », `/audit`) — audits techniques par questionnaire. *Lot 1.*
+  - **Grilles d'audit** : référentiels réutilisables de questions (par domaine, avec « comment vérifier / preuve attendue », pondération et criticité). **Bibliothèque de départ** fournie (Sauvegardes, Active Directory/GPO, Journalisation, Durcissement serveur — inspirée CIS/ANSSI), entièrement **éditable**.
+  - **Audits** : chaque audit applique une grille à une **cible** (un actif du registre ou une cible libre). Réponses **Oui / Partiel / Non / N-A** par question, avec observation et preuve. La grille est **figée** dans l'audit à sa création (score stable même si la grille évolue ensuite).
+  - **Scoring & radar** : score par domaine (Oui=100, Partiel=50, Non=0, N-A exclu) → **radar** en direct, score global pondéré, taux de couverture et décompte des **constats** (dont critiques).
+  - **Tableau de bord** : nombre d'audits, score moyen, constats à traiter, score moyen par catégorie et audits récents.
+  - Accès réservé aux rôles manager/directeur/admin (lecture seule pour la DSI) ; suppression réservée aux manager/directeur/admin ; une grille utilisée par un audit ne peut pas être supprimée.
+
 ## [1.64.0] - 2026-08-09
 
 ### Ajouté

@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Asset, CapaAction, Catalogue, Contact, ContinuityPlan, ControlAssessment, ConversationSummary, Direction, DirectionReview, EmailTemplate, FieldControl, GrcPlanItem, Incident, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, ProcessingActivity, Profile, Project, RefLists, Risk, Supplier, Task, TrainingCourse, TrainingDone, TrainingProgressEntry } from "@/lib/domain";
+import type { AppSettings, Asset, Audit, AuditGrid, CapaAction, Catalogue, Contact, ContinuityPlan, ControlAssessment, ConversationSummary, Direction, DirectionReview, EmailTemplate, FieldControl, GrcPlanItem, Incident, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, ProcessingActivity, Profile, Project, RefLists, Risk, Supplier, Task, TrainingCourse, TrainingDone, TrainingProgressEntry } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -91,6 +91,8 @@ export function AppShell({
   initialTrainingProgressAll,
   initialMissions,
   initialSuppliers,
+  initialAuditGrids,
+  initialAudits,
   initialContinuityPlans,
   initialIncidents,
   initialProcessing,
@@ -127,6 +129,8 @@ export function AppShell({
   initialTrainingProgressAll?: TrainingProgressEntry[];
   initialMissions?: Mission[];
   initialSuppliers?: Supplier[];
+  initialAuditGrids?: AuditGrid[];
+  initialAudits?: Audit[];
   initialContinuityPlans?: ContinuityPlan[];
   initialIncidents?: Incident[];
   initialProcessing?: ProcessingActivity[];
@@ -164,6 +168,8 @@ export function AppShell({
       initialTrainingProgressAll={initialTrainingProgressAll}
       initialMissions={initialMissions}
       initialSuppliers={initialSuppliers}
+      initialAuditGrids={initialAuditGrids}
+      initialAudits={initialAudits}
       initialContinuityPlans={initialContinuityPlans}
       initialIncidents={initialIncidents}
       initialProcessing={initialProcessing}

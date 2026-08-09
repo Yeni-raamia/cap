@@ -1,0 +1,60 @@
+"use client";
+
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ClipboardCheck } from "lucide-react";
+import { PageHero } from "@/components/PageHero";
+import { AuditDashboardTab } from "@/components/audit/AuditDashboardTab";
+import { GrillesTab } from "@/components/audit/GrillesTab";
+import { AuditsTab } from "@/components/audit/AuditsTab";
+
+const TABS = [
+  { id: "dashboard", label: "Tableau de bord" },
+  { id: "audits", label: "Audits" },
+  { id: "grilles", label: "Grilles" },
+];
+
+function AuditInner() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const param = params.get("tab");
+  const active = TABS.some((t) => t.id === param) ? (param as string) : "dashboard";
+  const setTab = (id: string) => router.replace(`/audit?tab=${id}`, { scroll: false });
+
+  return (
+    <div className="space-y-5 animate-float">
+      <PageHero
+        kicker="Audits techniques"
+        icon={ClipboardCheck}
+        title="Audit"
+        subtitle="Évaluer la configuration réelle du SI par des grilles de contrôle — score par domaine, radar et suivi dans le temps."
+      />
+
+      <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`px-3.5 py-2 text-[13px] font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
+              active === t.id ? "border-emerald-500 text-emerald-700 dark:text-emerald-400" : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {active === "dashboard" && <AuditDashboardTab onTab={setTab} />}
+      {active === "audits" && <AuditsTab />}
+      {active === "grilles" && <GrillesTab />}
+    </div>
+  );
+}
+
+export default function AuditPage() {
+  return (
+    <Suspense fallback={<div className="text-[13px] text-slate-400 py-10 text-center">Chargement du module Audit…</div>}>
+      <AuditInner />
+    </Suspense>
+  );
+}

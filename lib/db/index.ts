@@ -311,6 +311,19 @@ create table if not exists direction_reviews (
   next_review_date text, status text not null default 'Préparée',
   created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists audit_grids (
+  id text primary key, ref text not null,
+  name text not null default '', category text not null default 'Autre', source text not null default 'Interne', description text not null default '',
+  questions text not null default '[]',
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
+create table if not exists audits (
+  id text primary key, ref text not null,
+  title text not null default '', grid_id text not null default '', grid_name text not null default '', category text not null default 'Autre',
+  questions text not null default '[]', target_asset_id text, target_label text not null default '', auditor_id text,
+  date text, status text not null default 'Planifié', responses text not null default '[]', summary text not null default '',
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists processing_activities (
   id text primary key, ref text not null,
   name text not null default '', purpose text not null default '', legal_basis text not null default '',

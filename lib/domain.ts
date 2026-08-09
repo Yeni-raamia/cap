@@ -1360,6 +1360,150 @@ export function directionPolicyRollup(dir: Direction, policies: Policy[]): {
   return { total: concerned, applicable, comprises, pct: concerned ? Math.round((applicable / concerned) * 100) : 0, byStage };
 }
 
+/* ==================================================================
+ *  Module Audit : audits techniques par questionnaire.
+ *  L'équipe vérifie la conformité d'une configuration (sauvegardes,
+ *  journalisation, GPO/AD, durcissement serveur…) via une grille de
+ *  questions notées Oui/Partiel/Non/N-A → score par domaine + radar.
+ * ================================================================== */
+export const AUDIT_CATEGORIES = [
+  "Sauvegardes / Restauration",
+  "Active Directory / GPO",
+  "Journalisation / SIEM",
+  "Durcissement serveur",
+  "Poste de travail",
+  "Réseau / Pare-feu",
+  "Messagerie / Anti-spam",
+  "Cloud / SaaS",
+  "Sécurité physique",
+  "Autre",
+];
+export const AUDIT_SOURCES = ["CIS Benchmark", "ANSSI", "NIST", "Microsoft", "Interne", "Autre"];
+
+/** Réponses possibles à une question d'audit + valeur de score (N-A exclu du calcul). */
+export const AUDIT_ANSWERS = ["Oui", "Partiel", "Non", "Non applicable", "À vérifier"] as const;
+export type AuditAnswer = (typeof AUDIT_ANSWERS)[number];
+export const AUDIT_ANSWER_VALUE: Record<string, number | null> = {
+  Oui: 100, Partiel: 50, Non: 0, "Non applicable": null, "À vérifier": null,
+};
+export const AUDIT_ANSWER_TONE: Record<string, string> = {
+  Oui: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  Partiel: "bg-amber-100 text-amber-700 border-amber-200",
+  Non: "bg-rose-100 text-rose-700 border-rose-200",
+  "Non applicable": "bg-slate-100 text-slate-400 border-slate-200",
+  "À vérifier": "bg-slate-100 text-slate-500 border-slate-200",
+};
+/** Cycle de vie d'un audit. */
+export const AUDIT_STATUS = ["Planifié", "En cours", "Terminé", "Clôturé"];
+export const AUDIT_STATUS_TONE: Record<string, string> = {
+  "Planifié": "bg-slate-100 text-slate-600",
+  "En cours": "bg-sky-100 text-sky-700",
+  "Terminé": "bg-emerald-100 text-emerald-700",
+  "Clôturé": "bg-slate-200 text-slate-500",
+};
+
+/** Une question d'une grille d'audit. */
+export interface AuditQuestion {
+  id: string;
+  domain: string; // thème de la question (axe du radar)
+  text: string; // le point de contrôle
+  guidance: string; // comment vérifier / preuve attendue
+  weight: number; // pondération (1–3)
+  critical: boolean; // point critique (priorise le constat)
+}
+/** Grille (référentiel) d'audit réutilisable. */
+export interface AuditGrid {
+  id: string;
+  ref: string; // GRID-AAAA-NNN
+  name: string;
+  category: string; // AUDIT_CATEGORIES
+  source: string; // AUDIT_SOURCES
+  description: string;
+  questions: AuditQuestion[];
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Domaines (axes) distincts d'une grille, dans l'ordre d'apparition. */
+export const gridDomains = (questions: AuditQuestion[]): string[] => {
+  const seen: string[] = [];
+  questions.forEach((q) => { const d = q.domain.trim() || "Général"; if (!seen.includes(d)) seen.push(d); });
+  return seen;
+};
+
+/** Réponse à une question lors d'un audit. */
+export interface AuditResponse {
+  questionId: string;
+  answer: string; // AUDIT_ANSWERS
+  note: string;
+  evidence: string; // preuve / observation
+}
+/** Un audit réalisé : une grille (figée) appliquée à une cible, à une date. */
+export interface Audit {
+  id: string;
+  ref: string; // AUD-AAAA-NNN
+  title: string;
+  gridId: string; // grille d'origine (référence)
+  gridName: string; // nom figé de la grille
+  category: string;
+  // Grille figée à la création (score stable même si la grille évolue ensuite).
+  questions: AuditQuestion[];
+  targetAssetId: string | null; // cible = actif du registre (facultatif)
+  targetLabel: string; // cible en texte libre (si pas d'actif)
+  auditorId: string;
+  date: Date | null;
+  status: string; // AUDIT_STATUS
+  responses: AuditResponse[];
+  summary: string; // conclusion / synthèse
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AuditScore {
+  global: number; // % pondéré sur les questions notées (hors N-A / à vérifier)
+  coverage: number; // % de questions notées (hors « à vérifier »)
+  answered: number; // questions notées (Oui/Partiel/Non)
+  total: number; // questions de la grille
+  gaps: number; // réponses Non ou Partiel (constats potentiels)
+  criticalGaps: number; // constats sur des questions critiques
+  byDomain: { domain: string; score: number; answered: number; total: number }[];
+}
+
+/** Calcule le score d'un audit (global pondéré + par domaine, pour le radar). */
+export function computeAuditScore(questions: AuditQuestion[], responses: AuditResponse[]): AuditScore {
+  const byId = new Map(responses.map((r) => [r.questionId, r]));
+  const val = (r?: AuditResponse) => (r ? AUDIT_ANSWER_VALUE[r.answer] ?? null : null);
+
+  let wSum = 0, wVal = 0, answered = 0, gaps = 0, criticalGaps = 0;
+  const domainAgg = new Map<string, { wSum: number; wVal: number; answered: number; total: number }>();
+  for (const q of questions) {
+    const dom = q.domain.trim() || "Général";
+    const agg = domainAgg.get(dom) ?? { wSum: 0, wVal: 0, answered: 0, total: 0 };
+    agg.total += 1;
+    const r = byId.get(q.id);
+    const v = val(r);
+    if (r && (r.answer === "Non" || r.answer === "Partiel")) { gaps += 1; if (q.critical) criticalGaps += 1; }
+    if (v !== null) {
+      const w = Math.max(0, q.weight) || 1;
+      wSum += w; wVal += w * v; answered += 1;
+      agg.wSum += w; agg.wVal += w * v; agg.answered += 1;
+    }
+    domainAgg.set(dom, agg);
+  }
+  const byDomain = gridDomains(questions).map((domain) => {
+    const a = domainAgg.get(domain)!;
+    return { domain, score: a.wSum ? Math.round(a.wVal / a.wSum) : 0, answered: a.answered, total: a.total };
+  });
+  return {
+    global: wSum ? Math.round(wVal / wSum) : 0,
+    coverage: questions.length ? Math.round((answered / questions.length) * 100) : 0,
+    answered, total: questions.length, gaps, criticalGaps, byDomain,
+  };
+}
+/** Tonalité (couleur texte) selon le score. */
+export const auditScoreTone = (pct: number): string => (pct >= 80 ? "text-emerald-600" : pct >= 50 ? "text-amber-600" : "text-rose-600");
+
 /** Listes de référence par défaut (seed + repli si la base est vide). */
 export const DEFAULT_REF_LISTS: RefLists = {
   appreciations: APPRECIATIONS,
