@@ -417,7 +417,7 @@ export function seedAudits(): Audit[] {
   const grids = seedAuditGrids();
   const byKey = (k: string) => grids.find((g) => g.questions[0]?.id.startsWith(k + "-"))!;
   const resp = (ans: Record<string, string>): AuditResponse[] =>
-    Object.entries(ans).map(([questionId, answer]) => ({ questionId, answer, note: "", evidence: "" }));
+    Object.entries(ans).map(([questionId, answer]) => ({ questionId, answer, note: "", evidence: "", severity: "", recommendation: "", mgmtResponse: "" }));
 
   const backup = byKey("backup");
   const ad = byKey("ad");

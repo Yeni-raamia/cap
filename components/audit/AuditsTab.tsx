@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ClipboardCheck, Plus, Search, Target, TrendingDown, TrendingUp } from "lucide-react";
+import { ClipboardCheck, FileDown, Plus, Search, Target, TrendingDown, TrendingUp } from "lucide-react";
 import { AUDIT_STATUS_TONE, auditScoreTone, computeAuditScore, previousAudit, type Audit } from "@/lib/domain";
 import { fmt } from "@/lib/domain";
+import { downloadCsv } from "@/lib/export";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
@@ -30,16 +31,34 @@ export function AuditsTab() {
   const canCreate = !readOnly; // un audit peut partir d'une grille OU d'un questionnaire manuel
   const targetName = (a: Audit) => (a.targetAssetId ? assetById(a.targetAssetId)?.name ?? a.targetLabel : a.targetLabel) || "—";
 
+  const exportCsv = () => {
+    const header = ["Réf.", "Titre", "Grille", "Catégorie", "Cible", "Statut", "Date", "Score global %", "Couverture %", "Constats", "Constats critiques", "Auditeur"];
+    const rows = filtered.map((a) => {
+      const s = computeAuditScore(a.questions, a.responses);
+      return [a.ref, a.title, a.gridName, a.category, targetName(a), a.status, a.date ? fmt(a.date) : "", s.global, s.coverage, s.gaps, s.criticalGaps, profileById(a.auditorId).nom];
+    });
+    downloadCsv(`cap-audits-${new Date().toISOString().slice(0, 10)}.csv`, [header, ...rows]);
+  };
+
   return (
     <div className="space-y-5">
       <GrcTabHeader
         title="Audits réalisés"
         subtitle="Chaque audit applique une grille à une cible et produit un score par domaine (radar) + des constats."
-        right={canCreate ? (
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-            <Plus size={15} /> Nouvel audit
-          </button>
-        ) : undefined}
+        right={
+          <div className="flex items-center gap-2">
+            {audits.length > 0 && (
+              <button onClick={exportCsv} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800" title="Exporter les audits filtrés en CSV (Excel)">
+                <FileDown size={15} /> Export CSV
+              </button>
+            )}
+            {canCreate && (
+              <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={15} /> Nouvel audit
+              </button>
+            )}
+          </div>
+        }
       />
 
       <Card className="p-2.5">

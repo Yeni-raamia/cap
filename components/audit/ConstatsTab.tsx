@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, Search, Star, Trash2, Wrench } from "lucide-react";
-import { AUDIT_ANSWER_TONE, CAPA_STATUS_TONE, type Audit, type AuditQuestion, type CapaAction } from "@/lib/domain";
+import { AlertTriangle, FileDown, Search, Star, Trash2, Wrench } from "lucide-react";
+import { AUDIT_ANSWER_TONE, AUDIT_FINDING_TONE, CAPA_STATUS_TONE, fmt, type Audit, type AuditQuestion, type AuditResponse, type CapaAction } from "@/lib/domain";
+import { downloadCsv } from "@/lib/export";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
@@ -11,6 +12,7 @@ import { EmptyState } from "@/components/EmptyState";
 interface Constat {
   audit: Audit;
   q: AuditQuestion;
+  r: AuditResponse;
   answer: string;
   note: string;
   capa: CapaAction | null;
@@ -37,7 +39,7 @@ export function ConstatsTab() {
       audit.questions.forEach((q) => {
         const r = byId.get(q.id);
         if (r && (r.answer === "Non" || r.answer === "Partiel")) {
-          rows.push({ audit, q, answer: r.answer, note: r.note, capa: capaByKey.get(`${audit.id}:${q.id}`) ?? null });
+          rows.push({ audit, q, r, answer: r.answer, note: r.note, capa: capaByKey.get(`${audit.id}:${q.id}`) ?? null });
         }
       });
     });
@@ -59,6 +61,16 @@ export function ConstatsTab() {
 
   const withoutAction = constats.filter((c) => !c.capa).length;
   const targetName = (a: Audit) => (a.targetAssetId ? assetById(a.targetAssetId)?.name ?? a.targetLabel : a.targetLabel) || "—";
+
+  const exportCsv = () => {
+    const header = ["Réf. audit", "Cible", "Domaine", "Constat", "Critique", "Réponse", "Cotation", "Observation", "Recommandation", "Réponse managériale", "Action", "Statut action", "Date audit"];
+    const rows = filtered.map((c) => [
+      c.audit.ref, targetName(c.audit), c.q.domain, c.q.text, c.q.critical ? "Oui" : "Non", c.answer,
+      c.r.severity || "", c.r.note || "", c.r.recommendation || "", c.r.mgmtResponse || "",
+      c.capa?.ref || "", c.capa?.status || "", c.audit.date ? fmt(c.audit.date) : "",
+    ]);
+    downloadCsv(`cap-constats-audit-${new Date().toISOString().slice(0, 10)}.csv`, [header, ...rows]);
+  };
 
   const makeCapa = async (c: Constat) => {
     const key = `${c.audit.id}:${c.q.id}`;
@@ -87,6 +99,11 @@ export function ConstatsTab() {
       <GrcTabHeader
         title="Constats & recommandations"
         subtitle="Registre transverse des écarts relevés dans les audits (ISO 19011 / IIA), avec le suivi des actions correctives associées."
+        right={constats.length > 0 ? (
+          <button onClick={exportCsv} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800" title="Exporter les constats filtrés en CSV (Excel)">
+            <FileDown size={15} /> Export CSV
+          </button>
+        ) : undefined}
       />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -125,7 +142,7 @@ export function ConstatsTab() {
                   <th className="py-2 px-3">Audit / cible</th>
                   <th className="py-2 px-3">Domaine</th>
                   <th className="py-2 px-3">Constat</th>
-                  <th className="py-2 px-3">Réponse</th>
+                  <th className="py-2 px-3">Réponse / cotation</th>
                   <th className="py-2 px-3">Suivi</th>
                 </tr>
               </thead>
@@ -145,8 +162,12 @@ export function ConstatsTab() {
                           <span>{c.q.text}</span>
                         </div>
                         {c.note && <div className="text-[11px] text-slate-400 mt-0.5">{c.note}</div>}
+                        {c.r.recommendation && <div className="text-[11px] text-sky-600 mt-0.5">→ {c.r.recommendation}</div>}
                       </td>
-                      <td className="py-2 px-3"><span className={`text-[10px] px-2 py-0.5 rounded-full border ${AUDIT_ANSWER_TONE[c.answer]}`}>{c.answer}</span></td>
+                      <td className="py-2 px-3 whitespace-nowrap">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${AUDIT_ANSWER_TONE[c.answer]}`}>{c.answer}</span>
+                        {c.r.severity && <div className="mt-1"><span className={`text-[10px] px-2 py-0.5 rounded-full border ${AUDIT_FINDING_TONE[c.r.severity] ?? "bg-slate-100 text-slate-500"}`}>{c.r.severity}</span></div>}
+                      </td>
                       <td className="py-2 px-3 min-w-[9rem]">
                         {c.capa ? (
                           <div className="flex items-center gap-1.5 flex-wrap">

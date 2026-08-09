@@ -42,6 +42,9 @@ function parseResponses(v: unknown): AuditResponse[] {
       answer: (AUDIT_ANSWERS as readonly string[]).includes(answer) ? answer : "À vérifier",
       note: String(o.note ?? ""),
       evidence: String(o.evidence ?? ""),
+      severity: String(o.severity ?? ""),
+      recommendation: String(o.recommendation ?? ""),
+      mgmtResponse: String(o.mgmtResponse ?? ""),
     };
   });
 }

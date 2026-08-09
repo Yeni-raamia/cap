@@ -1443,12 +1443,25 @@ export const gridDomains = (questions: AuditQuestion[]): string[] => {
   return seen;
 };
 
+/** Cotation d'un constat (gradation ISO 19011 / IIA). */
+export const AUDIT_FINDING_SEVERITIES = ["Majeure", "Mineure", "Observation"];
+export const AUDIT_FINDING_TONE: Record<string, string> = {
+  "Majeure": "bg-rose-100 text-rose-700 border-rose-200",
+  "Mineure": "bg-amber-100 text-amber-700 border-amber-200",
+  "Observation": "bg-sky-100 text-sky-700 border-sky-200",
+};
+/** Cotation par défaut d'un écart selon la criticité de la question. */
+export const defaultFindingSeverity = (q: AuditQuestion): string => (q.critical ? "Majeure" : "Mineure");
+
 /** Réponse à une question lors d'un audit. */
 export interface AuditResponse {
   questionId: string;
   answer: string; // AUDIT_ANSWERS
   note: string;
   evidence: string; // preuve / observation
+  severity: string; // cotation du constat (AUDIT_FINDING_SEVERITIES) — pour les écarts Non/Partiel
+  recommendation: string; // recommandation de l'auditeur
+  mgmtResponse: string; // réponse managériale (engagement de l'audité)
 }
 /** Un audit réalisé : une grille (figée) appliquée à une cible, à une date. */
 export interface Audit {

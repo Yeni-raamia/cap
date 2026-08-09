@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { computeAuditScore, gridDomains, isAuditPlanActive, isAuditPlanLate, previousAudit, type Audit, type AuditPlanItem, type AuditQuestion, type AuditResponse } from "@/lib/domain";
+import { computeAuditScore, defaultFindingSeverity, gridDomains, isAuditPlanActive, isAuditPlanLate, previousAudit, type Audit, type AuditPlanItem, type AuditQuestion, type AuditResponse } from "@/lib/domain";
 
 const q = (id: string, domain: string, o: Partial<AuditQuestion> = {}): AuditQuestion =>
   ({ id, domain, text: `Q ${id}`, guidance: "", weight: 1, critical: false, ...o });
-const r = (questionId: string, answer: string): AuditResponse => ({ questionId, answer, note: "", evidence: "" });
+const r = (questionId: string, answer: string): AuditResponse => ({ questionId, answer, note: "", evidence: "", severity: "", recommendation: "", mgmtResponse: "" });
 
 describe("gridDomains", () => {
   it("liste les domaines distincts dans l'ordre d'apparition", () => {
@@ -55,6 +55,11 @@ describe("computeAuditScore", () => {
     expect(d1.score).toBe(100);
     expect(d2.score).toBe(0);
     expect(s.byDomain.map((d) => d.domain)).toEqual(["D1", "D2"]);
+  });
+
+  it("cotation par défaut : Majeure si question critique, Mineure sinon", () => {
+    expect(defaultFindingSeverity(q("1", "D", { critical: true }))).toBe("Majeure");
+    expect(defaultFindingSeverity(q("2", "D", { critical: false }))).toBe("Mineure");
   });
 
   it("compte les constats (Non/Partiel) et les constats critiques", () => {

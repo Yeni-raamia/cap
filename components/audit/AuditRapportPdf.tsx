@@ -76,8 +76,10 @@ export function AuditRapportPdf({ audit }: { audit: Audit }) {
                   <th className={thCls}>Domaine</th>
                   <th className={thCls}>Point de contrôle</th>
                   <th className={thCls}>Réponse</th>
+                  <th className={thCls}>Cotation</th>
                   <th className={thCls}>Observation</th>
-                  <th className={thCls}>Preuve</th>
+                  <th className={thCls}>Recommandation</th>
+                  <th className={thCls}>Réponse managériale</th>
                 </tr>
               </thead>
               <tbody>
@@ -86,8 +88,10 @@ export function AuditRapportPdf({ audit }: { audit: Audit }) {
                     <td className={tdCls}>{q.domain}</td>
                     <td className={tdCls}>{q.critical ? "★ " : ""}{q.text}</td>
                     <td className={tdCls}><span style={ansBadge(r!.answer)}>{r!.answer}</span></td>
+                    <td className={tdCls}>{r!.severity || "—"}</td>
                     <td className={tdCls}>{r!.note || "—"}</td>
-                    <td className={tdCls}>{r!.evidence || "—"}</td>
+                    <td className={tdCls}>{r!.recommendation || "—"}</td>
+                    <td className={tdCls}>{r!.mgmtResponse || "—"}</td>
                   </tr>
                 ))}
               </tbody>

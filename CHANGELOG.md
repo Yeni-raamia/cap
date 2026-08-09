@@ -6,6 +6,13 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.71.0] - 2026-08-09
+
+### Ajouté
+
+- **Audit — cotation des constats & réponse managériale** (ISO 19011 / IIA) : chaque écart (« Non »/« Partiel ») peut désormais être **gradué** (Majeure / Mineure / Observation — pré-coté selon la criticité), assorti d'une **recommandation** de l'auditeur et de la **réponse managériale** (l'engagement de l'audité). Ces éléments apparaissent dans le questionnaire, dans le registre Constats et dans le rapport PDF.
+- **Audit — export CSV/Excel** : boutons « Export CSV » dans l'onglet **Audits** (synthèse : score, couverture, constats…) et dans l'onglet **Constats** (registre détaillé avec cotation, recommandation, réponse managériale et action liée). Séparateur `;` + BOM UTF-8 pour un rendu correct dans Excel.
+
 ## [1.70.0] - 2026-08-09
 
 ### Ajouté

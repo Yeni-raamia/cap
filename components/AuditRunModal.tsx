@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ClipboardCheck, Star, Target, Trash2, TrendingDown, TrendingUp, Wrench, X } from "lucide-react";
 import {
-  AUDIT_ANSWER_TONE, AUDIT_STATUS, auditScoreTone, computeAuditScore, fmt, gridDomains, previousAudit,
+  AUDIT_ANSWER_TONE, AUDIT_FINDING_SEVERITIES, AUDIT_STATUS, auditScoreTone, computeAuditScore, defaultFindingSeverity, fmt, gridDomains, previousAudit,
   type Audit, type AuditResponse,
 } from "@/lib/domain";
 import { useApp } from "./app-context";
@@ -13,7 +13,8 @@ import { AuditRapportPdf } from "./audit/AuditRapportPdf";
 const ANSWER_BUTTONS = ["Oui", "Partiel", "Non", "Non applicable"];
 const inputCls = "w-full text-[12px] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-900 outline-none focus:border-emerald-400";
 
-type Resp = { answer: string; note: string; evidence: string };
+type Resp = { answer: string; note: string; evidence: string; severity: string; recommendation: string; mgmtResponse: string };
+const emptyResp = (answer = "À vérifier"): Resp => ({ answer, note: "", evidence: "", severity: "", recommendation: "", mgmtResponse: "" });
 
 export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () => void }) {
   const { demo, audits, capaActions, assetById, profileById, updateAudit, deleteAudit, createCapa } = useApp();
@@ -21,7 +22,7 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
 
   const [resp, setResp] = useState<Record<string, Resp>>(() => {
     const m: Record<string, Resp> = {};
-    audit.responses.forEach((r) => { m[r.questionId] = { answer: r.answer, note: r.note, evidence: r.evidence }; });
+    audit.responses.forEach((r) => { m[r.questionId] = { answer: r.answer, note: r.note, evidence: r.evidence, severity: r.severity, recommendation: r.recommendation, mgmtResponse: r.mgmtResponse }; });
     return m;
   });
   const [status, setStatus] = useState(audit.status);
@@ -31,7 +32,7 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
 
   const domains = useMemo(() => gridDomains(audit.questions), [audit.questions]);
   const responsesArr = useMemo<AuditResponse[]>(
-    () => Object.entries(resp).map(([questionId, r]) => ({ questionId, answer: r.answer, note: r.note, evidence: r.evidence })),
+    () => Object.entries(resp).map(([questionId, r]) => ({ questionId, answer: r.answer, note: r.note, evidence: r.evidence, severity: r.severity, recommendation: r.recommendation, mgmtResponse: r.mgmtResponse })),
     [resp]
   );
   const score = useMemo(() => computeAuditScore(audit.questions, responsesArr), [audit.questions, responsesArr]);
@@ -59,8 +60,17 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
     setCapaBusy(null);
   };
 
-  const setAnswer = (qid: string, answer: string) => setResp((m) => ({ ...m, [qid]: { answer, note: m[qid]?.note ?? "", evidence: m[qid]?.evidence ?? "" } }));
-  const setField = (qid: string, f: Partial<Resp>) => setResp((m) => ({ ...m, [qid]: { answer: m[qid]?.answer ?? "À vérifier", note: m[qid]?.note ?? "", evidence: m[qid]?.evidence ?? "", ...f } }));
+  const setAnswer = (qid: string, answer: string) => setResp((m) => {
+    const cur = m[qid] ?? emptyResp();
+    // Cotation par défaut à la première mise en écart (majeure si question critique).
+    let severity = cur.severity;
+    if ((answer === "Non" || answer === "Partiel") && !severity) {
+      const q = audit.questions.find((x) => x.id === qid);
+      severity = q ? defaultFindingSeverity(q) : "Mineure";
+    }
+    return { ...m, [qid]: { ...cur, answer, severity } };
+  });
+  const setField = (qid: string, f: Partial<Resp>) => setResp((m) => ({ ...m, [qid]: { ...(m[qid] ?? emptyResp()), ...f } }));
 
   const targetName = audit.targetAssetId ? assetById(audit.targetAssetId)?.name ?? audit.targetLabel : audit.targetLabel;
 
@@ -165,6 +175,18 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
                           <div className="grid sm:grid-cols-2 gap-1.5 mt-2">
                             <input value={r.note ?? ""} onChange={(e) => setField(q.id, { note: e.target.value })} disabled={!canEdit} placeholder="Observation / écart constaté" className={inputCls} />
                             <input value={r.evidence ?? ""} onChange={(e) => setField(q.id, { evidence: e.target.value })} disabled={!canEdit} placeholder="Preuve / référence" className={inputCls} />
+                          </div>
+                        )}
+                        {r && (r.answer === "Non" || r.answer === "Partiel") && (
+                          <div className="mt-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-2 space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-slate-500 uppercase font-medium">Cotation</span>
+                              {AUDIT_FINDING_SEVERITIES.map((s) => (
+                                <button key={s} onClick={() => canEdit && setField(q.id, { severity: s })} className={`text-[11px] rounded-full px-2 py-0.5 border ${r.severity === s ? AUDIT_ANSWER_TONE[s === "Majeure" ? "Non" : s === "Mineure" ? "Partiel" : "Oui"] : "border-slate-200 text-slate-400"}`}>{s}</button>
+                              ))}
+                            </div>
+                            <input value={r.recommendation ?? ""} onChange={(e) => setField(q.id, { recommendation: e.target.value })} disabled={!canEdit} placeholder="Recommandation de l'auditeur" className={inputCls} />
+                            <input value={r.mgmtResponse ?? ""} onChange={(e) => setField(q.id, { mgmtResponse: e.target.value })} disabled={!canEdit} placeholder="Réponse managériale (engagement de l'audité)" className={inputCls} />
                           </div>
                         )}
                         {r && (r.answer === "Non" || r.answer === "Partiel") && (
