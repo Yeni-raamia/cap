@@ -6,6 +6,15 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.67.0] - 2026-08-09
+
+### Ajouté
+
+- **Module Audit — enrichissement (Lot 3)** :
+  - **Radar consolidé par catégorie** (Tableau de bord) : on sélectionne jusqu'à **8 audits** et le radar affiche le **score moyen par catégorie** (Sauvegardes, AD/GPO, Journalisation…) — une vue de posture de direction générée à la demande.
+  - **Nouvel onglet « Programme »** — le **programme d'audit annuel basé sur les risques** (ISO 19011 §5) : périmètres à auditer, par trimestre, avec priorité de risque, auditeur, grille pressentie, date prévue et lien vers l'audit réalisé. Suivi planifié → réalisé, retards et **taux de couverture** par année.
+  - **Nouvel onglet « Constats »** — le **registre transverse des constats & recommandations** (ISO 19011 / IIA) : tous les écarts « Non »/« Partiel » de tous les audits, avec leur **suivi via l'action corrective (CAPA)** liée, filtres par suivi/criticité et création d'action en un clic.
+
 ## [1.66.0] - 2026-08-09
 
 ### Ajouté

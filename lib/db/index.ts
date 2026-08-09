@@ -324,6 +324,14 @@ create table if not exists audits (
   date text, status text not null default 'Planifié', responses text not null default '[]', summary text not null default '',
   created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists audit_plan_items (
+  id text primary key, ref text not null,
+  title text not null default '', category text not null default 'Autre', risk_level text not null default 'Moyen',
+  year integer not null, quarter text not null default 'T1', owner_id text,
+  target_asset_id text, target_label text not null default '', grid_id text not null default '', audit_id text not null default '',
+  planned_date text, status text not null default 'Planifié', objective text not null default '',
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists processing_activities (
   id text primary key, ref text not null,
   name text not null default '', purpose text not null default '', legal_basis text not null default '',

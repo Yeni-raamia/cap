@@ -1516,6 +1516,52 @@ export function previousAudit(current: Audit, all: Audit[]): Audit | null {
   return prior[0] ?? null;
 }
 
+/* ---------- Module Audit : Programme d'audit annuel (ISO 19011 §5) ----------
+ * Le plan d'audit basé sur les risques : quels périmètres auditer, quand, par
+ * qui, avec quelle priorité. Un item peut se concrétiser par un audit réalisé. */
+export const AUDIT_PLAN_STATUS = ["Planifié", "En cours", "Réalisé", "Reporté", "Annulé"];
+export const AUDIT_PLAN_STATUS_TONE: Record<string, string> = {
+  "Planifié": "bg-slate-100 text-slate-600",
+  "En cours": "bg-sky-100 text-sky-700",
+  "Réalisé": "bg-emerald-100 text-emerald-700",
+  "Reporté": "bg-amber-100 text-amber-700",
+  "Annulé": "bg-slate-200 text-slate-400",
+};
+/** Priorité d'audit basée sur les risques. */
+export const AUDIT_RISK_LEVELS = ["Élevé", "Moyen", "Faible"];
+export const AUDIT_RISK_TONE: Record<string, string> = {
+  "Élevé": "bg-rose-100 text-rose-700 border-rose-200",
+  "Moyen": "bg-amber-100 text-amber-700 border-amber-200",
+  "Faible": "bg-emerald-100 text-emerald-700 border-emerald-200",
+};
+
+/** Entrée du programme d'audit annuel (périmètre planifié). */
+export interface AuditPlanItem {
+  id: string;
+  ref: string; // PROG-AAAA-NNN
+  title: string; // périmètre / thème à auditer
+  category: string; // AUDIT_CATEGORIES
+  riskLevel: string; // AUDIT_RISK_LEVELS (priorité basée risque)
+  year: number;
+  quarter: string; // T1..T4
+  ownerId: string; // auditeur pressenti
+  targetAssetId: string | null; // cible = actif du registre (facultatif)
+  targetLabel: string; // cible en texte libre
+  gridId: string; // grille pressentie (facultatif)
+  auditId: string; // audit réalisé qui concrétise l'item (facultatif)
+  plannedDate: Date | null;
+  status: string; // AUDIT_PLAN_STATUS
+  objective: string; // objectif / justification de l'audit
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Un item est « en retard » si sa date planifiée est passée et qu'il n'est ni réalisé ni annulé. */
+export const isAuditPlanLate = (p: AuditPlanItem, now: Date): boolean =>
+  Boolean(p.plannedDate && p.plannedDate.getTime() < now.getTime() && p.status !== "Réalisé" && p.status !== "Annulé");
+/** Un item « actif » compte dans la charge (ni réalisé, ni reporté, ni annulé). */
+export const isAuditPlanActive = (p: AuditPlanItem): boolean => p.status === "Planifié" || p.status === "En cours";
+
 /** Listes de référence par défaut (seed + repli si la base est vide). */
 export const DEFAULT_REF_LISTS: RefLists = {
   appreciations: APPRECIATIONS,

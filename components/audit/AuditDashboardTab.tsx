@@ -7,6 +7,7 @@ import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { ConsolidatedRadarCard } from "@/components/audit/ConsolidatedRadarCard";
 
 export function AuditDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
   const { audits, auditGrids, assetById, profileById } = useApp();
@@ -46,6 +47,8 @@ export function AuditDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
       {audits.length === 0 ? (
         <EmptyState icon={ClipboardCheck} title="Aucun audit pour l'instant" subtitle="Crée une grille puis lance ton premier audit pour voir apparaître les scores." />
       ) : (
+        <>
+        <ConsolidatedRadarCard />
         <div className="grid lg:grid-cols-2 gap-4">
           {/* Score par catégorie */}
           <Card className="p-4">
@@ -85,6 +88,7 @@ export function AuditDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
             </div>
           </Card>
         </div>
+        </>
       )}
     </div>
   );

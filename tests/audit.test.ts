@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeAuditScore, gridDomains, previousAudit, type Audit, type AuditQuestion, type AuditResponse } from "@/lib/domain";
+import { computeAuditScore, gridDomains, isAuditPlanActive, isAuditPlanLate, previousAudit, type Audit, type AuditPlanItem, type AuditQuestion, type AuditResponse } from "@/lib/domain";
 
 const q = (id: string, domain: string, o: Partial<AuditQuestion> = {}): AuditQuestion =>
   ({ id, domain, text: `Q ${id}`, guidance: "", weight: 1, critical: false, ...o });
@@ -93,5 +93,27 @@ describe("previousAudit", () => {
     const cur = mk({ id: "cur", targetAssetId: "asset-9", targetLabel: "", date: new Date("2026-06-01") });
     const older = mk({ id: "older", targetAssetId: "asset-9", targetLabel: "", date: new Date("2026-01-01") });
     expect(previousAudit(cur, [older, cur])?.id).toBe("older");
+  });
+});
+
+describe("programme d'audit (AuditPlanItem)", () => {
+  const NOW = new Date("2026-08-09T00:00:00Z");
+  const mk = (o: Partial<AuditPlanItem>): AuditPlanItem =>
+    ({ id: "p", ref: "PROG", title: "", category: "Autre", riskLevel: "Moyen", year: 2026, quarter: "T1", ownerId: "u", targetAssetId: null, targetLabel: "", gridId: "", auditId: "", plannedDate: null, status: "Planifié", objective: "", createdBy: null, createdAt: NOW, updatedAt: NOW, ...o } as AuditPlanItem);
+
+  it("isAuditPlanLate : date passée et non réalisé/annulé", () => {
+    expect(isAuditPlanLate(mk({ plannedDate: new Date("2026-07-01"), status: "Planifié" }), NOW)).toBe(true);
+    expect(isAuditPlanLate(mk({ plannedDate: new Date("2026-07-01"), status: "Réalisé" }), NOW)).toBe(false);
+    expect(isAuditPlanLate(mk({ plannedDate: new Date("2026-07-01"), status: "Annulé" }), NOW)).toBe(false);
+    expect(isAuditPlanLate(mk({ plannedDate: new Date("2026-12-01"), status: "Planifié" }), NOW)).toBe(false);
+    expect(isAuditPlanLate(mk({ plannedDate: null }), NOW)).toBe(false);
+  });
+
+  it("isAuditPlanActive : Planifié ou En cours", () => {
+    expect(isAuditPlanActive(mk({ status: "Planifié" }))).toBe(true);
+    expect(isAuditPlanActive(mk({ status: "En cours" }))).toBe(true);
+    expect(isAuditPlanActive(mk({ status: "Réalisé" }))).toBe(false);
+    expect(isAuditPlanActive(mk({ status: "Reporté" }))).toBe(false);
+    expect(isAuditPlanActive(mk({ status: "Annulé" }))).toBe(false);
   });
 });

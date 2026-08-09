@@ -33,6 +33,7 @@ import {
   seedReviews,
   seedAuditGrids,
   seedAudits,
+  seedAuditPlan,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -90,6 +91,7 @@ import {
   type Score,
   type Audit,
   type AuditGrid,
+  type AuditPlanItem,
   type Supplier,
   type Task,
   type TaskPriority,
@@ -314,6 +316,22 @@ export interface AuditInput {
   status?: string;
   responses?: import("@/lib/domain").AuditResponse[];
   summary?: string;
+}
+export interface AuditPlanInput {
+  id?: string;
+  title?: string;
+  category?: string;
+  riskLevel?: string;
+  year?: number;
+  quarter?: string;
+  ownerId?: string;
+  targetAssetId?: string | null;
+  targetLabel?: string;
+  gridId?: string;
+  auditId?: string;
+  plannedDate?: string | null;
+  status?: string;
+  objective?: string;
 }
 export interface ReviewInput {
   id?: string;
@@ -596,6 +614,10 @@ interface AppCtx {
   createAudit: (input: AuditInput) => Promise<string | null>;
   updateAudit: (id: string, fields: AuditInput) => Promise<string | null>;
   deleteAudit: (id: string) => Promise<string | null>;
+  auditPlanItems: AuditPlanItem[];
+  createAuditPlanItem: (input: AuditPlanInput) => Promise<string | null>;
+  updateAuditPlanItem: (id: string, fields: AuditPlanInput) => Promise<string | null>;
+  deleteAuditPlanItem: (id: string) => Promise<string | null>;
   // GRC : continuité d'activité (BIA/PCA)
   continuityPlans: ContinuityPlan[];
   continuityById: (id: string) => ContinuityPlan | null;
@@ -818,6 +840,8 @@ const reviveAuditGrid = (g: AuditGrid): AuditGrid => ({ ...g, createdAt: new Dat
 const reviveAuditGrids = (arr: AuditGrid[]): AuditGrid[] => arr.map(reviveAuditGrid);
 const reviveAudit = (a: Audit): Audit => ({ ...a, date: a.date ? new Date(a.date) : null, createdAt: new Date(a.createdAt), updatedAt: new Date(a.updatedAt) });
 const reviveAudits = (arr: Audit[]): Audit[] => arr.map(reviveAudit);
+const reviveAuditPlan = (p: AuditPlanItem): AuditPlanItem => ({ ...p, plannedDate: p.plannedDate ? new Date(p.plannedDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
+const reviveAuditPlanItems = (arr: AuditPlanItem[]): AuditPlanItem[] => arr.map(reviveAuditPlan);
 const revivePlan2 = (p: ContinuityPlan): ContinuityPlan => ({ ...p, lastTestDate: p.lastTestDate ? new Date(p.lastTestDate) : null, reviewDate: p.reviewDate ? new Date(p.reviewDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
 const reviveContinuity = (arr: ContinuityPlan[]): ContinuityPlan[] => arr.map(revivePlan2);
 const reviveIncident = (i: Incident): Incident => ({ ...i, detectedAt: i.detectedAt ? new Date(i.detectedAt) : null, resolvedAt: i.resolvedAt ? new Date(i.resolvedAt) : null, createdAt: new Date(i.createdAt), updatedAt: new Date(i.updatedAt) });
@@ -899,6 +923,7 @@ export function AppProvider({
   initialSuppliers,
   initialAuditGrids,
   initialAudits,
+  initialAuditPlanItems,
   initialContinuityPlans,
   initialIncidents,
   initialProcessing,
@@ -937,6 +962,7 @@ export function AppProvider({
   initialSuppliers?: Supplier[];
   initialAuditGrids?: AuditGrid[];
   initialAudits?: Audit[];
+  initialAuditPlanItems?: AuditPlanItem[];
   initialContinuityPlans?: ContinuityPlan[];
   initialIncidents?: Incident[];
   initialProcessing?: ProcessingActivity[];
@@ -994,6 +1020,7 @@ export function AppProvider({
   const [suppliers, setSuppliers] = useState<Supplier[]>(demo ? seedSuppliers() : reviveSuppliers(initialSuppliers ?? []));
   const [auditGrids, setAuditGrids] = useState<AuditGrid[]>(demo ? seedAuditGrids() : reviveAuditGrids(initialAuditGrids ?? []));
   const [audits, setAudits] = useState<Audit[]>(demo ? seedAudits() : reviveAudits(initialAudits ?? []));
+  const [auditPlanItems, setAuditPlanItems] = useState<AuditPlanItem[]>(demo ? seedAuditPlan() : reviveAuditPlanItems(initialAuditPlanItems ?? []));
   const [continuityPlans, setContinuityPlans] = useState<ContinuityPlan[]>(demo ? seedContinuity() : reviveContinuity(initialContinuityPlans ?? []));
   const [incidents, setIncidents] = useState<Incident[]>(demo ? seedIncidents() : reviveIncidents(initialIncidents ?? []));
   const [processing, setProcessing] = useState<ProcessingActivity[]>(demo ? seedProcessing() : reviveProcessing(initialProcessing ?? []));
@@ -2317,6 +2344,21 @@ export function AppProvider({
   const updateAudit = (id: string, fields: AuditInput) => auditAction("update", { id, ...fields });
   const deleteAudit = (id: string) => auditAction("delete", { id });
 
+  /* ---------- Audit : programme d'audit annuel ---------- */
+  const auditPlanAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Programme d'audit indisponible en mode démo.";
+    const res = await fetch("/api/audit-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.auditPlanItems) setAuditPlanItems(reviveAuditPlanItems(d.auditPlanItems));
+    if (op === "create") toast("Item ajouté au programme.", "success");
+    else if (op === "delete") toast("Item supprimé.", "success");
+    return null;
+  };
+  const createAuditPlanItem = (input: AuditPlanInput) => auditPlanAction("create", input as Record<string, unknown>);
+  const updateAuditPlanItem = (id: string, fields: AuditPlanInput) => auditPlanAction("update", { id, ...fields });
+  const deleteAuditPlanItem = (id: string) => auditPlanAction("delete", { id });
+
   /* ---------- GRC : Continuité d'activité (BIA/PCA) ---------- */
   const continuityById = (id: string): ContinuityPlan | null => continuityPlans.find((p) => p.id === id) ?? null;
   const continuityAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
@@ -2725,6 +2767,10 @@ export function AppProvider({
     createAudit,
     updateAudit,
     deleteAudit,
+    auditPlanItems,
+    createAuditPlanItem,
+    updateAuditPlanItem,
+    deleteAuditPlanItem,
     continuityPlans,
     continuityById,
     createContinuity,

@@ -8,6 +8,7 @@ import type {
   Asset,
   Audit,
   AuditGrid,
+  AuditPlanItem,
   AuditResponse,
   CapaAction,
   CheckItem,
@@ -448,5 +449,22 @@ export function seedAudits(): Audit[] {
       summary: "",
       createdBy: "u6", createdAt: day(-3), updatedAt: day(-1),
     },
+  ];
+}
+
+/* ---------- Programme d'audit annuel ---------- */
+export function seedAuditPlan(): AuditPlanItem[] {
+  const y = Y();
+  const base = (o: Partial<AuditPlanItem> & { id: string; ref: string; title: string }): AuditPlanItem => ({
+    category: "Autre", riskLevel: "Moyen", year: y, quarter: "T1", ownerId: "u6",
+    targetAssetId: null, targetLabel: "", gridId: "", auditId: "", plannedDate: day(30), status: "Planifié", objective: "",
+    createdBy: "u6", createdAt: day(-60), updatedAt: day(-10), ...o,
+  });
+  return [
+    base({ id: "apl1", ref: `PROG-${y}-001`, title: "Audit des sauvegardes", category: "Sauvegardes / Restauration", riskLevel: "Élevé", quarter: "T1", targetLabel: "SRV-BACKUP-01", gridId: "gid1", auditId: "aud1", status: "Réalisé", plannedDate: day(-14), objective: "Vérifier la résilience anti-rançongiciel des sauvegardes." }),
+    base({ id: "apl2", ref: `PROG-${y}-002`, title: "Durcissement Active Directory", category: "Active Directory / GPO", riskLevel: "Élevé", quarter: "T1", targetLabel: "AD — Forêt principale", gridId: "gid2", auditId: "aud2", status: "En cours", plannedDate: day(-3), objective: "Réduire la surface d'attaque de l'annuaire." }),
+    base({ id: "apl3", ref: `PROG-${y}-003`, title: "Revue de la journalisation & du SIEM", category: "Journalisation / SIEM", riskLevel: "Moyen", quarter: "T2", gridId: "gid3", status: "Planifié", plannedDate: day(60), objective: "S'assurer de la couverture des événements de sécurité clés." }),
+    base({ id: "apl4", ref: `PROG-${y}-004`, title: "Durcissement des serveurs Windows exposés", category: "Durcissement serveur", riskLevel: "Élevé", quarter: "T3", gridId: "gid4", status: "Planifié", plannedDate: day(140), objective: "Contrôler la conformité des serveurs au socle de durcissement." }),
+    base({ id: "apl5", ref: `PROG-${y}-005`, title: "Audit de la configuration cloud (SaaS)", category: "Cloud / SaaS", riskLevel: "Moyen", quarter: "T4", status: "Planifié", plannedDate: day(220), objective: "Évaluer la sécurité des services SaaS critiques." }),
   ];
 }

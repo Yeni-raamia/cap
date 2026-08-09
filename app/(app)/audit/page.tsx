@@ -5,12 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ClipboardCheck } from "lucide-react";
 import { PageHero } from "@/components/PageHero";
 import { AuditDashboardTab } from "@/components/audit/AuditDashboardTab";
+import { ProgrammeTab } from "@/components/audit/ProgrammeTab";
 import { GrillesTab } from "@/components/audit/GrillesTab";
 import { AuditsTab } from "@/components/audit/AuditsTab";
+import { ConstatsTab } from "@/components/audit/ConstatsTab";
 
 const TABS = [
   { id: "dashboard", label: "Tableau de bord" },
+  { id: "programme", label: "Programme" },
   { id: "audits", label: "Audits" },
+  { id: "constats", label: "Constats" },
   { id: "grilles", label: "Grilles" },
 ];
 
@@ -45,7 +49,9 @@ function AuditInner() {
       </div>
 
       {active === "dashboard" && <AuditDashboardTab onTab={setTab} />}
+      {active === "programme" && <ProgrammeTab />}
       {active === "audits" && <AuditsTab />}
+      {active === "constats" && <ConstatsTab />}
       {active === "grilles" && <GrillesTab />}
     </div>
   );

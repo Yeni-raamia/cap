@@ -25,6 +25,7 @@ import { listMissions } from "@/lib/db/missions";
 import { listSuppliers } from "@/lib/db/suppliers";
 import { ensureAuditGrids, listAuditGrids } from "@/lib/db/auditgrids";
 import { listAudits } from "@/lib/db/audits";
+import { listAuditPlanItems } from "@/lib/db/auditplan";
 import { listContinuityPlans } from "@/lib/db/continuity";
 import { listIncidents } from "@/lib/db/incidents";
 import { listProcessing } from "@/lib/db/rgpd";
@@ -86,6 +87,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   ensureAuditGrids(); // amorce la bibliothèque de grilles d'audit si vide
   const auditGrids = listAuditGrids();
   const audits = listAudits();
+  const auditPlanItems = listAuditPlanItems();
   const continuityPlans = listContinuityPlans();
   const incidents = listIncidents();
   const processing = listProcessing();
@@ -124,6 +126,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialSuppliers={suppliers}
       initialAuditGrids={auditGrids}
       initialAudits={audits}
+      initialAuditPlanItems={auditPlanItems}
       initialContinuityPlans={continuityPlans}
       initialIncidents={incidents}
       initialProcessing={processing}
