@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.69.1] - 2026-08-09
+
+### Modifié
+
+- **Audit — onglet Constats** : le bouton « Créer une action » demande désormais une **confirmation** avant de créer l'action corrective (plus de création par simple clic). Un bouton de **suppression** de l'action liée est ajouté à côté de sa référence (réservé aux manager/directeur/admin) : supprimer l'action fait réapparaître « Créer une action ». Le geste n'a donc rien d'irréversible.
+
 ## [1.69.0] - 2026-08-09
 
 ### Ajouté

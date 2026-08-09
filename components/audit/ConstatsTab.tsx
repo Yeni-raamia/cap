@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, Search, Star, Wrench } from "lucide-react";
+import { AlertTriangle, Search, Star, Trash2, Wrench } from "lucide-react";
 import { AUDIT_ANSWER_TONE, CAPA_STATUS_TONE, type Audit, type AuditQuestion, type CapaAction } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
@@ -17,7 +17,8 @@ interface Constat {
 }
 
 export function ConstatsTab() {
-  const { audits, capaActions, assetById, readOnly, createCapa } = useApp();
+  const { audits, capaActions, assetById, readOnly, me, createCapa, deleteCapa } = useApp();
+  const canDelete = ["manager", "directeur", "admin"].includes(me.role);
   const [search, setSearch] = useState("");
   const [fCrit, setFCrit] = useState(false);
   const [fSuivi, setFSuivi] = useState(""); // "" | "sans" | "avec" | "cloture"
@@ -61,6 +62,7 @@ export function ConstatsTab() {
 
   const makeCapa = async (c: Constat) => {
     const key = `${c.audit.id}:${c.q.id}`;
+    if (typeof window !== "undefined" && !window.confirm(`Créer une action corrective dans le plan d'actions (GRC) pour ce constat ?\n\n« ${c.q.text} »\n\nElle sera reliée à l'audit ${c.audit.ref} et modifiable/supprimable ensuite.`)) return;
     setBusy(key);
     await createCapa({
       title: `Constat audit ${c.audit.ref} — ${c.q.text}`.slice(0, 160),
@@ -70,6 +72,13 @@ export function ConstatsTab() {
       sourceType: "audit",
       sourceId: key,
     });
+    setBusy(null);
+  };
+  const removeCapa = async (c: Constat) => {
+    if (!c.capa) return;
+    if (typeof window !== "undefined" && !window.confirm(`Supprimer l'action corrective « ${c.capa.ref} » liée à ce constat ?\n\nLe constat restera dans le registre ; le bouton « Créer une action » réapparaîtra.`)) return;
+    setBusy(`${c.audit.id}:${c.q.id}`);
+    await deleteCapa(c.capa.id);
     setBusy(null);
   };
 
@@ -143,6 +152,7 @@ export function ConstatsTab() {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <Token>{c.capa.ref}</Token>
                             <span className={`text-[10px] px-2 py-0.5 rounded-full ${CAPA_STATUS_TONE[c.capa.status] ?? "bg-slate-100 text-slate-500"}`}>{c.capa.status}</span>
+                            {canDelete && <button onClick={() => removeCapa(c)} disabled={busy === key} title="Supprimer l'action liée" aria-label="Supprimer l'action liée" className="text-slate-300 hover:text-rose-600 disabled:opacity-50"><Trash2 size={13} /></button>}
                           </div>
                         ) : readOnly ? (
                           <span className="text-[11px] text-slate-400">—</span>
