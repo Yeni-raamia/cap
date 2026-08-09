@@ -6,6 +6,15 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.64.0] - 2026-08-09
+
+### Ajouté
+
+- **Rapport global du module GRC** (bouton « Rapport global » sur le Tableau de bord) : un document PDF unique qui **consolide tout le module** en une synthèse de direction —
+  - **Posture GRC** (indice 0–100) et indicateurs clés agrégés (conformité, risques critiques, actions en retard, incidents, violations de données, AIPD, écarts terrain, applicabilité des politiques, continuité à tester, joyaux prioritaires) ;
+  - **Conformité par référentiel**, **risques ouverts par niveau résiduel** + top des risques, **actifs par criticité** + joyaux, **contrôles / actions / incidents** (dont MTTR), **RGPD / continuité / missions / fournisseurs**, **acceptation des politiques par direction**, et la **dernière revue de direction**.
+  - Vient compléter les rapports par onglet ajoutés en 1.63.0.
+
 ## [1.63.0] - 2026-08-08
 
 ### Ajouté

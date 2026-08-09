@@ -21,6 +21,7 @@ import { computeCyberBadges, earnedCount } from "@/lib/grc/badges";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
+import { GrcRapportGlobalPdf } from "@/components/grc/GrcRapportGlobalPdf";
 
 export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
   const { risks, policies, assets, controlAssessments, fieldControls, capaActions, planItems, nonConformites, profiles, profileById } = useApp();
@@ -83,7 +84,11 @@ export function DashboardTab({ onTab }: { onTab: (tab: string) => void }) {
 
   return (
     <div className="space-y-5">
-      <GrcTabHeader title="Tableau de bord GRC" subtitle="Vue transverse : actifs, risques et conformité de l'équipe Gouvernance-Risque-Conformité." />
+      <GrcTabHeader
+        title="Tableau de bord GRC"
+        subtitle="Vue transverse : actifs, risques et conformité de l'équipe Gouvernance-Risque-Conformité."
+        right={<GrcRapportGlobalPdf />}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <StatTile icon={Boxes} tone="text-teal-600" label="Actifs" value={assets.length} sub={`${d.assetByCrit.Critique} critiques`} onClick={() => onTab("actifs")} />
