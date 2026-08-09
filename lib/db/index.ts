@@ -189,6 +189,12 @@ create table if not exists project_attachments (
   data blob not null, uploaded_by text, created_at text not null default (datetime('now'))
 );
 create index if not exists idx_pattach_project on project_attachments(project_id);
+create table if not exists audit_attachments (
+  id text primary key, audit_id text not null, question_id text not null default '', filename text not null,
+  mime text not null default '', size integer not null default 0,
+  data blob not null, uploaded_by text, created_at text not null default (datetime('now'))
+);
+create index if not exists idx_aattach_audit on audit_attachments(audit_id);
 create table if not exists email_templates (
   id text primary key, name text not null, category text not null default 'relance',
   subject text not null default '', body text not null default '', ordre integer not null default 0,

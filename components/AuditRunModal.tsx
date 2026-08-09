@@ -9,6 +9,7 @@ import {
 import { useApp } from "./app-context";
 import { AuditRadar } from "./audit/AuditRadar";
 import { AuditRapportPdf } from "./audit/AuditRapportPdf";
+import { AuditFiles } from "./audit/AuditFiles";
 
 const ANSWER_BUTTONS = ["Oui", "Partiel", "Non", "Non applicable"];
 const inputCls = "w-full text-[12px] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-900 outline-none focus:border-emerald-400";
@@ -17,7 +18,7 @@ type Resp = { answer: string; note: string; evidence: string; severity: string; 
 const emptyResp = (answer = "À vérifier"): Resp => ({ answer, note: "", evidence: "", severity: "", recommendation: "", mgmtResponse: "" });
 
 export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () => void }) {
-  const { demo, audits, capaActions, assetById, profileById, updateAudit, deleteAudit, createCapa } = useApp();
+  const { demo, readOnly, audits, capaActions, assetById, profileById, updateAudit, deleteAudit, createCapa } = useApp();
   const canEdit = !demo;
 
   const [resp, setResp] = useState<Record<string, Resp>>(() => {
@@ -212,6 +213,12 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
             <label className="block text-[11px] font-medium text-slate-500 mb-1">Synthèse / conclusion</label>
             <textarea value={summary} onChange={(e) => setSummary(e.target.value)} disabled={!canEdit} rows={2} className="w-full text-[13px] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 bg-white dark:bg-slate-900 outline-none focus:border-emerald-400" />
           </div>
+
+          {demo ? (
+            <div className="text-[11px] text-slate-400">Les preuves fichiers sont indisponibles en mode démo.</div>
+          ) : (
+            <AuditFiles auditId={audit.id} questions={audit.questions} canWrite={!readOnly} />
+          )}
         </div>
 
         {canEdit && (

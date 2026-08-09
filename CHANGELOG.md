@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.72.0] - 2026-08-09
+
+### Ajouté
+
+- **Audit — preuves / pièces jointes** : dans la fiche d'un audit, une section **« Preuves & pièces jointes »** permet de **téléverser des fichiers** (captures, exports de configuration, journaux, PDF, bureautique…), chacun **rattachable à un point de contrôle** précis (ou à l'audit en général). Téléchargement et suppression (auteur du dépôt ou responsable). Extensions autorisées et taille limitée à 10 Mo, comme les pièces jointes de projet.
+
 ## [1.71.0] - 2026-08-09
 
 ### Ajouté

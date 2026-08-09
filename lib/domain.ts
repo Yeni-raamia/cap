@@ -1713,6 +1713,18 @@ export interface ProjectAttachment {
   createdAt: Date;
 }
 
+/** Pièce jointe / preuve d'un audit (rattachable à un point de contrôle). */
+export interface AuditAttachment {
+  id: string;
+  auditId: string;
+  questionId: string; // point de contrôle rattaché (facultatif)
+  filename: string;
+  mime: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: Date;
+}
+
 /** Taille maximale d'une pièce jointe (10 Mo). */
 export const ATTACH_MAX_BYTES = 10 * 1024 * 1024;
 
