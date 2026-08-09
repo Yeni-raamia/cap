@@ -6,6 +6,17 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.70.0] - 2026-08-09
+
+### Ajouté
+
+- **Académie Audit enrichie** : quatre nouveaux parcours (de 3 à 7) sur la pratique professionnelle de l'audit —
+  - **Référentiels & bonnes pratiques** (choisir entre ISO, CIS, ANSSI, NIST, OWASP selon la cible) ;
+  - **Coter les constats & rédiger les recommandations** (gradation majeure/mineure/observation, recommandations SMART, réponse managériale) ;
+  - **Le rapport d'audit & la restitution** (structure du rapport, réunion de clôture, communiquer sans braquer) ;
+  - **Indépendance, éthique & déontologie** (conflits d'intérêt, confidentialité, codes IIA/ISACA).
+  - Chacun mêle leçons, quiz et études de cas réels ; les nouveaux parcours apparaissent automatiquement.
+
 ## [1.69.1] - 2026-08-09
 
 ### Modifié
