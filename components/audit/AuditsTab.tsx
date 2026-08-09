@@ -27,7 +27,7 @@ export function AuditsTab() {
   }, [audits, search, fStatus]);
 
   const running = runId ? audits.find((a) => a.id === runId) ?? null : null;
-  const canCreate = !readOnly && auditGrids.length > 0;
+  const canCreate = !readOnly; // un audit peut partir d'une grille OU d'un questionnaire manuel
   const targetName = (a: Audit) => (a.targetAssetId ? assetById(a.targetAssetId)?.name ?? a.targetLabel : a.targetLabel) || "—";
 
   return (

@@ -9,6 +9,7 @@ import { ProgrammeTab } from "@/components/audit/ProgrammeTab";
 import { GrillesTab } from "@/components/audit/GrillesTab";
 import { AuditsTab } from "@/components/audit/AuditsTab";
 import { ConstatsTab } from "@/components/audit/ConstatsTab";
+import { AuditeursTab } from "@/components/audit/AuditeursTab";
 
 const TABS = [
   { id: "dashboard", label: "Tableau de bord" },
@@ -16,6 +17,7 @@ const TABS = [
   { id: "audits", label: "Audits" },
   { id: "constats", label: "Constats" },
   { id: "grilles", label: "Grilles" },
+  { id: "auditeurs", label: "Auditeurs" },
 ];
 
 function AuditInner() {
@@ -53,6 +55,7 @@ function AuditInner() {
       {active === "audits" && <AuditsTab />}
       {active === "constats" && <ConstatsTab />}
       {active === "grilles" && <GrillesTab />}
+      {active === "auditeurs" && <AuditeursTab />}
     </div>
   );
 }

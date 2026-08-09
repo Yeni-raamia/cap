@@ -1,15 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ClipboardList, Download, GripVertical, Plus, Star, Trash2, X } from "lucide-react";
+import { ClipboardList, Download, Trash2, X } from "lucide-react";
 import { AUDIT_CATEGORIES, AUDIT_SOURCES, gridDomains, type AuditGrid, type AuditQuestion } from "@/lib/domain";
 import { useApp } from "./app-context";
+import { QuestionsEditor } from "./audit/QuestionsEditor";
 
 const inputCls = "w-full text-[13px] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 bg-white dark:bg-slate-900 outline-none focus:border-emerald-400";
 const labelCls = "block text-[11px] font-medium text-slate-500 mb-1";
-const uid = () => `q-${Math.random().toString(36).slice(2, 10)}`;
-
-type QDraft = AuditQuestion;
 
 export function AuditGridModal({ grid, creating, onClose }: { grid: AuditGrid | null; creating: boolean; onClose: () => void }) {
   const { demo, createAuditGrid, updateAuditGrid, deleteAuditGrid } = useApp();
@@ -19,24 +17,11 @@ export function AuditGridModal({ grid, creating, onClose }: { grid: AuditGrid | 
   const [category, setCategory] = useState(grid?.category ?? AUDIT_CATEGORIES[0]);
   const [source, setSource] = useState(grid?.source ?? "Interne");
   const [description, setDescription] = useState(grid?.description ?? "");
-  const [questions, setQuestions] = useState<QDraft[]>(grid?.questions.map((q) => ({ ...q })) ?? []);
+  const [questions, setQuestions] = useState<AuditQuestion[]>(grid?.questions.map((q) => ({ ...q })) ?? []);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const domains = useMemo(() => gridDomains(questions), [questions]);
-
-  const addQuestion = () => setQuestions((qs) => [...qs, { id: uid(), domain: domains[domains.length - 1] ?? "Général", text: "", guidance: "", weight: 1, critical: false }]);
-  const patch = (id: string, f: Partial<QDraft>) => setQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, ...f } : q)));
-  const remove = (id: string) => setQuestions((qs) => qs.filter((q) => q.id !== id));
-  const move = (id: string, dir: -1 | 1) => setQuestions((qs) => {
-    const i = qs.findIndex((q) => q.id === id);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= qs.length) return qs;
-    const copy = [...qs];
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-    return copy;
-  });
-
   const cleanQuestions = () => questions.map((q) => ({ ...q, text: q.text.trim(), domain: q.domain.trim() || "Général" })).filter((q) => q.text);
 
   const save = async () => {
@@ -94,45 +79,7 @@ export function AuditGridModal({ grid, creating, onClose }: { grid: AuditGrid | 
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} disabled={!canEdit} rows={2} className={inputCls} />
           </div>
 
-          <div className="flex items-center justify-between pt-1">
-            <div className="text-[12px] font-semibold text-slate-600 uppercase">Questions</div>
-            {canEdit && <button onClick={addQuestion} className="inline-flex items-center gap-1 text-[12px] font-medium text-emerald-700 hover:underline"><Plus size={13} /> Ajouter une question</button>}
-          </div>
-          <datalist id="audit-domains">{domains.map((d) => <option key={d} value={d} />)}</datalist>
-
-          {questions.length === 0 ? (
-            <div className="text-[12px] text-slate-400 text-center py-4 border border-dashed border-slate-200 rounded-lg">Aucune question. Ajoute-en une pour composer la grille.</div>
-          ) : (
-            <div className="space-y-2">
-              {questions.map((q, idx) => (
-                <div key={q.id} className="rounded-xl border border-slate-200 dark:border-slate-700 p-2.5">
-                  <div className="flex items-start gap-2">
-                    <div className="flex flex-col items-center pt-1 text-slate-300">
-                      <button onClick={() => move(q.id, -1)} disabled={!canEdit || idx === 0} aria-label="Monter" className="disabled:opacity-30 hover:text-slate-500 leading-none">▲</button>
-                      <GripVertical size={12} />
-                      <button onClick={() => move(q.id, 1)} disabled={!canEdit || idx === questions.length - 1} aria-label="Descendre" className="disabled:opacity-30 hover:text-slate-500 leading-none">▼</button>
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <input value={q.text} onChange={(e) => patch(q.id, { text: e.target.value })} disabled={!canEdit} placeholder="Point de contrôle (la question)" className={`${inputCls} font-medium`} />
-                      <input value={q.guidance} onChange={(e) => patch(q.id, { guidance: e.target.value })} disabled={!canEdit} placeholder="Comment vérifier / preuve attendue" className={`${inputCls} text-[12px]`} />
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <input list="audit-domains" value={q.domain} onChange={(e) => patch(q.id, { domain: e.target.value })} disabled={!canEdit} placeholder="Domaine" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white dark:bg-slate-900 w-40" />
-                        <label className="text-[11px] text-slate-500 flex items-center gap-1">Poids
-                          <select value={q.weight} onChange={(e) => patch(q.id, { weight: Number(e.target.value) })} disabled={!canEdit} className="text-[12px] border border-slate-200 rounded-lg px-1.5 py-1 bg-white dark:bg-slate-900">
-                            <option value={1}>1</option><option value={2}>2</option><option value={3}>3</option>
-                          </select>
-                        </label>
-                        <button onClick={() => canEdit && patch(q.id, { critical: !q.critical })} className={`inline-flex items-center gap-1 text-[11px] rounded-full px-2 py-0.5 border ${q.critical ? "bg-amber-100 text-amber-700 border-amber-200" : "border-slate-200 text-slate-400"}`}>
-                          <Star size={11} className={q.critical ? "fill-amber-500 text-amber-500" : ""} /> Critique
-                        </button>
-                        {canEdit && <button onClick={() => remove(q.id)} aria-label="Supprimer la question" className="ml-auto text-rose-500 hover:text-rose-700"><Trash2 size={14} /></button>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="pt-1"><QuestionsEditor questions={questions} setQuestions={setQuestions} disabled={!canEdit} /></div>
         </div>
 
         {canEdit && (

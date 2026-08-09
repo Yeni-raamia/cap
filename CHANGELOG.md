@@ -6,6 +6,18 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.68.0] - 2026-08-09
+
+### Ajouté
+
+- **Audit — questionnaire manuel à la création** : lors de la création d'un audit, on peut désormais **composer un questionnaire à la volée** (sans grille), avec une option **« Enregistrer aussi comme grille »** pour le réutiliser. Le choix « Depuis une grille / Questionnaire manuel » est proposé dès la fenêtre de création.
+- **Audit — grande bibliothèque de grilles** : la bibliothèque de départ passe à **~20 grilles** couvrant un SI complexe (réseau & segmentation, Wi-Fi, VPN/télétravail, durcissement Windows/Linux, correctifs, Active Directory, applications Web & API, développement sécurisé, virtualisation, conteneurs/Kubernetes, Microsoft 365/Entra ID, IAM, PKI/chiffrement, bases de données, messagerie SPF/DKIM/DMARC, OT/ICS…), inspirées **CIS Benchmarks, ANSSI, NIST, OWASP, ISO 27002**. Les nouvelles grilles apparaissent automatiquement (complément idempotent, sans doublon).
+- **Audit — nouvel onglet « Auditeurs »** : le **registre des auditeurs** (ISO 19011 §7) — rôle, **domaines de compétence**, certifications et **déclaration d'indépendance/impartialité**, avec le nombre d'audits menés.
+
+### Modifié
+
+- Les catégories d'audit sont enrichies (réseau, système Linux, applications, virtualisation, conteneurs, IAM, PKI, bases de données, OT…) pour couvrir l'ensemble du système d'information.
+
 ## [1.67.0] - 2026-08-09
 
 ### Ajouté

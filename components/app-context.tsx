@@ -34,6 +34,7 @@ import {
   seedAuditGrids,
   seedAudits,
   seedAuditPlan,
+  seedAuditors,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -92,6 +93,7 @@ import {
   type Audit,
   type AuditGrid,
   type AuditPlanItem,
+  type Auditor,
   type Supplier,
   type Task,
   type TaskPriority,
@@ -309,6 +311,11 @@ export interface AuditInput {
   id?: string;
   title?: string;
   gridId?: string;
+  // Questionnaire manuel (ad hoc) — si aucune grille n'est fournie :
+  questions?: import("@/lib/domain").AuditQuestion[];
+  gridName?: string;
+  category?: string;
+  saveAsGrid?: boolean;
   targetAssetId?: string | null;
   targetLabel?: string;
   auditorId?: string;
@@ -316,6 +323,17 @@ export interface AuditInput {
   status?: string;
   responses?: import("@/lib/domain").AuditResponse[];
   summary?: string;
+}
+export interface AuditorInput {
+  id?: string;
+  profileId?: string;
+  name?: string;
+  role?: string;
+  competencies?: string[];
+  certifications?: string;
+  independence?: string;
+  status?: string;
+  notes?: string;
 }
 export interface AuditPlanInput {
   id?: string;
@@ -618,6 +636,10 @@ interface AppCtx {
   createAuditPlanItem: (input: AuditPlanInput) => Promise<string | null>;
   updateAuditPlanItem: (id: string, fields: AuditPlanInput) => Promise<string | null>;
   deleteAuditPlanItem: (id: string) => Promise<string | null>;
+  auditors: Auditor[];
+  createAuditor: (input: AuditorInput) => Promise<string | null>;
+  updateAuditor: (id: string, fields: AuditorInput) => Promise<string | null>;
+  deleteAuditor: (id: string) => Promise<string | null>;
   // GRC : continuité d'activité (BIA/PCA)
   continuityPlans: ContinuityPlan[];
   continuityById: (id: string) => ContinuityPlan | null;
@@ -842,6 +864,8 @@ const reviveAudit = (a: Audit): Audit => ({ ...a, date: a.date ? new Date(a.date
 const reviveAudits = (arr: Audit[]): Audit[] => arr.map(reviveAudit);
 const reviveAuditPlan = (p: AuditPlanItem): AuditPlanItem => ({ ...p, plannedDate: p.plannedDate ? new Date(p.plannedDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
 const reviveAuditPlanItems = (arr: AuditPlanItem[]): AuditPlanItem[] => arr.map(reviveAuditPlan);
+const reviveAuditor = (a: Auditor): Auditor => ({ ...a, createdAt: new Date(a.createdAt), updatedAt: new Date(a.updatedAt) });
+const reviveAuditors = (arr: Auditor[]): Auditor[] => arr.map(reviveAuditor);
 const revivePlan2 = (p: ContinuityPlan): ContinuityPlan => ({ ...p, lastTestDate: p.lastTestDate ? new Date(p.lastTestDate) : null, reviewDate: p.reviewDate ? new Date(p.reviewDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
 const reviveContinuity = (arr: ContinuityPlan[]): ContinuityPlan[] => arr.map(revivePlan2);
 const reviveIncident = (i: Incident): Incident => ({ ...i, detectedAt: i.detectedAt ? new Date(i.detectedAt) : null, resolvedAt: i.resolvedAt ? new Date(i.resolvedAt) : null, createdAt: new Date(i.createdAt), updatedAt: new Date(i.updatedAt) });
@@ -924,6 +948,7 @@ export function AppProvider({
   initialAuditGrids,
   initialAudits,
   initialAuditPlanItems,
+  initialAuditors,
   initialContinuityPlans,
   initialIncidents,
   initialProcessing,
@@ -963,6 +988,7 @@ export function AppProvider({
   initialAuditGrids?: AuditGrid[];
   initialAudits?: Audit[];
   initialAuditPlanItems?: AuditPlanItem[];
+  initialAuditors?: Auditor[];
   initialContinuityPlans?: ContinuityPlan[];
   initialIncidents?: Incident[];
   initialProcessing?: ProcessingActivity[];
@@ -1021,6 +1047,7 @@ export function AppProvider({
   const [auditGrids, setAuditGrids] = useState<AuditGrid[]>(demo ? seedAuditGrids() : reviveAuditGrids(initialAuditGrids ?? []));
   const [audits, setAudits] = useState<Audit[]>(demo ? seedAudits() : reviveAudits(initialAudits ?? []));
   const [auditPlanItems, setAuditPlanItems] = useState<AuditPlanItem[]>(demo ? seedAuditPlan() : reviveAuditPlanItems(initialAuditPlanItems ?? []));
+  const [auditors, setAuditors] = useState<Auditor[]>(demo ? seedAuditors() : reviveAuditors(initialAuditors ?? []));
   const [continuityPlans, setContinuityPlans] = useState<ContinuityPlan[]>(demo ? seedContinuity() : reviveContinuity(initialContinuityPlans ?? []));
   const [incidents, setIncidents] = useState<Incident[]>(demo ? seedIncidents() : reviveIncidents(initialIncidents ?? []));
   const [processing, setProcessing] = useState<ProcessingActivity[]>(demo ? seedProcessing() : reviveProcessing(initialProcessing ?? []));
@@ -2359,6 +2386,21 @@ export function AppProvider({
   const updateAuditPlanItem = (id: string, fields: AuditPlanInput) => auditPlanAction("update", { id, ...fields });
   const deleteAuditPlanItem = (id: string) => auditPlanAction("delete", { id });
 
+  /* ---------- Audit : registre des auditeurs ---------- */
+  const auditorAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Registre des auditeurs indisponible en mode démo.";
+    const res = await fetch("/api/auditors", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.auditors) setAuditors(reviveAuditors(d.auditors));
+    if (op === "create") toast("Auditeur ajouté.", "success");
+    else if (op === "delete") toast("Auditeur supprimé.", "success");
+    return null;
+  };
+  const createAuditor = (input: AuditorInput) => auditorAction("create", input as Record<string, unknown>);
+  const updateAuditor = (id: string, fields: AuditorInput) => auditorAction("update", { id, ...fields });
+  const deleteAuditor = (id: string) => auditorAction("delete", { id });
+
   /* ---------- GRC : Continuité d'activité (BIA/PCA) ---------- */
   const continuityById = (id: string): ContinuityPlan | null => continuityPlans.find((p) => p.id === id) ?? null;
   const continuityAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
@@ -2771,6 +2813,10 @@ export function AppProvider({
     createAuditPlanItem,
     updateAuditPlanItem,
     deleteAuditPlanItem,
+    auditors,
+    createAuditor,
+    updateAuditor,
+    deleteAuditor,
     continuityPlans,
     continuityById,
     createContinuity,

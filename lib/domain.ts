@@ -1371,14 +1371,25 @@ export const AUDIT_CATEGORIES = [
   "Active Directory / GPO",
   "Journalisation / SIEM",
   "Durcissement serveur",
+  "Système Linux",
+  "Gestion des correctifs",
   "Poste de travail",
   "Réseau / Pare-feu",
-  "Messagerie / Anti-spam",
+  "Télétravail / VPN",
+  "Applications Web / API",
+  "Développement sécurisé",
+  "Virtualisation / Hyperviseur",
+  "Conteneurs / Kubernetes",
   "Cloud / SaaS",
+  "Identité & accès (IAM)",
+  "Chiffrement / PKI",
+  "Bases de données",
+  "Messagerie / Anti-spam",
+  "IoT / OT",
   "Sécurité physique",
   "Autre",
 ];
-export const AUDIT_SOURCES = ["CIS Benchmark", "ANSSI", "NIST", "Microsoft", "Interne", "Autre"];
+export const AUDIT_SOURCES = ["CIS Benchmark", "ANSSI", "NIST", "ISO 27002", "OWASP", "Microsoft", "Interne", "Autre"];
 
 /** Réponses possibles à une question d'audit + valeur de score (N-A exclu du calcul). */
 export const AUDIT_ANSWERS = ["Oui", "Partiel", "Non", "Non applicable", "À vérifier"] as const;
@@ -1514,6 +1525,33 @@ export function previousAudit(current: Audit, all: Audit[]): Audit | null {
   const prior = all.filter((a) => a.id !== current.id && a.gridId === current.gridId && auditTargetKey(a) === key && auditTime(a) < t);
   prior.sort((a, b) => auditTime(b) - auditTime(a));
   return prior[0] ?? null;
+}
+
+/* ---------- Module Audit : Auditeurs & compétences (ISO 19011 §7) ----------
+ * Registre des auditeurs : rôle, domaines de compétence, certifications et
+ * déclaration d'indépendance/impartialité. */
+export const AUDITOR_ROLES = ["Auditeur", "Auditeur principal", "Expert technique", "Observateur"];
+export const AUDITOR_STATUS = ["Actif", "Inactif"];
+export const AUDITOR_ROLE_TONE: Record<string, string> = {
+  "Auditeur principal": "bg-indigo-100 text-indigo-700 border-indigo-200",
+  "Auditeur": "bg-sky-100 text-sky-700 border-sky-200",
+  "Expert technique": "bg-emerald-100 text-emerald-700 border-emerald-200",
+  "Observateur": "bg-slate-100 text-slate-600 border-slate-200",
+};
+export interface Auditor {
+  id: string;
+  ref: string; // AUDR-AAAA-NNN
+  profileId: string; // profil interne rattaché (facultatif)
+  name: string; // nom affiché (si pas de profil rattaché)
+  role: string; // AUDITOR_ROLES
+  competencies: string[]; // domaines maîtrisés (AUDIT_CATEGORIES ou libre)
+  certifications: string; // ex. ISO 27001 LA, CISA, PASSI…
+  independence: string; // déclaration d'indépendance / impartialité
+  status: string; // AUDITOR_STATUS
+  notes: string;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /* ---------- Module Audit : Programme d'audit annuel (ISO 19011 §5) ----------

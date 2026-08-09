@@ -9,11 +9,28 @@ import { denyReadOnly } from "@/lib/auth/guards";
 import { createAudit, deleteAudit, getAudit, listAudits, auditExists, updateAudit } from "@/lib/db/audits";
 import { getAuditGrid } from "@/lib/db/auditgrids";
 import { logActivity } from "@/lib/db/admin";
-import { AUDIT_ANSWERS, type AuditResponse } from "@/lib/domain";
+import { createAuditGrid } from "@/lib/db/auditgrids";
+import { AUDIT_ANSWERS, AUDIT_CATEGORIES, type AuditQuestion, type AuditResponse } from "@/lib/domain";
 
 const canDelete = (role: string) => ["manager", "directeur", "admin"].includes(role);
 const toIso = (d?: string | null) => (d ? new Date(`${d}T00:00:00`).toISOString() : null);
 const S = (v: unknown) => (typeof v === "string" ? v : undefined);
+const vCategory = (c: unknown) => (typeof c === "string" && AUDIT_CATEGORIES.includes(c) ? c : "Autre");
+
+function parseQuestions(v: unknown): AuditQuestion[] {
+  if (!Array.isArray(v)) return [];
+  return v.map((q) => {
+    const o = (q ?? {}) as Record<string, unknown>;
+    return {
+      id: typeof o.id === "string" ? o.id : "",
+      domain: String(o.domain ?? ""),
+      text: String(o.text ?? "").trim(),
+      guidance: String(o.guidance ?? ""),
+      weight: Number(o.weight) || 1,
+      critical: Boolean(o.critical),
+    };
+  }).filter((q) => q.text);
+}
 
 function parseResponses(v: unknown): AuditResponse[] {
   if (!Array.isArray(v)) return [];
@@ -40,11 +57,24 @@ export async function POST(request: Request) {
   if (op === "create") {
     const gridId = String(body?.gridId || "");
     const grid = gridId ? getAuditGrid(gridId) : null;
-    if (!grid) return NextResponse.json({ error: "Grille d'audit introuvable." }, { status: 400 });
-    // La grille est figée dans l'audit à sa création (score stable même si la grille évolue).
-    const title = String(body?.title || "").trim() || `Audit — ${grid.name}`;
+    // Deux voies : depuis une grille existante (figée), ou questionnaire manuel (ad hoc).
+    let effGridId = "", gridName = "", category = "Autre";
+    let questions: AuditQuestion[] = [];
+    if (grid) {
+      effGridId = grid.id; gridName = grid.name; category = grid.category; questions = grid.questions;
+    } else {
+      questions = parseQuestions(body?.questions);
+      if (questions.length === 0) return NextResponse.json({ error: "Sélectionne une grille ou ajoute au moins une question." }, { status: 400 });
+      gridName = String(body?.gridName || "").trim() || "Questionnaire manuel";
+      category = vCategory(body?.category);
+      // Option : enregistrer aussi le questionnaire manuel comme grille réutilisable.
+      if (body?.saveAsGrid) {
+        effGridId = createAuditGrid({ name: gridName, category, source: "Interne", description: "Créée depuis un audit.", questions, createdBy: user.id });
+      }
+    }
+    const title = String(body?.title || "").trim() || `Audit — ${gridName}`;
     const id = createAudit({
-      title, gridId: grid.id, gridName: grid.name, category: grid.category, questions: grid.questions,
+      title, gridId: effGridId, gridName, category, questions,
       targetAssetId: S(body?.targetAssetId) || null,
       targetLabel: String(body?.targetLabel || ""),
       auditorId: S(body?.auditorId) || user.id,

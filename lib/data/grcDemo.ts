@@ -9,6 +9,7 @@ import type {
   Audit,
   AuditGrid,
   AuditPlanItem,
+  Auditor,
   AuditResponse,
   CapaAction,
   CheckItem,
@@ -466,5 +467,18 @@ export function seedAuditPlan(): AuditPlanItem[] {
     base({ id: "apl3", ref: `PROG-${y}-003`, title: "Revue de la journalisation & du SIEM", category: "Journalisation / SIEM", riskLevel: "Moyen", quarter: "T2", gridId: "gid3", status: "Planifié", plannedDate: day(60), objective: "S'assurer de la couverture des événements de sécurité clés." }),
     base({ id: "apl4", ref: `PROG-${y}-004`, title: "Durcissement des serveurs Windows exposés", category: "Durcissement serveur", riskLevel: "Élevé", quarter: "T3", gridId: "gid4", status: "Planifié", plannedDate: day(140), objective: "Contrôler la conformité des serveurs au socle de durcissement." }),
     base({ id: "apl5", ref: `PROG-${y}-005`, title: "Audit de la configuration cloud (SaaS)", category: "Cloud / SaaS", riskLevel: "Moyen", quarter: "T4", status: "Planifié", plannedDate: day(220), objective: "Évaluer la sécurité des services SaaS critiques." }),
+  ];
+}
+
+/* ---------- Auditeurs & compétences ---------- */
+export function seedAuditors(): Auditor[] {
+  const base = (o: Partial<Auditor> & { id: string; ref: string; name: string }): Auditor => ({
+    profileId: "", role: "Auditeur", competencies: [], certifications: "", independence: "Aucun conflit d'intérêt déclaré.", status: "Actif", notes: "",
+    createdBy: "u6", createdAt: day(-90), updatedAt: day(-15), ...o,
+  });
+  return [
+    base({ id: "audr1", ref: `AUDR-${Y()}-001`, name: "Responsable Audit", profileId: "u6", role: "Auditeur principal", competencies: ["Active Directory / GPO", "Durcissement serveur", "Journalisation / SIEM"], certifications: "ISO 27001 Lead Auditor, CISA" }),
+    base({ id: "audr2", ref: `AUDR-${Y()}-002`, name: "Auditeur Système & Réseau", profileId: "u1", role: "Auditeur", competencies: ["Réseau / Pare-feu", "Système Linux", "Télétravail / VPN"], certifications: "PASSI, CEH" }),
+    base({ id: "audr3", ref: `AUDR-${Y()}-003`, name: "Expert Applications", role: "Expert technique", competencies: ["Applications Web / API", "Développement sécurisé", "Bases de données"], certifications: "OSCP" }),
   ];
 }

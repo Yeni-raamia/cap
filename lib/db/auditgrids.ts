@@ -89,13 +89,14 @@ export function deleteAuditGrid(id: string): void {
   getDb().prepare("delete from audit_grids where id=?").run(id);
 }
 
-/** Amorce la bibliothèque de grilles de départ si aucune n'existe encore (idempotent). */
+/** Amorce/complète la bibliothèque de grilles de départ (top-up idempotent, une
+ *  fois par process) : ajoute les grilles manquantes par nom, sans doublon ni
+ *  suppression — les nouvelles grilles de la bibliothèque apparaissent au redémarrage. */
 let ensured = false;
 export function ensureAuditGrids(): void {
   if (ensured) return;
   ensured = true;
   try {
-    if (auditGridCount() > 0) return;
     const db = getDb();
     const existing = new Set((db.prepare("select name from audit_grids").all() as { name: string }[]).map((r) => r.name));
     for (const g of STARTER_AUDIT_GRIDS) {
