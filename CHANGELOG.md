@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.86.1] - 2026-08-10
+
+### Corrigé
+
+- **GRC / Méthodes** : espace manquante dans le paragraphe d'introduction (« EBIOS RM identifie… ») due au repli de ligne JSX.
+
 ## [1.86.0] - 2026-08-10
 
 ### Ajouté

@@ -21,8 +21,8 @@ export function MethodesTab() {
         <div className="flex items-start gap-3">
           <BookOpen size={20} className="text-indigo-600 mt-0.5 shrink-0" />
           <div className="text-[12.5px] text-slate-600 dark:text-slate-300 leading-relaxed">
-            Ces méthodes sont <b>complémentaires</b> : <b>EBIOS RM</b> identifie les scénarios d&apos;attaque réalistes,
-            <b> IT-Grundschutz</b> fournit un socle de mesures prêt à l&apos;emploi, et <b>FAIR</b> quantifie le risque en euros.
+            Ces méthodes sont <b>complémentaires</b> : <b>EBIOS RM</b>{" "}identifie les scénarios d&apos;attaque réalistes,{" "}
+            <b>IT-Grundschutz</b>{" "}fournit un socle de mesures prêt à l&apos;emploi, et <b>FAIR</b>{" "}quantifie le risque en euros.
             On peut par exemple cadrer avec EBIOS RM, puis chiffrer un scénario clé avec FAIR.
           </div>
         </div>
