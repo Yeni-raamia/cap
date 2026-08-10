@@ -11,7 +11,7 @@ import {
   lessonExists, listCourses, listProgressFor, markLessonDone, updateCourse, updateLesson,
 } from "@/lib/db/training";
 import { logActivity } from "@/lib/db/admin";
-import { LESSON_TYPES, type LessonType } from "@/lib/domain";
+import { LESSON_TYPES, normalizeTrack, type LessonType } from "@/lib/domain";
 
 const canEdit = (role: string) => ["manager", "directeur", "admin"].includes(role);
 
@@ -45,13 +45,13 @@ export async function POST(request: Request) {
     if (course.lessons !== undefined && !Array.isArray(course.lessons)) {
       return NextResponse.json({ error: "JSON invalide : « lessons » doit être une liste." }, { status: 400 });
     }
-    const res = importCourse(course, user.id, body?.track === "audit" ? "audit" : "grc");
+    const res = importCourse(course, user.id, normalizeTrack(body?.track));
     logActivity(user.id, "training.import", `${String(course.title)} (${res.lessons} leçons)`);
     return NextResponse.json({ courses: listCourses(), imported: res });
   } else if (op === "course.create") {
     const title = String(body?.title || "").trim();
     if (!title) return NextResponse.json({ error: "Titre du parcours requis." }, { status: 400 });
-    createCourse({ title, description: String(body?.description || ""), category: String(body?.category || ""), icon: String(body?.icon || ""), badge: String(body?.badge || ""), track: body?.track === "audit" ? "audit" : "grc", createdBy: user.id });
+    createCourse({ title, description: String(body?.description || ""), category: String(body?.category || ""), icon: String(body?.icon || ""), badge: String(body?.badge || ""), track: normalizeTrack(body?.track), createdBy: user.id });
     logActivity(user.id, "training.course", title);
   } else if (op === "course.update") {
     if (!courseExists(body?.id)) return NextResponse.json({ error: "Parcours introuvable." }, { status: 404 });

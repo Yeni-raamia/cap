@@ -6,6 +6,16 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.77.0] - 2026-08-10
+
+### Ajouté
+
+- **Module SOC — Académie SOC** (nouvel onglet « Académie ») : une **filière de formation dédiée**, réutilisant l'infrastructure de l'Académie (leçons, quiz, études de cas, défis, progression et niveau distinct). Curriculum de départ sur la **méthode du SOC** — Fondamentaux du SOC, **Triage & qualification des alertes**, **Gestion d'incident (NIST SP 800-61)** et **Lire & utiliser MITRE ATT&CK**. Les parcours sont rangés par filière (GRC / Audit / SOC) ; chaque académie calcule son propre niveau de compétence. *Ce lot achève le module SOC.*
+
+### Corrigé
+
+- Académie : la création/import de parcours accepte désormais les trois filières (grc/audit/soc) — auparavant une filière non-audit retombait sur « grc ».
+
 ## [1.76.0] - 2026-08-10
 
 ### Ajouté

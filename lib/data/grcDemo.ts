@@ -34,6 +34,7 @@ import type {
 } from "../domain";
 import { CURRICULUM, type CourseSeed } from "./trainingCurriculum";
 import { AUDIT_CURRICULUM } from "./auditCurriculum";
+import { SOC_CURRICULUM } from "./socCurriculum";
 import { STARTER_AUDIT_GRIDS, starterQuestions } from "./auditGrids";
 import { STARTER_RUNBOOKS, starterRunbookSteps } from "./runbooks";
 import { STARTER_PROCEDURES, starterProcedureItems } from "./socProcedures";
@@ -61,6 +62,7 @@ export function seedTraining(): TrainingCourse[] {
   return [
     ...mapCurriculum(CURRICULUM, "grc", "tc", 0),
     ...mapCurriculum(AUDIT_CURRICULUM, "audit", "tac", CURRICULUM.length),
+    ...mapCurriculum(SOC_CURRICULUM, "soc", "tsc", CURRICULUM.length + AUDIT_CURRICULUM.length),
   ];
 }
 

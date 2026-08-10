@@ -8,9 +8,11 @@ import { SocDashboardTab } from "@/components/soc/SocDashboardTab";
 import { RunbooksTab } from "@/components/soc/RunbooksTab";
 import { ProceduresTab } from "@/components/soc/ProceduresTab";
 import { AttackTab } from "@/components/soc/AttackTab";
+import { AcademieTab } from "@/components/grc/AcademieTab";
 
 const TABS = [
   { id: "dashboard", label: "Tableau de bord" },
+  { id: "academie", label: "Académie" },
   { id: "runbooks", label: "Runbooks" },
   { id: "procedures", label: "Procédures" },
   { id: "attack", label: "ATT&CK" },
@@ -47,6 +49,7 @@ function SocInner() {
       </div>
 
       {active === "dashboard" && <SocDashboardTab onTab={setTab} />}
+      {active === "academie" && <AcademieTab track="soc" title="Académie SOC" subtitle="Monter en compétence sur la méthode du SOC : triage & qualification des alertes, gestion d'incident (NIST SP 800-61), lecture MITRE ATT&CK et hygiène opérationnelle." levelLabel="Niveau de compétence SOC" />}
       {active === "runbooks" && <RunbooksTab />}
       {active === "procedures" && <ProceduresTab />}
       {active === "attack" && <AttackTab />}

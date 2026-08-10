@@ -930,6 +930,10 @@ export interface TrainingCourse {
   createdAt: Date;
   updatedAt: Date;
 }
+/** Filières de l'Académie (une par module qui la réutilise). */
+export const TRAINING_TRACKS = ["grc", "audit", "soc"];
+export const normalizeTrack = (t: unknown): string => (typeof t === "string" && TRAINING_TRACKS.includes(t) ? t : "grc");
+
 /** Achèvement d'une leçon par un apprenant (avec le score obtenu 0–100). */
 export interface TrainingDone {
   lessonId: string;
