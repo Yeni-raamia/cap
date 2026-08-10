@@ -6,6 +6,13 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.81.0] - 2026-08-10
+
+### Ajouté
+
+- **Module SOC — Recueil des procédures imprimable** : bouton **« Rapport PDF »** sur l'onglet Procédures qui édite le recueil complet des procédures & checklists de routine (regroupées par type), objectif, contenu et points de checklist inclus — pour l'imprimer, l'afficher ou le remettre à un nouvel arrivant.
+- **Module SOC — Rapport global** : bouton **« Rapport global »** sur le tableau de bord SOC. Un document de synthèse consolidé : indice de préparation méthodologique et KPIs, inventaire des runbooks de réponse, des procédures, de la veille active, et de l'astreinte en cours. Rappelle que la gestion des incidents (registre ISO 27035) reste dans le module GRC.
+
 ## [1.80.0] - 2026-08-10
 
 ### Ajouté

@@ -7,6 +7,7 @@ import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
+import { SocReportGlobalPdf } from "@/components/soc/SocReportGlobalPdf";
 
 export function SocDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
   const { runbooks, socProcedures, intel, onCall, profileById } = useApp();
@@ -26,7 +27,7 @@ export function SocDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
 
   return (
     <div className="space-y-5">
-      <GrcTabHeader title="Tableau de bord SOC" subtitle="Le socle méthodologique de l'équipe : où en est la capitalisation des bonnes pratiques." />
+      <GrcTabHeader title="Tableau de bord SOC" subtitle="Le socle méthodologique de l'équipe : où en est la capitalisation des bonnes pratiques." right={<SocReportGlobalPdf />} />
 
       {/* Cadrage du module */}
       <Card className="p-4 bg-gradient-to-br from-emerald-50/60 to-transparent dark:from-emerald-500/5">

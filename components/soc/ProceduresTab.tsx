@@ -8,6 +8,7 @@ import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { SocProcedureModal } from "@/components/SocProcedureModal";
+import { ProceduresRapportPdf } from "@/components/soc/ProceduresRapportPdf";
 
 export function ProceduresTab() {
   const { socProcedures, readOnly } = useApp();
@@ -32,11 +33,16 @@ export function ProceduresTab() {
       <GrcTabHeader
         title="Procédures & checklists de routine"
         subtitle="Le « comment on travaille » du SOC : prise de poste, vérifications, triage, escalade, communication — pour ne rien laisser à la mémoire."
-        right={canCreate ? (
-          <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
-            <Plus size={15} /> Nouvelle procédure
-          </button>
-        ) : undefined}
+        right={
+          <div className="flex items-center gap-2">
+            {socProcedures.length > 0 && <ProceduresRapportPdf />}
+            {canCreate && (
+              <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft">
+                <Plus size={15} /> Nouvelle procédure
+              </button>
+            )}
+          </div>
+        }
       />
 
       <Card className="p-2.5">
