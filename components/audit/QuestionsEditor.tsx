@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { GripVertical, Plus, Star, Trash2 } from "lucide-react";
 import { gridDomains, type AuditQuestion } from "@/lib/domain";
+import { FRAMEWORKS, frameworkById } from "@/lib/grc/frameworks";
 
 const inputCls = "w-full text-[13px] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 bg-white dark:bg-slate-900 outline-none focus:border-emerald-400";
 export const newQuestionId = () => `q-${Math.random().toString(36).slice(2, 10)}`;
@@ -16,7 +17,7 @@ export function QuestionsEditor({ questions, setQuestions, disabled, listId = "a
 }) {
   const domains = useMemo(() => gridDomains(questions), [questions]);
 
-  const add = () => setQuestions((qs) => [...qs, { id: newQuestionId(), domain: domains[domains.length - 1] ?? "Général", text: "", guidance: "", weight: 1, critical: false }]);
+  const add = () => setQuestions((qs) => [...qs, { id: newQuestionId(), domain: domains[domains.length - 1] ?? "Général", text: "", guidance: "", weight: 1, critical: false, frameworkId: "", controlCode: "" }]);
   const patch = (id: string, f: Partial<AuditQuestion>) => setQuestions((qs) => qs.map((q) => (q.id === id ? { ...q, ...f } : q)));
   const remove = (id: string) => setQuestions((qs) => qs.filter((q) => q.id !== id));
   const move = (id: string, dir: -1 | 1) => setQuestions((qs) => {
@@ -60,6 +61,20 @@ export function QuestionsEditor({ questions, setQuestions, disabled, listId = "a
                     <Star size={11} className={q.critical ? "fill-amber-500 text-amber-500" : ""} /> Critique
                   </button>
                   {!disabled && <button onClick={() => remove(q.id)} aria-label="Supprimer la question" className="ml-auto text-rose-500 hover:text-rose-700"><Trash2 size={14} /></button>}
+                </div>
+                {/* Rattachement à une mesure de conformité (facultatif) — alimente la Conformité GRC. */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] text-slate-400 uppercase">Mesure</span>
+                  <select value={q.frameworkId} onChange={(e) => patch(q.id, { frameworkId: e.target.value, controlCode: "" })} disabled={disabled} className="text-[11px] border border-slate-200 rounded-lg px-1.5 py-1 bg-white dark:bg-slate-900">
+                    <option value="">— aucun référentiel —</option>
+                    {FRAMEWORKS.map((f) => <option key={f.id} value={f.id}>{f.short}</option>)}
+                  </select>
+                  {q.frameworkId && (
+                    <select value={q.controlCode} onChange={(e) => patch(q.id, { controlCode: e.target.value })} disabled={disabled} className="text-[11px] border border-slate-200 rounded-lg px-1.5 py-1 bg-white dark:bg-slate-900 max-w-[16rem]">
+                      <option value="">— mesure —</option>
+                      {(frameworkById(q.frameworkId)?.controls ?? []).map((c) => <option key={c.code} value={c.code}>{c.code} · {c.title}</option>)}
+                    </select>
+                  )}
                 </div>
               </div>
             </div>

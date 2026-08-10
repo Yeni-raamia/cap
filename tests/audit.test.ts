@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { computeAuditScore, defaultFindingSeverity, gridDomains, isAuditPlanActive, isAuditPlanLate, previousAudit, type Audit, type AuditPlanItem, type AuditQuestion, type AuditResponse } from "@/lib/domain";
+import { auditConformityUpdates, computeAuditScore, defaultFindingSeverity, gridDomains, isAuditPlanActive, isAuditPlanLate, previousAudit, type Audit, type AuditPlanItem, type AuditQuestion, type AuditResponse } from "@/lib/domain";
 
 const q = (id: string, domain: string, o: Partial<AuditQuestion> = {}): AuditQuestion =>
-  ({ id, domain, text: `Q ${id}`, guidance: "", weight: 1, critical: false, ...o });
+  ({ id, domain, text: `Q ${id}`, guidance: "", weight: 1, critical: false, frameworkId: "", controlCode: "", ...o });
 const r = (questionId: string, answer: string): AuditResponse => ({ questionId, answer, note: "", evidence: "", severity: "", recommendation: "", mgmtResponse: "" });
 
 describe("gridDomains", () => {
@@ -67,6 +67,34 @@ describe("computeAuditScore", () => {
     const s = computeAuditScore(qs, [r("1", "Non"), r("2", "Partiel"), r("3", "Oui")]);
     expect(s.gaps).toBe(2); // Q1 Non + Q2 Partiel
     expect(s.criticalGaps).toBe(1); // seule Q1 est critique ET en écart
+  });
+});
+
+describe("auditConformityUpdates", () => {
+  it("ignore les questions non rattachées à une mesure", () => {
+    const qs = [q("1", "D"), q("2", "D", { frameworkId: "iso27001" })]; // controlCode vide
+    expect(auditConformityUpdates(qs, [r("1", "Oui"), r("2", "Oui")])).toEqual([]);
+  });
+
+  it("déduit statut + maturité par mesure (Oui=5, Partiel=3, Non=1)", () => {
+    const qs = [
+      q("1", "D", { frameworkId: "iso27001", controlCode: "A.5.1" }),
+      q("2", "D", { frameworkId: "iso27001", controlCode: "A.5.1" }),
+      q("3", "D", { frameworkId: "iso27001", controlCode: "A.8.1" }),
+    ];
+    const up = auditConformityUpdates(qs, [r("1", "Oui"), r("2", "Partiel"), r("3", "Non")]);
+    const a51 = up.find((u) => u.controlCode === "A.5.1")!;
+    const a81 = up.find((u) => u.controlCode === "A.8.1")!;
+    expect(a51.maturity).toBe(4); // moyenne(5,3)=4 → Implémenté
+    expect(a51.status).toBe("Implémenté");
+    expect(a51.count).toBe(2);
+    expect(a81.maturity).toBe(1); // Non → 1 → Non implémenté
+    expect(a81.status).toBe("Non implémenté");
+  });
+
+  it("exclut les réponses N-A / à vérifier", () => {
+    const qs = [q("1", "D", { frameworkId: "iso27001", controlCode: "A.5.1" })];
+    expect(auditConformityUpdates(qs, [r("1", "Non applicable")])).toEqual([]);
   });
 });
 

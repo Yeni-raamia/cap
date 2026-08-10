@@ -42,6 +42,8 @@ function parseGrids(raw: string): { grids: ParsedGrid[]; error: string | null } 
           guidance: String(c.guidance ?? ""),
           weight: Number.isFinite(w) && w >= 1 && w <= 3 ? Math.round(w) : 1,
           critical: Boolean(c.critical),
+          frameworkId: String(c.frameworkId ?? ""),
+          controlCode: String(c.controlCode ?? ""),
         };
       })
       .filter((q) => q.text);

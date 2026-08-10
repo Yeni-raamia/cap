@@ -28,6 +28,8 @@ function parseQuestions(v: unknown): AuditQuestion[] {
       guidance: String(o.guidance ?? ""),
       weight: Number(o.weight) || 1,
       critical: Boolean(o.critical),
+      frameworkId: String(o.frameworkId ?? ""),
+      controlCode: String(o.controlCode ?? ""),
     };
   }).filter((q) => q.text);
 }

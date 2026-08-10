@@ -26,6 +26,8 @@ export function reviveQuestions(raw: unknown): AuditQuestion[] {
       guidance: String(o.guidance ?? ""),
       weight: Number.isFinite(weight) && weight >= 1 && weight <= 3 ? Math.round(weight) : 1,
       critical: Boolean(o.critical),
+      frameworkId: String(o.frameworkId ?? ""),
+      controlCode: String(o.controlCode ?? ""),
     };
   }).filter((q) => q.text);
 }

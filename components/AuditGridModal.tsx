@@ -35,7 +35,7 @@ export function AuditGridModal({ grid, creating, onClose }: { grid: AuditGrid | 
     if (e) setErr(e); else onClose();
   };
   const exportJson = () => {
-    const data = { name: name.trim() || "grille", category, source, description, questions: cleanQuestions().map(({ domain, text, guidance, weight, critical }) => ({ domain, text, guidance, weight, critical })) };
+    const data = { name: name.trim() || "grille", category, source, description, questions: cleanQuestions().map(({ domain, text, guidance, weight, critical, frameworkId, controlCode }) => ({ domain, text, guidance, weight, critical, frameworkId, controlCode })) };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

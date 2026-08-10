@@ -1,6 +1,7 @@
 "use client";
 
-import { computeAuditScore, fmt, gridDomains, previousAudit, type Audit } from "@/lib/domain";
+import { auditConformityUpdates, computeAuditScore, fmt, gridDomains, previousAudit, type Audit } from "@/lib/domain";
+import { frameworkById } from "@/lib/grc/frameworks";
 import { useApp } from "@/components/app-context";
 import { KpiBox, KpiRow, PrintBar, ReportButton, ReportPortal, SectionTitle, tdCls, thCls, usePrint } from "@/components/grc/ReportKit";
 
@@ -30,6 +31,7 @@ export function AuditRapportPdf({ audit }: { audit: Audit }) {
   const gaps = audit.questions
     .map((q) => ({ q, r: byId.get(q.id) }))
     .filter(({ r }) => r && (r.answer === "Non" || r.answer === "Partiel"));
+  const conformity = auditConformityUpdates(audit.questions, audit.responses);
 
   return (
     <>
@@ -125,6 +127,36 @@ export function AuditRapportPdf({ audit }: { audit: Audit }) {
             )}
           </tbody>
         </table>
+
+        {conformity.length > 0 && (
+          <>
+            <SectionTitle>Contribution à la conformité · {conformity.length} mesure{conformity.length > 1 ? "s" : ""}</SectionTitle>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th className={thCls}>Référentiel</th>
+                  <th className={thCls}>Mesure</th>
+                  <th className={thCls}>Statut déduit</th>
+                  <th className={thCls}>Maturité</th>
+                </tr>
+              </thead>
+              <tbody>
+                {conformity.map((u) => {
+                  const fw = frameworkById(u.frameworkId);
+                  const ctrl = fw?.controls.find((c) => c.code === u.controlCode);
+                  return (
+                    <tr key={`${u.frameworkId}-${u.controlCode}`}>
+                      <td className={tdCls}>{fw?.short ?? u.frameworkId}</td>
+                      <td className={tdCls}>{u.controlCode}{ctrl ? ` · ${ctrl.title}` : ""}</td>
+                      <td className={tdCls}>{u.status}</td>
+                      <td className={tdCls}>{u.maturity}/5</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </>
+        )}
 
         {audit.summary && (
           <>

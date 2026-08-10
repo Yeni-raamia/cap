@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.73.0] - 2026-08-10
+
+### Ajouté
+
+- **Audit → Conformité** : les questions d'une grille d'audit peuvent désormais être **rattachées à une mesure de référentiel** (ISO 27001/27002, NIST CSF, CIS, RGPD/NIS2) directement dans l'éditeur de grille. Une fois l'audit renseigné, un bouton **« Reporter N mesures vers la Conformité »** met à jour la **posture de conformité** du GRC (statut + maturité de chaque mesure), déduite des réponses (Oui = maturité 5 / Implémenté, Partiel = 3 / Partiellement, Non = 1 / Non implémenté ; N-A exclu). La mesure rattachée s'affiche sur chaque point de contrôle, et le rapport PDF récapitule la **contribution à la conformité**. C'est le chaînon qui fait qu'un audit technique **met à jour la maturité ISO/CIS** de l'organisation.
+
 ## [1.72.0] - 2026-08-09
 
 ### Ajouté

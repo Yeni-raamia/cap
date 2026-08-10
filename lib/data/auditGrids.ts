@@ -15,7 +15,7 @@ export interface StarterGrid {
   questions: Omit<AuditQuestion, "id">[];
 }
 
-const Q = (domain: string, text: string, guidance: string, weight = 1, critical = false): Omit<AuditQuestion, "id"> => ({ domain, text, guidance, weight, critical });
+const Q = (domain: string, text: string, guidance: string, weight = 1, critical = false): Omit<AuditQuestion, "id"> => ({ domain, text, guidance, weight, critical, frameworkId: "", controlCode: "" });
 
 export const STARTER_AUDIT_GRIDS: StarterGrid[] = [
   {

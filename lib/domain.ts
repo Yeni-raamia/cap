@@ -1422,6 +1422,8 @@ export interface AuditQuestion {
   guidance: string; // comment vérifier / preuve attendue
   weight: number; // pondération (1–3)
   critical: boolean; // point critique (priorise le constat)
+  frameworkId: string; // mesure de conformité rattachée (facultatif) — alimente la Conformité
+  controlCode: string;
 }
 /** Grille (référentiel) d'audit réutilisable. */
 export interface AuditGrid {
@@ -1528,6 +1530,41 @@ export function computeAuditScore(questions: AuditQuestion[], responses: AuditRe
 }
 /** Tonalité (couleur texte) selon le score. */
 export const auditScoreTone = (pct: number): string => (pct >= 80 ? "text-emerald-600" : pct >= 50 ? "text-amber-600" : "text-rose-600");
+
+/** Maturité de conformité (0–5) déduite d'une réponse d'audit (null = non pris en compte). */
+export const AUDIT_ANSWER_MATURITY: Record<string, number | null> = { Oui: 5, Partiel: 3, Non: 1, "Non applicable": null, "À vérifier": null };
+
+/** Mise à jour de conformité déduite d'un audit (par mesure de référentiel). */
+export interface ConformityUpdate {
+  frameworkId: string;
+  controlCode: string;
+  status: string; // CONTROL_STATUS
+  maturity: number; // 0–5
+  count: number; // nombre de questions évaluées rattachées à cette mesure
+}
+/** Statut de conformité déduit d'une maturité moyenne. */
+const maturityToStatus = (m: number): string => (m >= 4 ? "Implémenté" : m >= 2 ? "Partiellement implémenté" : "Non implémenté");
+
+/** Déduit les mises à jour de conformité d'un audit : pour chaque mesure rattachée
+ *  à des questions évaluées, la maturité moyenne (Oui=5, Partiel=3, Non=1) et le statut. */
+export function auditConformityUpdates(questions: AuditQuestion[], responses: AuditResponse[]): ConformityUpdate[] {
+  const byId = new Map(responses.map((r) => [r.questionId, r]));
+  const agg = new Map<string, { frameworkId: string; controlCode: string; sum: number; count: number }>();
+  for (const q of questions) {
+    if (!q.frameworkId || !q.controlCode) continue;
+    const r = byId.get(q.id);
+    const m = r ? AUDIT_ANSWER_MATURITY[r.answer] : null;
+    if (m === null || m === undefined) continue;
+    const key = `${q.frameworkId}::${q.controlCode}`;
+    const a = agg.get(key) ?? { frameworkId: q.frameworkId, controlCode: q.controlCode, sum: 0, count: 0 };
+    a.sum += m; a.count += 1;
+    agg.set(key, a);
+  }
+  return [...agg.values()].map((a) => {
+    const maturity = Math.round(a.sum / a.count);
+    return { frameworkId: a.frameworkId, controlCode: a.controlCode, status: maturityToStatus(maturity), maturity, count: a.count };
+  });
+}
 
 /** Clé de cible d'un audit (actif ou libellé libre) — pour rapprocher les ré-audits. */
 export const auditTargetKey = (a: Audit): string => (a.targetAssetId ? `asset:${a.targetAssetId}` : `label:${a.targetLabel.trim().toLowerCase()}`);

@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { ClipboardCheck, Star, Target, Trash2, TrendingDown, TrendingUp, Wrench, X } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import {
-  AUDIT_ANSWER_TONE, AUDIT_FINDING_SEVERITIES, AUDIT_STATUS, auditScoreTone, computeAuditScore, defaultFindingSeverity, fmt, gridDomains, previousAudit,
+  AUDIT_ANSWER_TONE, AUDIT_FINDING_SEVERITIES, AUDIT_STATUS, auditConformityUpdates, auditScoreTone, computeAuditScore, defaultFindingSeverity, fmt, gridDomains, previousAudit,
   type Audit, type AuditResponse,
 } from "@/lib/domain";
+import { frameworkById } from "@/lib/grc/frameworks";
 import { useApp } from "./app-context";
 import { AuditRadar } from "./audit/AuditRadar";
 import { AuditRapportPdf } from "./audit/AuditRapportPdf";
@@ -18,7 +20,7 @@ type Resp = { answer: string; note: string; evidence: string; severity: string; 
 const emptyResp = (answer = "À vérifier"): Resp => ({ answer, note: "", evidence: "", severity: "", recommendation: "", mgmtResponse: "" });
 
 export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () => void }) {
-  const { demo, readOnly, audits, capaActions, assetById, profileById, updateAudit, deleteAudit, createCapa } = useApp();
+  const { demo, readOnly, audits, capaActions, assetById, profileById, updateAudit, deleteAudit, createCapa, assessControl, toast } = useApp();
   const canEdit = !demo;
 
   const [resp, setResp] = useState<Record<string, Resp>>(() => {
@@ -42,6 +44,25 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
   const prev = useMemo(() => previousAudit(audit, audits), [audit, audits]);
   const prevScore = useMemo(() => (prev ? computeAuditScore(prev.questions, prev.responses).global : null), [prev]);
   const delta = prevScore !== null ? score.global - prevScore : null;
+
+  // Report vers la Conformité : mesures déduites des réponses (questions rattachées à un référentiel).
+  const conformityUpdates = useMemo(() => auditConformityUpdates(audit.questions, responsesArr), [audit.questions, responsesArr]);
+  const [reporting, setReporting] = useState(false);
+  const reportToConformity = async () => {
+    if (!conformityUpdates.length) return;
+    if (typeof window !== "undefined" && !window.confirm(`Reporter les résultats de cet audit vers la Conformité (GRC) ?\n\n${conformityUpdates.length} mesure(s) verront leur statut et leur maturité mis à jour d'après les réponses de l'audit.`)) return;
+    setReporting(true);
+    const today = new Date().toISOString().slice(0, 10);
+    const label = `Audit ${audit.ref}${audit.date ? " du " + fmt(audit.date) : ""}`;
+    let okCount = 0;
+    for (const u of conformityUpdates) {
+      const e = await assessControl(u.frameworkId, u.controlCode, { status: u.status, maturity: u.maturity, lastAssessedAt: today, evidence: label });
+      if (!e) okCount += 1;
+    }
+    setReporting(false);
+    if (okCount > 0) toast(`${okCount} mesure(s) mises à jour dans la Conformité.`, "success");
+  };
+  const measureLabel = (q: Audit["questions"][number]) => (q.frameworkId && q.controlCode ? `${frameworkById(q.frameworkId)?.short ?? ""} · ${q.controlCode}` : "");
 
   const capaKey = (qid: string) => `${audit.id}:${qid}`;
   const hasCapa = (qid: string) => capaActions.some((a) => a.sourceType === "audit" && a.sourceId === capaKey(qid));
@@ -133,6 +154,11 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
             {AUDIT_STATUS.map((s) => <option key={s}>{s}</option>)}
           </select>
           <span className="text-[11px] text-slate-400">Couverture {score.coverage}%</span>
+          {canEdit && conformityUpdates.length > 0 && (
+            <button onClick={reportToConformity} disabled={reporting} className="ml-auto inline-flex items-center gap-1.5 text-[12px] font-medium text-emerald-700 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-lg px-2.5 py-1.5 hover:bg-emerald-100 disabled:opacity-50" title="Mettre à jour la posture de conformité (statut + maturité) d'après cet audit">
+              <ShieldCheck size={14} /> Reporter {conformityUpdates.length} mesure{conformityUpdates.length > 1 ? "s" : ""} vers la Conformité
+            </button>
+          )}
         </div>
 
         {/* Questions par domaine */}
@@ -159,6 +185,7 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
                               {q.text}
                             </div>
                             {q.guidance && <div className="text-[11px] text-slate-400 mt-0.5">{q.guidance}</div>}
+                            {measureLabel(q) && <div className="text-[10px] text-indigo-500 mt-0.5 inline-flex items-center gap-1"><ShieldCheck size={10} /> {measureLabel(q)}</div>}
                           </div>
                           <span className="text-[10px] text-slate-300 shrink-0">×{q.weight}</span>
                         </div>
