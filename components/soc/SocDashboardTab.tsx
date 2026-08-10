@@ -40,7 +40,7 @@ export function SocDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
         <StatTile icon={CheckCircle2} tone="text-sky-600" label="Validés" value={d.valides} onClick={() => onTab("runbooks")} />
         <StatTile icon={ListChecks} tone="text-teal-600" label="Procédures" value={socProcedures.length} onClick={() => onTab("procedures")} />
         <StatTile icon={Layers} tone="text-indigo-600" label="Scénarios couverts" value={d.cats} sub={`/ ${RUNBOOK_CATEGORIES.length}`} onClick={() => onTab("runbooks")} />
-        <StatTile icon={Crosshair} tone="text-rose-600" label="Techniques ATT&CK" value={d.techniques} onClick={() => onTab("runbooks")} />
+        <StatTile icon={Crosshair} tone="text-rose-600" label="Techniques ATT&CK" value={d.techniques} sub="couvertes" onClick={() => onTab("attack")} />
       </div>
 
       {runbooks.length === 0 ? (

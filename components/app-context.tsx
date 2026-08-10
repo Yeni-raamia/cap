@@ -98,6 +98,7 @@ import {
   type Auditor,
   type Runbook,
   type SocProcedure,
+  type AttackCoverage,
   type Supplier,
   type Task,
   type TaskPriority,
@@ -679,6 +680,9 @@ interface AppCtx {
   createSocProcedure: (input: SocProcedureInput) => Promise<string | null>;
   updateSocProcedure: (id: string, fields: SocProcedureInput) => Promise<string | null>;
   deleteSocProcedure: (id: string) => Promise<string | null>;
+  attackCoverage: AttackCoverage[];
+  assessAttack: (techniqueId: string, fields: { status?: string; detectionNote?: string }) => Promise<string | null>;
+  resetAttack: (techniqueId: string) => Promise<string | null>;
   // GRC : continuité d'activité (BIA/PCA)
   continuityPlans: ContinuityPlan[];
   continuityById: (id: string) => ContinuityPlan | null;
@@ -909,6 +913,7 @@ const reviveRunbook = (r: Runbook): Runbook => ({ ...r, createdAt: new Date(r.cr
 const reviveRunbooks = (arr: Runbook[]): Runbook[] => arr.map(reviveRunbook);
 const reviveSocProcedure = (p: SocProcedure): SocProcedure => ({ ...p, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
 const reviveSocProcedures = (arr: SocProcedure[]): SocProcedure[] => arr.map(reviveSocProcedure);
+const reviveAttackCoverage = (arr: AttackCoverage[]): AttackCoverage[] => arr.map((a) => ({ ...a, updatedAt: new Date(a.updatedAt) }));
 const revivePlan2 = (p: ContinuityPlan): ContinuityPlan => ({ ...p, lastTestDate: p.lastTestDate ? new Date(p.lastTestDate) : null, reviewDate: p.reviewDate ? new Date(p.reviewDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
 const reviveContinuity = (arr: ContinuityPlan[]): ContinuityPlan[] => arr.map(revivePlan2);
 const reviveIncident = (i: Incident): Incident => ({ ...i, detectedAt: i.detectedAt ? new Date(i.detectedAt) : null, resolvedAt: i.resolvedAt ? new Date(i.resolvedAt) : null, createdAt: new Date(i.createdAt), updatedAt: new Date(i.updatedAt) });
@@ -994,6 +999,7 @@ export function AppProvider({
   initialAuditors,
   initialRunbooks,
   initialSocProcedures,
+  initialAttackCoverage,
   initialContinuityPlans,
   initialIncidents,
   initialProcessing,
@@ -1036,6 +1042,7 @@ export function AppProvider({
   initialAuditors?: Auditor[];
   initialRunbooks?: Runbook[];
   initialSocProcedures?: SocProcedure[];
+  initialAttackCoverage?: AttackCoverage[];
   initialContinuityPlans?: ContinuityPlan[];
   initialIncidents?: Incident[];
   initialProcessing?: ProcessingActivity[];
@@ -1097,6 +1104,7 @@ export function AppProvider({
   const [auditors, setAuditors] = useState<Auditor[]>(demo ? seedAuditors() : reviveAuditors(initialAuditors ?? []));
   const [runbooks, setRunbooks] = useState<Runbook[]>(demo ? seedRunbooks() : reviveRunbooks(initialRunbooks ?? []));
   const [socProcedures, setSocProcedures] = useState<SocProcedure[]>(demo ? seedSocProcedures() : reviveSocProcedures(initialSocProcedures ?? []));
+  const [attackCoverage, setAttackCoverage] = useState<AttackCoverage[]>(demo ? [] : reviveAttackCoverage(initialAttackCoverage ?? []));
   const [continuityPlans, setContinuityPlans] = useState<ContinuityPlan[]>(demo ? seedContinuity() : reviveContinuity(initialContinuityPlans ?? []));
   const [incidents, setIncidents] = useState<Incident[]>(demo ? seedIncidents() : reviveIncidents(initialIncidents ?? []));
   const [processing, setProcessing] = useState<ProcessingActivity[]>(demo ? seedProcessing() : reviveProcessing(initialProcessing ?? []));
@@ -2481,6 +2489,18 @@ export function AppProvider({
   const updateSocProcedure = (id: string, fields: SocProcedureInput) => socProcedureAction("update", { id, ...fields });
   const deleteSocProcedure = (id: string) => socProcedureAction("delete", { id });
 
+  /* ---------- SOC : couverture MITRE ATT&CK ---------- */
+  const attackAction = async (op: "assess" | "reset", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Couverture ATT&CK indisponible en mode démo.";
+    const res = await fetch("/api/attack-coverage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.attackCoverage) setAttackCoverage(reviveAttackCoverage(d.attackCoverage));
+    return null;
+  };
+  const assessAttack = (techniqueId: string, fields: { status?: string; detectionNote?: string }) => attackAction("assess", { techniqueId, ...fields });
+  const resetAttack = (techniqueId: string) => attackAction("reset", { techniqueId });
+
   /* ---------- GRC : Continuité d'activité (BIA/PCA) ---------- */
   const continuityById = (id: string): ContinuityPlan | null => continuityPlans.find((p) => p.id === id) ?? null;
   const continuityAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
@@ -2906,6 +2926,9 @@ export function AppProvider({
     createSocProcedure,
     updateSocProcedure,
     deleteSocProcedure,
+    attackCoverage,
+    assessAttack,
+    resetAttack,
     continuityPlans,
     continuityById,
     createContinuity,

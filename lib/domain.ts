@@ -1741,6 +1741,31 @@ export const SOC_PROCEDURE_TYPE_TONE: Record<string, string> = {
   "Astreinte": "bg-indigo-50 text-indigo-700 border-indigo-200",
   "Autre": "bg-slate-50 text-slate-600 border-slate-200",
 };
+/* ---------- Module SOC : couverture MITRE ATT&CK (auto-évaluation) ---------- */
+export const ATTACK_COVERAGE_STATUS = ["Couverte", "Partielle", "Non couverte", "Non applicable"];
+export const ATTACK_COVERAGE_TONE: Record<string, string> = {
+  "Couverte": "bg-emerald-100 text-emerald-700 border-emerald-200",
+  "Partielle": "bg-amber-100 text-amber-700 border-amber-200",
+  "Non couverte": "bg-rose-100 text-rose-700 border-rose-200",
+  "Non applicable": "bg-slate-100 text-slate-400 border-slate-200",
+};
+/** Auto-évaluation de détection d'une technique ATT&CK (piste Wazuh). */
+export interface AttackCoverage {
+  techniqueId: string; // T####
+  status: string; // ATTACK_COVERAGE_STATUS
+  detectionNote: string; // piste de détection / règle Wazuh
+  updatedBy: string | null;
+  updatedAt: Date;
+}
+/** Un runbook « couvre » une technique s'il la référence (ou sa technique parente). */
+export const runbookCoversTechnique = (techniqueCodes: string[], techniqueId: string): boolean => {
+  const parent = techniqueId.split(".")[0];
+  return techniqueCodes.some((c) => {
+    const cc = c.trim().toUpperCase();
+    return cc === techniqueId || cc === parent || techniqueId.startsWith(cc + ".");
+  });
+};
+
 /** Point d'une checklist de procédure SOC. */
 export interface SocChecklistItem {
   id: string;

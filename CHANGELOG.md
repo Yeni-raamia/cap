@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.76.0] - 2026-08-10
+
+### Ajouté
+
+- **Module SOC — Cartographie MITRE ATT&CK** (nouvel onglet « ATT&CK ») : un **référentiel** des tactiques et techniques adverses (extrait Enterprise), organisé comme un **organiseur de savoir** — pour chaque technique : sa description, la **réponse** (runbooks reliés automatiquement via les techniques référencées) et la **détection** (auto-évaluation « Couverte / Partielle / Non couverte » + **piste de détection Wazuh**). Vue par tactique, filtres (reliées à un runbook, sans runbook, couvertes) et indicateurs. Ce n'est pas un tableau de couverture temps réel : c'est le lien méthodique entre menaces, détection et réponse.
+
 ## [1.75.0] - 2026-08-10
 
 ### Ajouté

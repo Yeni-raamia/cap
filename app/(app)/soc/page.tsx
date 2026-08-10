@@ -7,11 +7,13 @@ import { PageHero } from "@/components/PageHero";
 import { SocDashboardTab } from "@/components/soc/SocDashboardTab";
 import { RunbooksTab } from "@/components/soc/RunbooksTab";
 import { ProceduresTab } from "@/components/soc/ProceduresTab";
+import { AttackTab } from "@/components/soc/AttackTab";
 
 const TABS = [
   { id: "dashboard", label: "Tableau de bord" },
   { id: "runbooks", label: "Runbooks" },
   { id: "procedures", label: "Procédures" },
+  { id: "attack", label: "ATT&CK" },
 ];
 
 function SocInner() {
@@ -47,6 +49,7 @@ function SocInner() {
       {active === "dashboard" && <SocDashboardTab onTab={setTab} />}
       {active === "runbooks" && <RunbooksTab />}
       {active === "procedures" && <ProceduresTab />}
+      {active === "attack" && <AttackTab />}
     </div>
   );
 }
