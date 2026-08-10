@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.79.0] - 2026-08-10
+
+### Ajouté
+
+- **Module SOC — Astreinte & planning de garde** (nouvel onglet « Astreinte ») : le **planning des gardes** — qui est de garde, quand (créneaux datés), avec quel **rôle** (astreinte principale, renfort, référent/N2…) et quel **contact**. Un encart **« De garde maintenant »** met en avant les personnes actuellement d'astreinte (avec leur téléphone), présent aussi sur le tableau de bord SOC. Gardes à venir et passées listées à part.
+
 ## [1.78.0] - 2026-08-10
 
 ### Ajouté

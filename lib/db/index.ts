@@ -317,6 +317,11 @@ create table if not exists direction_reviews (
   next_review_date text, status text not null default 'Préparée',
   created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists oncall_shifts (
+  id text primary key, person_id text, role text not null default 'Astreinte principale',
+  start_at text not null, end_at text not null, contact text not null default '', notes text not null default '',
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists intel_items (
   id text primary key, ref text not null,
   kind text not null default 'IOC', title text not null default '', ioc_type text not null default 'Autre', value text not null default '',

@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Asset, Audit, AuditGrid, AuditPlanItem, Auditor, CapaAction, Catalogue, Contact, ContinuityPlan, ControlAssessment, ConversationSummary, Direction, DirectionReview, EmailTemplate, FieldControl, GrcPlanItem, Incident, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, ProcessingActivity, Profile, Project, RefLists, Risk, Runbook, SocProcedure, AttackCoverage, IntelItem, Supplier, Task, TrainingCourse, TrainingDone, TrainingProgressEntry } from "@/lib/domain";
+import type { AppSettings, Asset, Audit, AuditGrid, AuditPlanItem, Auditor, CapaAction, Catalogue, Contact, ContinuityPlan, ControlAssessment, ConversationSummary, Direction, DirectionReview, EmailTemplate, FieldControl, GrcPlanItem, Incident, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, ProcessingActivity, Profile, Project, RefLists, Risk, Runbook, SocProcedure, AttackCoverage, IntelItem, OnCallShift, Supplier, Task, TrainingCourse, TrainingDone, TrainingProgressEntry } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -99,6 +99,7 @@ export function AppShell({
   initialSocProcedures,
   initialAttackCoverage,
   initialIntel,
+  initialOnCall,
   initialContinuityPlans,
   initialIncidents,
   initialProcessing,
@@ -143,6 +144,7 @@ export function AppShell({
   initialSocProcedures?: SocProcedure[];
   initialAttackCoverage?: AttackCoverage[];
   initialIntel?: IntelItem[];
+  initialOnCall?: OnCallShift[];
   initialContinuityPlans?: ContinuityPlan[];
   initialIncidents?: Incident[];
   initialProcessing?: ProcessingActivity[];
@@ -188,6 +190,7 @@ export function AppShell({
       initialSocProcedures={initialSocProcedures}
       initialAttackCoverage={initialAttackCoverage}
       initialIntel={initialIntel}
+      initialOnCall={initialOnCall}
       initialContinuityPlans={initialContinuityPlans}
       initialIncidents={initialIncidents}
       initialProcessing={initialProcessing}

@@ -1,16 +1,18 @@
 "use client";
 
 import { useMemo } from "react";
-import { BookOpen, CheckCircle2, Crosshair, Layers, ListChecks, Radar, Radio } from "lucide-react";
-import { RUNBOOK_CATEGORIES, RUNBOOK_STATUS_TONE, isIntelActive, type Runbook } from "@/lib/domain";
+import { BookOpen, CheckCircle2, Crosshair, Layers, ListChecks, Phone, Radar, Radio, UserCheck } from "lucide-react";
+import { RUNBOOK_CATEGORIES, RUNBOOK_STATUS_TONE, SHIFT_ROLE_TONE, currentOnCall, isIntelActive, type Runbook } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
 
 export function SocDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
-  const { runbooks, socProcedures, intel } = useApp();
-  const intelActifs = intel.filter((i) => isIntelActive(i, new Date())).length;
+  const { runbooks, socProcedures, intel, onCall, profileById } = useApp();
+  const nowD = new Date();
+  const intelActifs = intel.filter((i) => isIntelActive(i, nowD)).length;
+  const deGarde = currentOnCall(onCall, nowD);
 
   const d = useMemo(() => {
     const valides = runbooks.filter((r) => r.status === "Validé").length;
@@ -44,6 +46,26 @@ export function SocDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
         <StatTile icon={Crosshair} tone="text-rose-600" label="Techniques ATT&CK" value={d.techniques} sub="couvertes" onClick={() => onTab("attack")} />
         <StatTile icon={Radio} tone="text-amber-600" label="Veille active" value={intelActifs} onClick={() => onTab("veille")} />
       </div>
+
+      {/* De garde maintenant */}
+      <button onClick={() => onTab("astreinte")} className="block w-full text-left">
+        <Card className="p-4 hover:-translate-y-0.5 transition-transform">
+          <div className="text-[11px] text-slate-500 uppercase mb-2 flex items-center gap-1.5"><UserCheck size={14} className="text-emerald-500" /> De garde maintenant</div>
+          {deGarde.length === 0 ? (
+            <div className="text-[12px] text-slate-400">Personne n&apos;est planifié de garde à cet instant.</div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {deGarde.map((s) => (
+                <div key={s.id} className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-500/10 px-2.5 py-1.5">
+                  <span className="text-[12.5px] font-semibold text-slate-800 dark:text-slate-100">{profileById(s.personId).nom}</span>
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full border ${SHIFT_ROLE_TONE[s.role] ?? ""}`}>{s.role}</span>
+                  {s.contact && <span className="text-[11px] text-emerald-700 inline-flex items-center gap-0.5"><Phone size={11} /> {s.contact}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </button>
 
       {runbooks.length === 0 ? (
         <EmptyState icon={BookOpen} title="Aucun runbook pour l'instant" subtitle="La bibliothèque de départ apparaîtra ici (hameçonnage, rançongiciel, compte compromis…)." />

@@ -30,6 +30,7 @@ import type {
   Runbook,
   SocProcedure,
   IntelItem,
+  OnCallShift,
   TrainingCourse,
   TrainingLesson,
 } from "../domain";
@@ -523,5 +524,18 @@ export function seedIntel(): IntelItem[] {
     base({ id: "int2", ref: "INT-2026-002", title: "Hash d'un dropper observé sur le parc", kind: "IOC", iocType: "Hash de fichier", value: "a1b2c3d4e5f6...", severity: "Critique", source: "EDR interne", status: "En traitement", description: "Exécutable malveillant détecté par l'EDR sur un poste.", action: "Rechercher le hash sur l'ensemble du parc ; isoler les postes concernés.", attackTechniques: ["T1204", "T1105"], tlp: "TLP:AMBER" }),
     base({ id: "int3", ref: "INT-2026-003", title: "Avis CERT-FR — vulnérabilité critique VPN", kind: "Vulnérabilité (CVE)", value: "CVE-2026-XXXX", severity: "Critique", source: "CERT-FR", status: "Actif", description: "Vulnérabilité d'exécution de code sur la passerelle VPN — exploitation activement observée.", action: "Appliquer le correctif en urgence ; surveiller les accès distants.", attackTechniques: ["T1190", "T1133"], tlp: "TLP:CLEAR", expiresAt: null }),
     base({ id: "int4", ref: "INT-2026-004", title: "IP de C2 rançongiciel (bulletin sectoriel)", kind: "IOC", iocType: "Adresse IP", value: "203.0.113.66", severity: "Majeur", source: "Partage sectoriel", status: "Traité", description: "Adresse de commande & contrôle liée à une souche de rançongiciel.", action: "Bloquée au pare-feu ; aucun flux constaté.", attackTechniques: ["T1071"], tlp: "TLP:AMBER", expiresAt: day(-1) }),
+  ];
+}
+
+/* ---------- SOC : astreinte / planning (démonstration) ---------- */
+export function seedOnCall(): OnCallShift[] {
+  const hour = (offset: number) => new Date(NOW().getTime() + offset * 36e5);
+  const base = (o: Partial<OnCallShift> & { id: string; personId: string; role: string; start: Date; end: Date }): OnCallShift =>
+    ({ contact: "", notes: "", createdBy: "u1", createdAt: day(-10), updatedAt: day(-5), ...o });
+  return [
+    base({ id: "oc1", personId: "u2", role: "Astreinte principale", start: hour(-12), end: hour(12), contact: "06 12 34 56 78" }),
+    base({ id: "oc2", personId: "u1", role: "Référent / N2", start: hour(-12), end: hour(60), contact: "06 98 76 54 32" }),
+    base({ id: "oc3", personId: "u4", role: "Astreinte principale", start: hour(12), end: hour(36), contact: "06 11 22 33 44" }),
+    base({ id: "oc4", personId: "u6", role: "Renfort", start: day(3), end: day(4), contact: "" }),
   ];
 }

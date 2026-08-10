@@ -1745,6 +1745,32 @@ export const SOC_PROCEDURE_TYPE_TONE: Record<string, string> = {
   "Astreinte": "bg-indigo-50 text-indigo-700 border-indigo-200",
   "Autre": "bg-slate-50 text-slate-600 border-slate-200",
 };
+/* ---------- Module SOC : Astreinte / planning de garde ---------- */
+export const SHIFT_ROLES = ["Astreinte principale", "Renfort", "Référent / N2", "Observateur"];
+export const SHIFT_ROLE_TONE: Record<string, string> = {
+  "Astreinte principale": "bg-emerald-100 text-emerald-700 border-emerald-200",
+  "Renfort": "bg-sky-100 text-sky-700 border-sky-200",
+  "Référent / N2": "bg-indigo-100 text-indigo-700 border-indigo-200",
+  "Observateur": "bg-slate-100 text-slate-600 border-slate-200",
+};
+/** Période d'astreinte (garde) d'une personne. */
+export interface OnCallShift {
+  id: string;
+  personId: string; // profil de garde
+  role: string; // SHIFT_ROLES
+  start: Date;
+  end: Date;
+  contact: string; // moyen de contact (tél…)
+  notes: string;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Une garde est « en cours » si maintenant est entre son début et sa fin. */
+export const isShiftActive = (s: OnCallShift, now: Date): boolean => s.start.getTime() <= now.getTime() && now.getTime() <= s.end.getTime();
+/** Gardes en cours à l'instant `now`. */
+export const currentOnCall = (shifts: OnCallShift[], now: Date): OnCallShift[] => shifts.filter((s) => isShiftActive(s, now));
+
 /* ---------- Module SOC : Veille & threat intelligence (IOCs) ---------- */
 export const INTEL_KINDS = ["IOC", "Bulletin / Avis", "Vulnérabilité (CVE)"];
 export const IOC_TYPES = ["Adresse IP", "Domaine", "URL", "Hash de fichier", "E-mail", "Autre"];
