@@ -6,6 +6,16 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.83.0] - 2026-08-10
+
+### Ajouté
+
+- **Académie — 15 parcours supplémentaires** (répartis 5 / 5 / 5) qui s'ajoutent automatiquement aux trois filières :
+  - **GRC (+5)** : RGPD & protection des données, Continuité d'activité (PCA/PRA), Sécurité des fournisseurs & tiers, Sensibilisation & culture sécurité, ISO 27001 : comprendre le SMSI.
+  - **Audit (+5)** : Audit du durcissement (poste & serveur), Audit de l'Active Directory, Audit du Cloud & SaaS, Audit réseau & segmentation, Échantillonnage & preuves techniques (CAAT).
+  - **SOC (+5)** : Chasse aux menaces (threat hunting), Analyse des journaux & requêtes, Threat intelligence & IOCs, Analyser un e-mail malveillant, Écrire de bonnes règles de détection.
+  - Chaque parcours mêle leçons, quiz, études de cas et défis (avec XP et badge), dans la continuité pédagogique existante.
+
 ## [1.82.0] - 2026-08-10
 
 ### Ajouté

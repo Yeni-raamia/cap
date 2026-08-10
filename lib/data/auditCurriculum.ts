@@ -421,4 +421,200 @@ export const AUDIT_CURRICULUM: CourseSeed[] = [
       },
     ],
   },
+  {
+    title: "Audit du durcissement (poste & serveur)",
+    description: "Vérifier un socle Windows/Linux : surface d'attaque, protocoles, correctifs, EDR — avec preuves.",
+    category: "Audit technique",
+    icon: "🖥️",
+    badge: "Auditeur durcissement",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "Ce qu'on regarde vraiment",
+        content:
+          "Auditer un durcissement, c'est comparer la configuration réelle à un **référentiel** (CIS Benchmark, guides ANSSI). Les points à fort impact :\n\n" +
+          "• **Surface d'attaque** — services et rôles inutiles désactivés.\n" +
+          "• **Protocoles obsolètes** — SMBv1, NTLMv1, TLS 1.0 désactivés ; RDP en NLA.\n" +
+          "• **Correctifs** — niveau de patch et respect des délais (SLA).\n" +
+          "• **Protection** — EDR/antivirus installé, à jour et supervisé ; pare-feu local actif.\n\n" +
+          "L'auditeur ne se contente pas de « c'est fait » : il **vérifie sur le système** (commande, capture, export) et **conserve la preuve**.",
+      },
+      {
+        type: "lesson", xp: 20, title: "Collecter la preuve sans casser",
+        content:
+          "L'audit technique est **non intrusif** par défaut : on **lit** l'état (configuration, versions, stratégies), on ne modifie rien sans accord. Exemples de preuves : sortie de `Get-WindowsOptionalFeature` (SMBv1), export de GPO/`gpresult`, `systemctl list-units` sous Linux, capture de la console EDR.\n\n" +
+          "Bonnes pratiques : horodater les preuves, noter la **source** (quel hôte, quel compte, quand), et rattacher chaque preuve à un **point de contrôle** de la grille. Une réponse « Non » ou « Partiel » doit s'appuyer sur une preuve, pas sur une impression.\n\n" +
+          "Dans Cap, chaque audit permet de joindre des **pièces jointes** et de les rattacher à une question.",
+      },
+      {
+        type: "quiz", xp: 25, title: "Quiz — Durcissement", content: "Les fondamentaux.",
+        questions: [
+          q("ap1q1", "SMBv1 doit être…", ["Activé pour la compatibilité", "Désactivé", "Ignoré"], 1, "SMBv1 est obsolète et vulnérable : on le désactive."),
+          q("ap1q2", "Une réponse « Non » à une question d'audit doit…", ["Rester une impression", "S'appuyer sur une preuve", "Être évitée"], 1, "Tout constat s'appuie sur une preuve vérifiable."),
+          q("ap1q3", "Un audit technique de config est par défaut…", ["Intrusif (on modifie)", "Non intrusif (on lit l'état)", "Un scan d'exploitation"], 1, "On lit l'état sans modifier sans accord."),
+        ],
+      },
+      {
+        type: "challenge", xp: 30, title: "Défi — Lance un audit de durcissement",
+        content: "Dans le module Audit, ouvre la grille « Durcissement serveur Windows » (ou Linux), démarre un audit sur une cible et renseigne quelques réponses avec une preuve.",
+        challengeHref: "/audit?tab=grilles",
+      },
+    ],
+  },
+  {
+    title: "Audit de l'Active Directory",
+    description: "Comptes à privilèges, tiering, LAPS, GPO : les points qui font (ou défont) la sécurité d'un domaine.",
+    category: "Audit technique",
+    icon: "🌳",
+    badge: "Auditeur AD",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "Le nerf de la guerre : les privilèges",
+        content:
+          "L'**Active Directory** est la cible privilégiée des attaquants : compromettre le domaine, c'est souvent tout compromettre. L'audit se concentre sur les **chemins vers les privilèges** :\n\n" +
+          "• **Modèle en tiers (0/1/2)** — séparation stricte administration du domaine / serveurs / postes.\n" +
+          "• **Comptes à privilèges** — nombre d'Admins du domaine **réduit au minimum**, pas de comptes de service sur-privilégiés.\n" +
+          "• **LAPS** — mots de passe administrateur locaux **uniques et gérés**.\n" +
+          "• **Comptes inactifs** — désactivés, pas de mots de passe qui n'expirent jamais.\n\n" +
+          "Un seul compte à privilèges mal protégé peut annuler tout le reste.",
+      },
+      {
+        type: "lesson", xp: 20, title: "GPO, protocoles et hygiène",
+        content:
+          "Au-delà des comptes, on vérifie :\n" +
+          "• **GPO de sécurité** — baselines appliquées (SMBv1 off, NTLMv1 off, restrictions RDP).\n" +
+          "• **Politique de mot de passe** — alignée sur les recommandations ANSSI (longueur, verrouillage), idéalement des **phrases de passe** + MFA sur les accès sensibles.\n" +
+          "• **Délégations** — pas de délégations dangereuses (Kerberos non contrainte), droits ACL revus.\n" +
+          "• **Journalisation** — modifications de GPO et d'appartenance aux groupes sensibles auditées.\n\n" +
+          "Des outils de cartographie (type BloodHound) aident à visualiser les chemins d'attaque, mais l'**analyse** et la **preuve** restent le travail de l'auditeur.",
+      },
+      {
+        type: "case", xp: 30, title: "Étude de cas — Trop d'Admins du domaine",
+        content: "L'audit révèle 25 comptes membres de « Domain Admins », dont d'anciens prestataires. Comment cotez-vous ?",
+        steps: [
+          {
+            id: "aa1s1", prompt: "Quelle gravité pour ce constat ?",
+            options: [
+              { label: "Observation mineure", feedback: "Sous-évalué : des comptes à privilèges superflus, c'est un risque majeur.", score: 20 },
+              { label: "Constat majeur : réduire et nettoyer les comptes à privilèges", feedback: "Correct : la surface d'administration doit être minimale.", score: 100 },
+            ],
+          },
+          {
+            id: "aa1s2", prompt: "Quelle recommandation ?",
+            options: [
+              { label: "Supprimer tout, tout de suite, sans analyse", feedback: "Risqué : on pourrait casser des services. On analyse d'abord les usages légitimes.", score: 30 },
+              { label: "Revue des membres, retrait des comptes injustifiés, processus de revue périodique", feedback: "Parfait : remédiation analysée + mesure pérenne.", score: 100 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: "Audit du Cloud & SaaS",
+    description: "Responsabilité partagée, identité, exposition et journalisation dans les environnements cloud.",
+    category: "Audit technique",
+    icon: "☁️",
+    badge: "Auditeur cloud",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "La responsabilité partagée",
+        content:
+          "Dans le cloud, la sécurité est **partagée** entre le fournisseur et le client. Le fournisseur sécurise **le cloud** (infrastructure) ; le client sécurise **ce qu'il met dans le cloud** (configuration, identités, données). La plupart des incidents cloud viennent d'une **mauvaise configuration côté client**, pas d'une faille du fournisseur.\n\n" +
+          "L'auditeur doit donc savoir **où s'arrête** la responsabilité du fournisseur et vérifier la part client : qui a accès, qu'est-ce qui est exposé, qu'est-ce qui est journalisé.\n\n" +
+          "Le modèle varie selon IaaS / PaaS / SaaS : plus on monte vers le SaaS, plus la part du fournisseur augmente — mais **l'identité et les données** restent toujours de la responsabilité du client.",
+      },
+      {
+        type: "lesson", xp: 20, title: "Les points de contrôle clés",
+        content:
+          "Quatre axes reviennent partout :\n" +
+          "• **Identité** — compte racine/administrateur protégé (MFA, sans usage courant), accès humains par **SSO/fédération**, pas de clés statiques qui traînent.\n" +
+          "• **Exposition** — pas de stockage public par erreur (buckets), pas de ports d'administration ouverts sur `0.0.0.0/0`.\n" +
+          "• **Chiffrement** — au repos et en transit sur les données sensibles.\n" +
+          "• **Journalisation** — traces d'activité activées, protégées et centralisées (CloudTrail, journaux d'audit SaaS).\n\n" +
+          "Des outils de **posture (CSPM)** aident, mais l'auditeur confronte les résultats au **contexte** et à la criticité réelle des données.",
+      },
+      {
+        type: "quiz", xp: 25, title: "Quiz — Cloud", content: "Le réflexe cloud.",
+        questions: [
+          q("ac1q1", "La plupart des incidents cloud viennent…", ["De failles du fournisseur", "De mauvaises configurations côté client", "Du hasard"], 1, "La part client (config, identité) est la principale source d'incidents."),
+          q("ac1q2", "Le compte racine (root) d'un cloud doit…", ["Servir au quotidien", "Être protégé par MFA et peu utilisé", "Être partagé"], 1, "Root = protégé par MFA, réservé aux cas exceptionnels."),
+          q("ac1q3", "En SaaS, l'identité et les données sont…", ["De la responsabilité du fournisseur", "Toujours de la responsabilité du client", "Sans propriétaire"], 1, "L'identité et les données restent au client, quel que soit le modèle."),
+        ],
+      },
+    ],
+  },
+  {
+    title: "Audit réseau & segmentation",
+    description: "Cloisonnement, flux, exposition et durcissement des équipements : lire une architecture d'un œil d'auditeur.",
+    category: "Audit technique",
+    icon: "🕸️",
+    badge: "Auditeur réseau",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "Segmenter pour limiter",
+        content:
+          "La **segmentation** limite la propagation d'une attaque : un poste compromis ne doit pas pouvoir atteindre librement les serveurs critiques. On vérifie l'existence de **zones** (postes, serveurs, DMZ, administration, sauvegarde) et le **filtrage entre zones**.\n\n" +
+          "Points sensibles : un **VLAN d'administration dédié**, une **DMZ** pour les services exposés, un réseau de **sauvegarde** isolé (clé anti-rançongiciel), et surtout **pas de « réseau à plat »** où tout communique avec tout.\n\n" +
+          "L'auditeur demande le **plan d'adressage**, la **matrice des flux** et confronte au réel (règles de pare-feu réellement appliquées).",
+      },
+      {
+        type: "lesson", xp: 20, title: "Exposition & durcissement des équipements",
+        content:
+          "Côté exposition : quels services sont **accessibles depuis Internet** ? Chaque exposition doit être **justifiée**, à jour et surveillée. Les accès d'**administration** ne doivent jamais être exposés directement (passer par VPN/bastion).\n\n" +
+          "Côté équipements (switches, routeurs, pare-feux) : administration en **protocole chiffré** (SSH/HTTPS, pas Telnet), **comptes par défaut** supprimés, authentification centralisée, **firmwares** maintenus, journaux envoyés au SIEM.\n\n" +
+          "Le **règle par défaut** d'un pare-feu doit être le **refus** (deny by default) ; on n'ouvre que ce qui est nécessaire et documenté.",
+      },
+      {
+        type: "quiz", xp: 25, title: "Quiz — Réseau", content: "Cloisonnement & exposition.",
+        questions: [
+          q("an1q1", "Un « réseau à plat » est…", ["Une bonne pratique", "Un facteur de propagation des attaques", "Obligatoire"], 1, "Sans segmentation, une compromission se propage librement."),
+          q("an1q2", "La règle par défaut d'un pare-feu devrait être…", ["Tout autoriser", "Refuser par défaut (deny)", "Selon l'humeur"], 1, "Deny by default : on n'ouvre que le nécessaire justifié."),
+          q("an1q3", "L'administration des équipements réseau doit se faire…", ["En Telnet", "En protocole chiffré via un réseau dédié", "Depuis Internet"], 1, "SSH/HTTPS + réseau d'administration isolé."),
+        ],
+      },
+    ],
+  },
+  {
+    title: "Échantillonnage & preuves techniques (CAAT)",
+    description: "Quand on ne peut pas tout contrôler : échantillonner juste et exploiter les outils d'audit assistés.",
+    category: "Méthode d'audit",
+    icon: "🔬",
+    badge: "Preuve solide",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "Échantillonner sans se tromper",
+        content:
+          "On ne peut pas toujours tout vérifier (des milliers de postes, de comptes, de lignes de log). L'**échantillonnage** permet de conclure sur une population à partir d'un sous-ensemble — à condition qu'il soit **représentatif**.\n\n" +
+          "Deux écueils : un échantillon **trop petit** ou **biaisé** (on ne regarde que les « bons élèves »). Pour les points **critiques**, on privilégie un contrôle **exhaustif** ou un échantillon **orienté risque** (les actifs les plus sensibles, les comptes les plus privilégiés).\n\n" +
+          "L'auditeur **documente** sa méthode d'échantillonnage : c'est ce qui rend le constat **défendable**.",
+      },
+      {
+        type: "lesson", xp: 20, title: "Les outils d'audit assisté (CAAT)",
+        content:
+          "Les **CAAT** (Computer-Assisted Audit Techniques) automatisent la collecte et l'analyse : requêtes sur un annuaire, extraction de configurations, analyse de gros volumes de journaux, scripts de vérification. Ils augmentent la **couverture** et la **répétabilité**.\n\n" +
+          "Mais un outil ne remplace pas le **jugement** : il produit des **données brutes** que l'auditeur doit **interpréter** dans le contexte (un « écart » technique peut être une exception légitime). Attention aussi à la **fiabilité de la source** : une extraction erronée mène à un faux constat.\n\n" +
+          "Bonne pratique : conserver la **requête** et la **donnée brute** comme preuve, pour que le constat soit **reproductible**.",
+      },
+      {
+        type: "case", xp: 30, title: "Étude de cas — Un échantillon trop flatteur",
+        content: "Pour auditer les correctifs, on vous fournit une liste de 10 serveurs « bien tenus ». Que faites-vous ?",
+        steps: [
+          {
+            id: "ae1s1", prompt: "Votre réaction ?",
+            options: [
+              { label: "J'audite ces 10 serveurs et je conclus pour tout le parc", feedback: "Non : échantillon choisi par l'audité = biais évident.", score: 10 },
+              { label: "Je constitue mon propre échantillon orienté risque, indépendamment", feedback: "Exactement : l'auditeur maîtrise son échantillonnage.", score: 100 },
+            ],
+          },
+          {
+            id: "ae1s2", prompt: "Comment rendre le constat reproductible ?",
+            options: [
+              { label: "Je note « globalement conforme »", feedback: "Insuffisant : ni chiffré, ni reproductible.", score: 20 },
+              { label: "Je conserve la requête, la donnée brute et la méthode d'échantillonnage", feedback: "Parfait : preuve reproductible et défendable.", score: 100 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 ];

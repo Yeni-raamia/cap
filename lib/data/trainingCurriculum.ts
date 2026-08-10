@@ -560,4 +560,207 @@ export const CURRICULUM: CourseSeed[] = [
       },
     ],
   },
+  {
+    title: "RGPD & protection des données",
+    description: "Registre (ROPA), bases légales, AIPD et gestion des violations — l'essentiel côté DPO.",
+    category: "Conformité",
+    icon: "🔐",
+    badge: "Réflexes RGPD acquis",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "Données personnelles & bases légales",
+        content:
+          "Une **donnée à caractère personnel** est toute information se rapportant à une personne physique **identifiée ou identifiable** (nom, e-mail, IP, identifiant…). Un **traitement** est toute opération sur ces données (collecte, conservation, consultation, effacement).\n\n" +
+          "Tout traitement doit reposer sur une **base légale** (art. 6 RGPD) : consentement, contrat, obligation légale, mission d'intérêt public, intérêt légitime, sauvegarde des intérêts vitaux. **Pas de base légale = pas de traitement.**\n\n" +
+          "Principes clés : **minimisation** (juste ce qu'il faut), **limitation des finalités** (usage défini), **limitation de conservation** (durée justifiée), **exactitude**, **sécurité** et **responsabilité** (accountability : être capable de le prouver).",
+      },
+      {
+        type: "lesson", xp: 20, title: "ROPA, AIPD et droits des personnes",
+        content:
+          "Le **registre des activités de traitement (ROPA)** recense chaque traitement : finalité, base légale, catégories de données et de personnes, destinataires, durées, mesures de sécurité. C'est la **colonne vertébrale** de la conformité (dans Cap : le module RGPD/traitements).\n\n" +
+          "Une **AIPD** (analyse d'impact) est obligatoire quand un traitement est **susceptible d'engendrer un risque élevé** pour les personnes (surveillance systématique, données sensibles à grande échelle, croisement…).\n\n" +
+          "Les personnes ont des **droits** : accès, rectification, effacement, opposition, portabilité, limitation. Une demande d'exercice de droit doit être traitée **dans un délai d'un mois**.",
+      },
+      {
+        type: "case", xp: 30, title: "Étude de cas — Violation de données",
+        content: "Un ordinateur portable non chiffré contenant un fichier RH est volé. Comment réagissez-vous ?",
+        steps: [
+          {
+            id: "rgs1", prompt: "Premier réflexe ?",
+            options: [
+              { label: "Attendre de voir si les données sont utilisées", feedback: "Non : le délai de notification court dès la prise de connaissance.", score: 0 },
+              { label: "Qualifier la violation (nature, volume, personnes, risque) et la consigner", feedback: "Exactement : on documente toute violation, même non notifiable.", score: 100 },
+            ],
+          },
+          {
+            id: "rgs2", prompt: "Le risque pour les personnes est élevé. Quelle obligation ?",
+            options: [
+              { label: "Notifier la CNIL sous 72 h et informer les personnes concernées", feedback: "Correct : notification à l'autorité sous 72 h + information des personnes si risque élevé.", score: 100 },
+              { label: "Rien, c'est un vol matériel", feedback: "Non : c'est bien une violation de données personnelles.", score: 10 },
+            ],
+          },
+        ],
+      },
+      {
+        type: "quiz", xp: 25, title: "Quiz — RGPD", content: "Vos repères RGPD.",
+        questions: [
+          q("rg1q1", "Sans base légale, un traitement est…", ["Toléré", "Illicite", "Facultatif"], 1, "Pas de base légale (art. 6) = traitement illicite."),
+          q("rg1q2", "Une violation à risque élevé se notifie à la CNIL sous…", ["72 heures", "1 an", "Jamais"], 0, "72 h après en avoir pris connaissance ; information des personnes si risque élevé."),
+          q("rg1q3", "Le ROPA sert à…", ["Décorer l'audit", "Recenser et documenter les traitements", "Chiffrer les données"], 1, "Le registre documente chaque traitement (accountability)."),
+        ],
+      },
+    ],
+  },
+  {
+    title: "Continuité d'activité (PCA / PRA)",
+    description: "BIA, RTO/RPO, stratégies de reprise et importance des tests réguliers.",
+    category: "Résilience",
+    icon: "🔁",
+    badge: "Continuité maîtrisée",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "BIA, RTO et RPO",
+        content:
+          "La continuité d'activité vise à **maintenir ou rétablir** les activités essentielles après un sinistre. Point de départ : le **BIA** (Business Impact Analysis) qui identifie les **processus critiques** et l'impact de leur interruption dans le temps.\n\n" +
+          "Deux objectifs chiffrés en découlent :\n" +
+          "• **RTO** (Recovery Time Objective) — durée maximale d'interruption acceptable (« en combien de temps doit-on être reparti ? »).\n" +
+          "• **RPO** (Recovery Point Objective) — perte de données maximale acceptable (« quelle fraîcheur de sauvegarde ? »).\n\n" +
+          "Un RPO de 1 h impose des sauvegardes au moins horaires ; un RTO de 4 h impose une solution de reprise rapide. Ces objectifs **dimensionnent** les moyens.",
+      },
+      {
+        type: "lesson", xp: 20, title: "PCA, PRA et le rôle des tests",
+        content:
+          "On distingue le **PCA** (plan de continuité — garder l'activité, même en mode dégradé) et le **PRA** (plan de reprise — remettre le SI en état après sinistre).\n\n" +
+          "Un plan **jamais testé** est un plan **présumé défaillant** : les tests révèlent les sauvegardes illisibles, les procédures obsolètes, les dépendances oubliées. On teste par paliers : revue documentaire, exercice sur table, test technique de restauration, bascule complète.\n\n" +
+          "La continuité couvre aussi le **facteur humain** (qui décide, qui contacte qui) et les **dépendances externes** (fournisseurs, télécoms, énergie).",
+      },
+      {
+        type: "quiz", xp: 25, title: "Quiz — Continuité", content: "RTO, RPO et bon sens.",
+        questions: [
+          q("bc1q1", "Le RPO exprime…", ["Le temps de reprise", "La perte de données maximale acceptable", "Le coût du plan"], 1, "RPO = perte de données max ; RTO = temps de reprise max."),
+          q("bc1q2", "Un plan de continuité non testé est…", ["Fiable", "Présumé défaillant", "Inutile à écrire"], 1, "Sans test, aucune garantie qu'il fonctionne le jour J."),
+          q("bc1q3", "Le BIA sert à…", ["Chiffrer les données", "Identifier les processus critiques et leurs impacts", "Former les équipes"], 1, "Le BIA hiérarchise les activités essentielles."),
+        ],
+      },
+      {
+        type: "challenge", xp: 30, title: "Défi — Explore les plans de continuité",
+        content: "Ouvre le module Continuité de la GRC. Repère un plan, ses RTO/RPO et sa date de dernier test. Identifie un plan qui n'a pas été testé récemment.",
+        challengeHref: "/grc?tab=continuite",
+      },
+    ],
+  },
+  {
+    title: "Sécurité des fournisseurs & tiers",
+    description: "Évaluer et surveiller le risque de la chaîne d'approvisionnement (supply chain).",
+    category: "Gestion des risques",
+    icon: "🤝",
+    badge: "Risque tiers maîtrisé",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "Pourquoi le risque tiers compte",
+        content:
+          "Vos fournisseurs (hébergeur, éditeur SaaS, infogérant, prestataire de maintenance) ont souvent **accès à vos données ou à votre SI**. Leur niveau de sécurité devient **le vôtre** : une compromission chez un prestataire peut vous atteindre directement (attaques de **supply chain**).\n\n" +
+          "La maîtrise commence à l'**achat** : qualifier la criticité du service, exiger des garanties (certifications ISO 27001/HDS, PASSI, clauses de sécurité et de réversibilité, localisation des données), puis **contractualiser** ces exigences.\n\n" +
+          "NIS2 renforce cette responsabilité : la sécurité de la chaîne d'approvisionnement devient une **obligation** pour les entités concernées.",
+      },
+      {
+        type: "lesson", xp: 20, title: "Évaluer et surveiller dans la durée",
+        content:
+          "L'évaluation d'un tiers est **proportionnée** au risque : questionnaire de sécurité, revue des certifications, voire audit pour les prestataires critiques.\n\n" +
+          "Mais l'évaluation n'est pas un acte unique : le risque se **surveille dans le temps** (renouvellement des certifications, incidents chez le fournisseur, évolution du périmètre). Prévoyez le **droit d'audit**, la **notification d'incident** par le prestataire, et un plan de **réversibilité/sortie** (récupérer ses données, changer de fournisseur).\n\n" +
+          "Dans Cap, le module **Fournisseurs** aide à recenser les tiers, leur criticité et le suivi des exigences.",
+      },
+      {
+        type: "quiz", xp: 25, title: "Quiz — Risque tiers", content: "La chaîne d'appro.",
+        questions: [
+          q("sf1q1", "La sécurité d'un fournisseur critique…", ["Ne vous concerne pas", "Devient une extension de la vôtre", "Est de sa seule responsabilité"], 1, "Son niveau de sécurité impacte directement le vôtre."),
+          q("sf1q2", "Les exigences de sécurité d'un tiers doivent être…", ["Orales", "Contractualisées et vérifiables", "Facultatives"], 1, "On contractualise (clauses, droit d'audit, notification)."),
+          q("sf1q3", "La réversibilité permet de…", ["Payer moins", "Récupérer ses données et changer de fournisseur", "Éviter l'audit"], 1, "La sortie maîtrisée évite le verrouillage (lock-in)."),
+        ],
+      },
+    ],
+  },
+  {
+    title: "Sensibilisation & culture sécurité",
+    description: "Faire de chaque collaborateur un maillon fort : phishing, mots de passe, hygiène.",
+    category: "Fondamentaux cyber",
+    icon: "🎓",
+    badge: "Ambassadeur sécurité",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "L'humain, cible n°1",
+        content:
+          "La majorité des attaques réussies commencent par l'**humain** : hameçonnage, pièce jointe piégée, appel frauduleux (**ingénierie sociale**). La technique seule ne suffit pas ; la **vigilance des utilisateurs** est une ligne de défense à part entière.\n\n" +
+          "Sensibiliser, ce n'est pas culpabiliser : c'est donner des **réflexes simples** et un **canal facile pour signaler** un doute (sans peur de « déranger »). Un signalement rapide vaut mieux qu'un clic caché.\n\n" +
+          "Une bonne sensibilisation est **régulière**, **concrète** (exemples réels), et **mesurée** (campagnes de faux phishing, taux de signalement).",
+      },
+      {
+        type: "lesson", xp: 20, title: "Mots de passe & hameçonnage",
+        content:
+          "**Mots de passe** : privilégier des **phrases de passe** longues, **uniques par service**, stockées dans un **gestionnaire**. Activer la **double authentification (MFA)** partout où c'est possible — elle bloque l'essentiel des vols d'identifiants.\n\n" +
+          "**Hameçonnage** : se méfier de l'**urgence**, des **liens** et **pièces jointes** inattendus, des demandes de virement ou d'identifiants. Vérifier l'**expéditeur réel**, survoler les liens, et en cas de doute **signaler** plutôt que cliquer.\n\n" +
+          "Règle d'or : **aucune organisation sérieuse** ne demande votre mot de passe par e-mail.",
+      },
+      {
+        type: "case", xp: 30, title: "Étude de cas — Le faux message du dirigeant",
+        content: "Vous recevez un e-mail « du PDG » demandant un virement urgent et confidentiel. Que faites-vous ?",
+        steps: [
+          {
+            id: "aw1s1", prompt: "Votre réaction ?",
+            options: [
+              { label: "J'exécute vite, c'est le PDG et c'est urgent", feedback: "Non : urgence + confidentialité + virement = signaux classiques de fraude au président.", score: 0 },
+              { label: "Je vérifie par un autre canal connu et je signale", feedback: "Exactement : on confirme par un canal de confiance, jamais en répondant au mail.", score: 100 },
+            ],
+          },
+          {
+            id: "aw1s2", prompt: "Le lien du mail imite le portail interne. Vous…",
+            options: [
+              { label: "Saisissez vos identifiants pour vérifier", feedback: "Non : ne jamais saisir ses identifiants depuis un lien reçu.", score: 0 },
+              { label: "Ne cliquez pas et alertez le SOC/la sécurité", feedback: "Correct : signalement = protection collective.", score: 100 },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    title: "ISO 27001 : comprendre le SMSI",
+    description: "Système de management de la sécurité, Annexe A, approche PDCA et certification.",
+    category: "Conformité",
+    icon: "📘",
+    badge: "SMSI compris",
+    lessons: [
+      {
+        type: "lesson", xp: 20, title: "Qu'est-ce qu'un SMSI ?",
+        content:
+          "**ISO/IEC 27001** définit un **SMSI** (Système de Management de la Sécurité de l'Information) : une démarche **organisée et permanente** pour gérer la sécurité, pas une simple liste de mesures techniques.\n\n" +
+          "Le cœur de la norme, ce sont les **clauses 4 à 10** : contexte, leadership, planification (dont l'**appréciation du risque**), support, fonctionnement, **évaluation des performances** (audits, revue de direction) et **amélioration**.\n\n" +
+          "L'**Annexe A** (référentiel de mesures, révisé en 2022 : 93 mesures en 4 thèmes) est une **boîte à outils** : on sélectionne les mesures pertinentes via une **déclaration d'applicabilité (SoA)**, justifiée par l'analyse de risque.",
+      },
+      {
+        type: "lesson", xp: 20, title: "PDCA & amélioration continue",
+        content:
+          "Le SMSI vit selon la roue **PDCA** :\n" +
+          "• **Plan** — définir le périmètre, apprécier les risques, choisir les mesures.\n" +
+          "• **Do** — mettre en œuvre les mesures et les processus.\n" +
+          "• **Check** — mesurer, auditer, faire la revue de direction.\n" +
+          "• **Act** — corriger les écarts, améliorer.\n\n" +
+          "La **certification** (audit par un organisme accrédité) atteste que le SMSI est en place et efficace ; elle se maintient par des **audits de surveillance** annuels. L'esprit reste l'**amélioration continue**, pas la photo à un instant T.\n\n" +
+          "Cap outille cette démarche : conformité par référentiel, risques, contrôles, actions correctives et revue de direction.",
+      },
+      {
+        type: "quiz", xp: 25, title: "Quiz — ISO 27001", content: "Le SMSI en bref.",
+        questions: [
+          q("sm1q1", "Un SMSI est avant tout…", ["Un antivirus", "Une démarche de management organisée et continue", "Un pare-feu"], 1, "27001 = système de management, pas un produit."),
+          q("sm1q2", "La SoA (déclaration d'applicabilité) sert à…", ["Lister le matériel", "Justifier les mesures de l'Annexe A retenues/exclues", "Chiffrer les données"], 1, "La SoA justifie la sélection des mesures via le risque."),
+          q("sm1q3", "Le PDCA traduit…", ["Une amélioration continue", "Un audit unique", "Une obligation légale"], 0, "Plan-Do-Check-Act = boucle d'amélioration continue."),
+        ],
+      },
+      {
+        type: "challenge", xp: 30, title: "Défi — Ta posture de conformité",
+        content: "Ouvre l'onglet Conformité de la GRC, choisis le référentiel ISO 27001 et observe le taux de couverture et de conformité par thème. Repère une mesure non évaluée.",
+        challengeHref: "/grc?tab=conformite",
+      },
+    ],
+  },
 ];
