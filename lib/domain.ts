@@ -1716,6 +1716,76 @@ export interface Runbook {
   createdAt: Date;
   updatedAt: Date;
 }
+/** Indicateurs de pilotage du SOC (préparation méthodologique + posture). */
+export interface SocKpis {
+  runbooks: number;
+  runbooksValides: number;
+  runbookValidationPct: number;
+  procedures: number;
+  proceduresValidees: number;
+  procValidationPct: number;
+  attackTotal: number;
+  attackCouvertes: number;
+  attackReliees: number; // techniques reliées à au moins un runbook
+  attackCoveragePct: number;
+  veilleActive: number;
+  veilleCritique: number;
+  deGarde: number;
+  incidentsOuverts: number;
+  incidentsCritiques: number;
+  mttrHeures: number | null;
+  readiness: number; // 0–100, préparation méthodologique
+}
+export interface SocKpiInput {
+  runbooks: Runbook[];
+  socProcedures: SocProcedure[];
+  attackTechniqueIds: string[]; // toutes les techniques du référentiel
+  attackCoverage: AttackCoverage[];
+  intel: IntelItem[];
+  onCall: OnCallShift[];
+  incidents: Incident[];
+  now: Date;
+}
+/** Agrège les indicateurs du SOC. La « préparation » (readiness) mesure la
+ *  capitalisation méthodologique : runbooks validés, procédures validées,
+ *  couverture ATT&CK — indépendamment de l'opérationnel temps réel. */
+export function computeSocKpis(x: SocKpiInput): SocKpis {
+  const runbooks = x.runbooks.length;
+  const runbooksValides = x.runbooks.filter((r) => r.status === "Validé").length;
+  const runbookValidationPct = runbooks ? Math.round((runbooksValides / runbooks) * 100) : 0;
+
+  const procedures = x.socProcedures.length;
+  const proceduresValidees = x.socProcedures.filter((p) => p.status === "Validé").length;
+  const procValidationPct = procedures ? Math.round((proceduresValidees / procedures) * 100) : 0;
+
+  const attackTotal = x.attackTechniqueIds.length;
+  const covByTech = new Map(x.attackCoverage.map((c) => [c.techniqueId, c]));
+  const attackCouvertes = x.attackTechniqueIds.filter((id) => covByTech.get(id)?.status === "Couverte").length;
+  const rbCodes = x.runbooks.flatMap((r) => r.attackTechniques);
+  const attackReliees = x.attackTechniqueIds.filter((id) => runbookCoversTechnique(rbCodes, id)).length;
+  const attackCoveragePct = attackTotal ? Math.round((attackCouvertes / attackTotal) * 100) : 0;
+
+  const veilleActive = x.intel.filter((i) => isIntelActive(i, x.now)).length;
+  const veilleCritique = x.intel.filter((i) => isIntelActive(i, x.now) && i.severity === "Critique").length;
+  const deGarde = currentOnCall(x.onCall, x.now).length;
+
+  const openInc = x.incidents.filter(isIncidentOpen);
+  const mttrs = x.incidents.map(incidentResolutionHours).filter((h): h is number => h !== null);
+  const mttrHeures = mttrs.length ? Math.round(mttrs.reduce((a, h) => a + h, 0) / mttrs.length) : null;
+
+  const readiness = Math.round(0.4 * runbookValidationPct + 0.3 * attackCoveragePct + 0.3 * procValidationPct);
+
+  return {
+    runbooks, runbooksValides, runbookValidationPct,
+    procedures, proceduresValidees, procValidationPct,
+    attackTotal, attackCouvertes, attackReliees, attackCoveragePct,
+    veilleActive, veilleCritique, deGarde,
+    incidentsOuverts: openInc.length,
+    incidentsCritiques: openInc.filter((i) => i.severity === "Critique").length,
+    mttrHeures, readiness,
+  };
+}
+
 /** Regroupe les étapes d'un runbook par phase, dans l'ordre NIST. */
 export function runbookStepsByPhase(steps: RunbookStep[]): { phase: string; steps: RunbookStep[] }[] {
   return RUNBOOK_PHASES

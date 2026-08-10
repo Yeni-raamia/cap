@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.80.0] - 2026-08-10
+
+### Ajouté
+
+- **Module SOC — Pilotage & KPIs** (nouvel onglet « Pilotage / KPIs ») : un tableau de bord de synthèse pour rendre compte de la maturité du SOC. Un indice de **préparation méthodologique** (0–100 : runbooks validés, procédures validées, couverture ATT&CK) et des indicateurs agrégés — capitalisation (runbooks/procédures validés, techniques ATT&CK couvertes et reliées à un runbook), posture & opérations (veille active/critique, **incidents ouverts/critiques et MTTR** repris du module GRC, personnes de garde). Les incidents restent gérés dans le GRC (source unique) ; le SOC en reflète la posture.
+
 ## [1.79.0] - 2026-08-10
 
 ### Ajouté
