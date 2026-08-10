@@ -580,6 +580,7 @@ interface AppCtx {
   loadMessages: (t: MsgTarget) => Promise<{ conversationId: string | null; messages: Message[]; muted: boolean }>;
   muteConversation: (t: MsgTarget, muted: boolean) => Promise<boolean>;
   sendMessage: (t: MsgTarget, body: string, replyTo?: string | null) => Promise<Message[]>;
+  sendMessageFile: (t: MsgTarget, file: File, body?: string, replyTo?: string | null) => Promise<{ messages: Message[]; error: string | null }>;
   reactToMessage: (messageId: string, emoji: string) => Promise<Message[] | null>;
   createGroup: (title: string, memberIds: string[]) => Promise<string | null>;
   startDirect: (profileId: string) => Promise<string | null>;
@@ -850,7 +851,12 @@ const reviveNc = (n: NonConformite): NonConformite => ({
 const reviveNcs = (arr: NonConformite[]): NonConformite[] => arr.map(reviveNc);
 const reviveConvs = (arr: ConversationSummary[]): ConversationSummary[] =>
   arr.map((c) => ({ ...c, lastAt: c.lastAt ? new Date(c.lastAt) : null }));
-const reviveMsgs = (arr: Message[]): Message[] => arr.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }));
+const reviveMsgs = (arr: Message[]): Message[] =>
+  arr.map((m) => ({
+    ...m,
+    createdAt: new Date(m.createdAt),
+    attachments: (m.attachments ?? []).map((a) => ({ ...a, createdAt: new Date(a.createdAt) })),
+  }));
 const reviveTask = (t: Task): Task => ({
   ...t,
   startDate: t.startDate ? new Date(t.startDate) : null,
@@ -2702,6 +2708,24 @@ export function AppProvider({
     return d.messages ? reviveMsgs(d.messages) : [];
   };
 
+  /** Envoie un fichier (avec légende optionnelle) dans une conversation. Renvoie {messages, error}. */
+  const sendMessageFile = async (t: MsgTarget, file: File, body?: string, replyTo?: string | null): Promise<{ messages: Message[]; error: string | null }> => {
+    if (demo) return { messages: [], error: "Indisponible en mode démo." };
+    const fd = new FormData();
+    fd.append("file", file);
+    if (t.convId) fd.append("convId", t.convId);
+    if (t.refType) fd.append("refType", t.refType);
+    if (t.refId) fd.append("refId", t.refId);
+    if (body) fd.append("body", body);
+    if (replyTo) fd.append("replyTo", replyTo);
+    const r = await fetch("/api/message-files", { method: "POST", body: fd });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return { messages: [], error: d?.error || "Envoi du fichier échoué." };
+    if (d.conversations) setConversations(reviveConvs(d.conversations));
+    if (d.notifications) setNotifications(reviveNotifs(d.notifications));
+    return { messages: d.messages ? reviveMsgs(d.messages) : [], error: null };
+  };
+
   const reactToMessage = async (messageId: string, emoji: string): Promise<Message[] | null> => {
     if (demo) return null;
     const r = await fetch("/api/messages/react", {
@@ -2885,6 +2909,7 @@ export function AppProvider({
     loadMessages,
     muteConversation,
     sendMessage,
+    sendMessageFile,
     reactToMessage,
     createGroup,
     startDirect,

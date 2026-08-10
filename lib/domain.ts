@@ -3073,6 +3073,18 @@ export interface MessageReaction {
   profileId: string;
 }
 
+export interface MessageAttachment {
+  id: string;
+  messageId: string;
+  filename: string;
+  mime: string;
+  size: number;
+  uploadedBy: string;
+  createdAt: Date;
+}
+/** Vrai si la pièce jointe est une image (aperçu inline dans le fil). */
+export const isImageAttachment = (a: { mime: string }): boolean => a.mime.startsWith("image/");
+
 export interface Message {
   id: string;
   conversationId: string;
@@ -3081,6 +3093,7 @@ export interface Message {
   createdAt: Date;
   replyTo: string | null; // id du message auquel celui-ci répond
   reactions: MessageReaction[];
+  attachments: MessageAttachment[];
 }
 
 /** Palette de réactions proposées dans la messagerie. */

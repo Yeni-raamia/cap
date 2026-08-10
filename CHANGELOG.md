@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.85.0] - 2026-08-10
+
+### Ajouté
+
+- **Messagerie — envoi de fichiers** : un bouton trombone dans chaque fil de discussion permet de joindre un fichier (documents, images, PDF… jusqu'à 10 Mo, mêmes types que les autres pièces jointes de l'app), avec une légende facultative. Les **images s'affichent en aperçu** directement dans la conversation ; les autres fichiers apparaissent en pastille téléchargeable. Les pièces jointes sont supprimées avec leur message ou leur conversation, et l'accès au téléchargement est réservé aux membres du fil.
+
 ## [1.84.0] - 2026-08-10
 
 ### Ajouté

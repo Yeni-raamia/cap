@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, BellOff, CornerUpLeft, Send, SmilePlus, Trash2, X } from "lucide-react";
-import { fmt, REACTION_EMOJIS, type Message } from "@/lib/domain";
+import { Bell, BellOff, CornerUpLeft, Paperclip, Send, SmilePlus, Trash2, X } from "lucide-react";
+import { fmt, formatBytes, isImageAttachment, REACTION_EMOJIS, type Message } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
 
@@ -14,15 +14,18 @@ interface Target {
 
 /** Fil de discussion réutilisable (suivi, négligence, projet ou groupe). */
 export function Discussion({ target, height = "h-72" }: { target: Target; height?: string }) {
-  const { demo, me, profileById, loadMessages, muteConversation, sendMessage, reactToMessage, deleteMessage } = useApp();
+  const { demo, me, profileById, loadMessages, muteConversation, sendMessage, sendMessageFile, reactToMessage, deleteMessage } = useApp();
   const [messages, setMessages] = useState<Message[]>([]);
   const [convId, setConvId] = useState<string | null>(target.convId ?? null);
   const [muted, setMuted] = useState(false);
   const [muting, setMuting] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   const key = target.convId ?? `${target.refType}:${target.refId}`;
@@ -61,6 +64,25 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
     setMessages(msgs);
     if (!convId && target.convId) setConvId(target.convId);
     setSending(false);
+  };
+
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || uploading) return;
+    setErr(null);
+    setUploading(true);
+    const caption = input.trim();
+    setInput("");
+    const reply = replyingTo?.id ?? null;
+    setReplyingTo(null);
+    const { messages: msgs, error } = await sendMessageFile(target, file, caption, reply);
+    if (error) setErr(error);
+    else {
+      setMessages(msgs);
+      if (!convId && target.convId) setConvId(target.convId);
+    }
+    setUploading(false);
   };
 
   const react = async (messageId: string, emoji: string) => {
@@ -131,9 +153,11 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
                   )}
 
                   <div className={`flex items-center gap-1 ${mine ? "flex-row-reverse" : ""}`}>
-                    <div className={`inline-block text-[13px] rounded-2xl px-3 py-1.5 ${mine ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-800"}`}>
-                      {m.body}
-                    </div>
+                    {m.body && (
+                      <div className={`inline-block text-[13px] rounded-2xl px-3 py-1.5 whitespace-pre-wrap break-words ${mine ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-800"}`}>
+                        {m.body}
+                      </div>
+                    )}
                     {/* Actions au survol */}
                     <div className="relative flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition">
                       <button onClick={() => setPickerFor(pickerFor === m.id ? null : m.id)} aria-label="Réagir" className="text-slate-400 hover:text-amber-500 p-0.5">
@@ -158,6 +182,32 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
                       )}
                     </div>
                   </div>
+
+                  {/* Pièces jointes */}
+                  {m.attachments.length > 0 && (
+                    <div className={`flex flex-col gap-1 mt-1 ${mine ? "items-end" : "items-start"}`}>
+                      {m.attachments.map((a) =>
+                        isImageAttachment(a) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <a key={a.id} href={`/api/message-files/${a.id}`} target="_blank" rel="noopener noreferrer" title={a.filename}>
+                            <img src={`/api/message-files/${a.id}`} alt={a.filename} className="max-h-44 max-w-[240px] rounded-xl border border-slate-200 dark:border-slate-700 object-cover" />
+                          </a>
+                        ) : (
+                          <a
+                            key={a.id}
+                            href={`/api/message-files/${a.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`inline-flex items-center gap-2 text-[12px] rounded-xl px-2.5 py-1.5 border max-w-[240px] ${mine ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-200"} hover:underline`}
+                          >
+                            <Paperclip size={13} className="shrink-0" />
+                            <span className="truncate flex-1">{a.filename}</span>
+                            <span className="text-slate-400 shrink-0">{formatBytes(a.size)}</span>
+                          </a>
+                        )
+                      )}
+                    </div>
+                  )}
 
                   {/* Réactions posées */}
                   {grouped.size > 0 && (
@@ -202,15 +252,28 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
         </div>
       )}
 
+      {err && <div className="text-[11px] text-rose-600 mt-2">{err}</div>}
+
       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
+        <input ref={fileRef} type="file" className="hidden" onChange={onPickFile} aria-hidden />
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading || sending}
+          title="Joindre un fichier (max 10 Mo)"
+          aria-label="Joindre un fichier"
+          className="inline-flex items-center justify-center text-slate-500 hover:text-emerald-600 border border-slate-200 rounded-lg px-2.5 py-2 disabled:opacity-40"
+        >
+          <Paperclip size={16} />
+        </button>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
-          placeholder={replyingTo ? "Votre réponse…" : "Écrire un message…"}
-          className="flex-1 text-[13px] border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-emerald-400"
+          placeholder={uploading ? "Envoi du fichier…" : replyingTo ? "Votre réponse…" : "Écrire un message…"}
+          disabled={uploading}
+          className="flex-1 text-[13px] border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-emerald-400 disabled:opacity-60"
         />
-        <button onClick={submit} disabled={!input.trim() || sending} className="inline-flex items-center gap-1 text-[13px] font-medium text-white bg-emerald-600 rounded-lg px-3 py-2 hover:bg-emerald-700 disabled:opacity-40">
+        <button onClick={submit} disabled={!input.trim() || sending || uploading} className="inline-flex items-center gap-1 text-[13px] font-medium text-white bg-emerald-600 rounded-lg px-3 py-2 hover:bg-emerald-700 disabled:opacity-40">
           <Send size={15} />
         </button>
       </div>

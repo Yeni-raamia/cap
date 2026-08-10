@@ -5,6 +5,7 @@
  * ================================================================== */
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
+import { attachmentsByConversation } from "./messagefiles";
 import type { ConversationSummary, ConvKind, Message } from "@/lib/domain";
 
 const now = () => new Date().toISOString();
@@ -90,6 +91,7 @@ export function messageAuthor(messageId: string): string | null {
 export function deleteMessage(messageId: string): void {
   const db = getDb();
   db.prepare("delete from message_reactions where message_id=?").run(messageId);
+  db.prepare("delete from message_attachments where message_id=?").run(messageId);
   db.prepare("delete from messages where id=?").run(messageId);
 }
 
@@ -103,6 +105,7 @@ export function conversationMeta(convId: string): { createdBy: string | null; ki
 export function deleteConversation(convId: string): void {
   const db = getDb();
   db.prepare("delete from message_reactions where message_id in (select id from messages where conversation_id=?)").run(convId);
+  db.prepare("delete from message_attachments where conversation_id=?").run(convId);
   db.prepare("delete from messages where conversation_id=?").run(convId);
   db.prepare("delete from conversation_members where conversation_id=?").run(convId);
   db.prepare("delete from conversation_reads where conversation_id=?").run(convId);
@@ -144,6 +147,7 @@ export function listMessages(convId: string): Message[] {
   const reacts = db
     .prepare("select r.emoji, r.profile_id, r.message_id from message_reactions r join messages m on m.id=r.message_id where m.conversation_id=?")
     .all(convId) as { emoji: string; profile_id: string; message_id: string }[];
+  const files = attachmentsByConversation(convId);
   return rows.map((r) => ({
     id: r.id,
     conversationId: r.conversation_id,
@@ -152,6 +156,7 @@ export function listMessages(convId: string): Message[] {
     createdAt: new Date(r.created_at),
     replyTo: r.reply_to,
     reactions: reacts.filter((x) => x.message_id === r.id).map((x) => ({ emoji: x.emoji, profileId: x.profile_id })),
+    attachments: files.filter((f) => f.messageId === r.id),
   }));
 }
 

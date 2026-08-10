@@ -465,6 +465,13 @@ create table if not exists message_reactions (
   id text primary key, message_id text not null, profile_id text not null, emoji text not null
 );
 create index if not exists idx_reactions_msg on message_reactions(message_id);
+create table if not exists message_attachments (
+  id text primary key, message_id text not null, conversation_id text not null,
+  filename text not null, mime text not null default '', size integer not null default 0,
+  data blob not null, uploaded_by text, created_at text not null default (datetime('now'))
+);
+create index if not exists idx_msgatt_conv on message_attachments(conversation_id);
+create index if not exists idx_msgatt_msg on message_attachments(message_id);
 create table if not exists conversation_reads (
   conversation_id text not null, profile_id text not null, last_read_at text not null default (datetime('now')),
   primary key (conversation_id, profile_id)
