@@ -28,6 +28,7 @@ import type {
   PolicyDiffusion,
   Risk,
   Runbook,
+  SocProcedure,
   TrainingCourse,
   TrainingLesson,
 } from "../domain";
@@ -35,6 +36,7 @@ import { CURRICULUM, type CourseSeed } from "./trainingCurriculum";
 import { AUDIT_CURRICULUM } from "./auditCurriculum";
 import { STARTER_AUDIT_GRIDS, starterQuestions } from "./auditGrids";
 import { STARTER_RUNBOOKS, starterRunbookSteps } from "./runbooks";
+import { STARTER_PROCEDURES, starterProcedureItems } from "./socProcedures";
 
 const NOW = () => new Date();
 const day = (offset: number) => new Date(NOW().getTime() + offset * 864e5);
@@ -492,5 +494,16 @@ export function seedRunbooks(): Runbook[] {
     createdBy: "u1",
     createdAt: day(-100),
     updatedAt: day(-20),
+  }));
+}
+
+/* ---------- SOC : procédures & checklists de départ (démonstration) ---------- */
+export function seedSocProcedures(): SocProcedure[] {
+  return STARTER_PROCEDURES.map((p, i) => ({
+    id: `proc${i + 1}`,
+    ref: `PROC-${Y()}-${String(i + 1).padStart(3, "0")}`,
+    title: p.title, type: p.type, frequency: p.frequency, objective: p.objective, content: p.content,
+    items: starterProcedureItems(p), references: p.references, status: "Validé", ownerId: "u1",
+    createdBy: "u1", createdAt: day(-100), updatedAt: day(-20),
   }));
 }

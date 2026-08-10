@@ -36,6 +36,7 @@ import {
   seedAuditPlan,
   seedAuditors,
   seedRunbooks,
+  seedSocProcedures,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -96,6 +97,7 @@ import {
   type AuditPlanItem,
   type Auditor,
   type Runbook,
+  type SocProcedure,
   type Supplier,
   type Task,
   type TaskPriority,
@@ -325,6 +327,18 @@ export interface AuditInput {
   status?: string;
   responses?: import("@/lib/domain").AuditResponse[];
   summary?: string;
+}
+export interface SocProcedureInput {
+  id?: string;
+  title?: string;
+  type?: string;
+  frequency?: string;
+  objective?: string;
+  content?: string;
+  items?: import("@/lib/domain").SocChecklistItem[];
+  references?: string;
+  status?: string;
+  ownerId?: string;
 }
 export interface RunbookInput {
   id?: string;
@@ -661,6 +675,10 @@ interface AppCtx {
   createRunbook: (input: RunbookInput) => Promise<string | null>;
   updateRunbook: (id: string, fields: RunbookInput) => Promise<string | null>;
   deleteRunbook: (id: string) => Promise<string | null>;
+  socProcedures: SocProcedure[];
+  createSocProcedure: (input: SocProcedureInput) => Promise<string | null>;
+  updateSocProcedure: (id: string, fields: SocProcedureInput) => Promise<string | null>;
+  deleteSocProcedure: (id: string) => Promise<string | null>;
   // GRC : continuité d'activité (BIA/PCA)
   continuityPlans: ContinuityPlan[];
   continuityById: (id: string) => ContinuityPlan | null;
@@ -889,6 +907,8 @@ const reviveAuditor = (a: Auditor): Auditor => ({ ...a, createdAt: new Date(a.cr
 const reviveAuditors = (arr: Auditor[]): Auditor[] => arr.map(reviveAuditor);
 const reviveRunbook = (r: Runbook): Runbook => ({ ...r, createdAt: new Date(r.createdAt), updatedAt: new Date(r.updatedAt) });
 const reviveRunbooks = (arr: Runbook[]): Runbook[] => arr.map(reviveRunbook);
+const reviveSocProcedure = (p: SocProcedure): SocProcedure => ({ ...p, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
+const reviveSocProcedures = (arr: SocProcedure[]): SocProcedure[] => arr.map(reviveSocProcedure);
 const revivePlan2 = (p: ContinuityPlan): ContinuityPlan => ({ ...p, lastTestDate: p.lastTestDate ? new Date(p.lastTestDate) : null, reviewDate: p.reviewDate ? new Date(p.reviewDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
 const reviveContinuity = (arr: ContinuityPlan[]): ContinuityPlan[] => arr.map(revivePlan2);
 const reviveIncident = (i: Incident): Incident => ({ ...i, detectedAt: i.detectedAt ? new Date(i.detectedAt) : null, resolvedAt: i.resolvedAt ? new Date(i.resolvedAt) : null, createdAt: new Date(i.createdAt), updatedAt: new Date(i.updatedAt) });
@@ -973,6 +993,7 @@ export function AppProvider({
   initialAuditPlanItems,
   initialAuditors,
   initialRunbooks,
+  initialSocProcedures,
   initialContinuityPlans,
   initialIncidents,
   initialProcessing,
@@ -1014,6 +1035,7 @@ export function AppProvider({
   initialAuditPlanItems?: AuditPlanItem[];
   initialAuditors?: Auditor[];
   initialRunbooks?: Runbook[];
+  initialSocProcedures?: SocProcedure[];
   initialContinuityPlans?: ContinuityPlan[];
   initialIncidents?: Incident[];
   initialProcessing?: ProcessingActivity[];
@@ -1074,6 +1096,7 @@ export function AppProvider({
   const [auditPlanItems, setAuditPlanItems] = useState<AuditPlanItem[]>(demo ? seedAuditPlan() : reviveAuditPlanItems(initialAuditPlanItems ?? []));
   const [auditors, setAuditors] = useState<Auditor[]>(demo ? seedAuditors() : reviveAuditors(initialAuditors ?? []));
   const [runbooks, setRunbooks] = useState<Runbook[]>(demo ? seedRunbooks() : reviveRunbooks(initialRunbooks ?? []));
+  const [socProcedures, setSocProcedures] = useState<SocProcedure[]>(demo ? seedSocProcedures() : reviveSocProcedures(initialSocProcedures ?? []));
   const [continuityPlans, setContinuityPlans] = useState<ContinuityPlan[]>(demo ? seedContinuity() : reviveContinuity(initialContinuityPlans ?? []));
   const [incidents, setIncidents] = useState<Incident[]>(demo ? seedIncidents() : reviveIncidents(initialIncidents ?? []));
   const [processing, setProcessing] = useState<ProcessingActivity[]>(demo ? seedProcessing() : reviveProcessing(initialProcessing ?? []));
@@ -2443,6 +2466,21 @@ export function AppProvider({
   const updateRunbook = (id: string, fields: RunbookInput) => runbookAction("update", { id, ...fields });
   const deleteRunbook = (id: string) => runbookAction("delete", { id });
 
+  /* ---------- SOC : procédures & checklists de routine ---------- */
+  const socProcedureAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Procédures indisponibles en mode démo.";
+    const res = await fetch("/api/soc-procedures", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.socProcedures) setSocProcedures(reviveSocProcedures(d.socProcedures));
+    if (op === "create") toast("Procédure créée.", "success");
+    else if (op === "delete") toast("Procédure supprimée.", "success");
+    return null;
+  };
+  const createSocProcedure = (input: SocProcedureInput) => socProcedureAction("create", input as Record<string, unknown>);
+  const updateSocProcedure = (id: string, fields: SocProcedureInput) => socProcedureAction("update", { id, ...fields });
+  const deleteSocProcedure = (id: string) => socProcedureAction("delete", { id });
+
   /* ---------- GRC : Continuité d'activité (BIA/PCA) ---------- */
   const continuityById = (id: string): ContinuityPlan | null => continuityPlans.find((p) => p.id === id) ?? null;
   const continuityAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
@@ -2864,6 +2902,10 @@ export function AppProvider({
     createRunbook,
     updateRunbook,
     deleteRunbook,
+    socProcedures,
+    createSocProcedure,
+    updateSocProcedure,
+    deleteSocProcedure,
     continuityPlans,
     continuityById,
     createContinuity,

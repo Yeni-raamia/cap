@@ -317,6 +317,13 @@ create table if not exists direction_reviews (
   next_review_date text, status text not null default 'Préparée',
   created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists soc_procedures (
+  id text primary key, ref text not null,
+  title text not null default '', type text not null default 'Autre', frequency text not null default 'Ponctuel',
+  objective text not null default '', content text not null default '', items text not null default '[]',
+  references_ text not null default '', status text not null default 'Brouillon', owner_id text,
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists runbooks (
   id text primary key, ref text not null,
   title text not null default '', category text not null default 'Autre', severity text not null default 'Majeur',

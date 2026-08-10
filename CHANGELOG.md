@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.75.0] - 2026-08-10
+
+### Ajouté
+
+- **Module SOC — Procédures & checklists de routine** (nouvel onglet « Procédures ») : le « comment on travaille » du SOC, capitalisé en **templates réutilisables** — check-list de **prise de poste**, **vérifications quotidiennes** de santé (sources Wazuh, EDR, feeds…), **critères de triage/classification**, **matrice d'escalade** et **modèle de communication d'incident**. Chaque procédure a un type, une fréquence, un objectif, un contenu libre et des **points à cocher**. Bibliothèque de départ fournie (5 procédures, bonnes pratiques NIST 800-61 / ANSSI / SANS), qui apparaît automatiquement. Tableau de bord enrichi d'un indicateur « Procédures ».
+
 ## [1.74.0] - 2026-08-10
 
 ### Ajouté

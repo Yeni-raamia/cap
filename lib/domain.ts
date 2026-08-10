@@ -1719,6 +1719,52 @@ export function runbookStepsByPhase(steps: RunbookStep[]): { phase: string; step
     .filter((g) => g.steps.length > 0);
 }
 
+/* ---------- Module SOC : Procédures & checklists de routine ---------- */
+export const SOC_PROCEDURE_TYPES = [
+  "Prise de poste",
+  "Vérification quotidienne",
+  "Vérification hebdomadaire",
+  "Triage / classification",
+  "Matrice d'escalade",
+  "Communication",
+  "Astreinte",
+  "Autre",
+];
+export const SOC_PROCEDURE_FREQ = ["Ponctuel", "Par quart", "Quotidien", "Hebdomadaire", "Mensuel"];
+export const SOC_PROCEDURE_TYPE_TONE: Record<string, string> = {
+  "Prise de poste": "bg-sky-50 text-sky-700 border-sky-200",
+  "Vérification quotidienne": "bg-emerald-50 text-emerald-700 border-emerald-200",
+  "Vérification hebdomadaire": "bg-teal-50 text-teal-700 border-teal-200",
+  "Triage / classification": "bg-violet-50 text-violet-700 border-violet-200",
+  "Matrice d'escalade": "bg-rose-50 text-rose-700 border-rose-200",
+  "Communication": "bg-amber-50 text-amber-700 border-amber-200",
+  "Astreinte": "bg-indigo-50 text-indigo-700 border-indigo-200",
+  "Autre": "bg-slate-50 text-slate-600 border-slate-200",
+};
+/** Point d'une checklist de procédure SOC. */
+export interface SocChecklistItem {
+  id: string;
+  label: string;
+  guidance: string;
+}
+/** Procédure / checklist de routine du SOC (template réutilisable). */
+export interface SocProcedure {
+  id: string;
+  ref: string; // PROC-AAAA-NNN
+  title: string;
+  type: string; // SOC_PROCEDURE_TYPES
+  frequency: string; // SOC_PROCEDURE_FREQ
+  objective: string;
+  content: string; // corps (procédure / matrice / modèle de communication)
+  items: SocChecklistItem[]; // points à cocher (facultatif)
+  references: string;
+  status: string; // RUNBOOK_STATUS (Brouillon / Validé / À réviser / Obsolète)
+  ownerId: string;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 /** Listes de référence par défaut (seed + repli si la base est vide). */
 export const DEFAULT_REF_LISTS: RefLists = {
   appreciations: APPRECIATIONS,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { BookOpen, CheckCircle2, Crosshair, Layers, Radar } from "lucide-react";
+import { BookOpen, CheckCircle2, Crosshair, Layers, ListChecks, Radar } from "lucide-react";
 import { RUNBOOK_CATEGORIES, RUNBOOK_STATUS_TONE, type Runbook } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
@@ -9,7 +9,7 @@ import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
 
 export function SocDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
-  const { runbooks } = useApp();
+  const { runbooks, socProcedures } = useApp();
 
   const d = useMemo(() => {
     const valides = runbooks.filter((r) => r.status === "Validé").length;
@@ -30,14 +30,15 @@ export function SocDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
         <div className="flex items-start gap-3">
           <Radar size={20} className="text-emerald-600 mt-0.5 shrink-0" />
           <div className="text-[12.5px] text-slate-600 dark:text-slate-300 leading-relaxed">
-            Ce module n'est pas une console d'alertes (Wazuh et vos outils gardent l'opérationnel). C'est la <b>colonne vertébrale méthodologique</b> : des <b>runbooks</b> de réponse pas-à-pas, pour que l'équipe sache <i>comment s'y prendre</i> au quotidien, selon les normes (NIST SP 800-61, ANSSI). Un incident confirmé s'ouvre dans le registre <b>GRC</b> (source unique).
+            Ce module n&apos;est pas une console d&apos;alertes (Wazuh et vos outils gardent l&apos;opérationnel). C&apos;est la <b>colonne vertébrale méthodologique</b> : des <b>runbooks</b> de réponse pas-à-pas, pour que l&apos;équipe sache <i>comment s&apos;y prendre</i> au quotidien, selon les normes (NIST SP 800-61, ANSSI). Un incident confirmé s&apos;ouvre dans le registre <b>GRC</b> (source unique).
           </div>
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <StatTile icon={BookOpen} tone="text-emerald-600" label="Runbooks" value={runbooks.length} onClick={() => onTab("runbooks")} />
         <StatTile icon={CheckCircle2} tone="text-sky-600" label="Validés" value={d.valides} onClick={() => onTab("runbooks")} />
+        <StatTile icon={ListChecks} tone="text-teal-600" label="Procédures" value={socProcedures.length} onClick={() => onTab("procedures")} />
         <StatTile icon={Layers} tone="text-indigo-600" label="Scénarios couverts" value={d.cats} sub={`/ ${RUNBOOK_CATEGORIES.length}`} onClick={() => onTab("runbooks")} />
         <StatTile icon={Crosshair} tone="text-rose-600" label="Techniques ATT&CK" value={d.techniques} onClick={() => onTab("runbooks")} />
       </div>

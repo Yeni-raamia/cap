@@ -28,6 +28,7 @@ import { listAudits } from "@/lib/db/audits";
 import { listAuditPlanItems } from "@/lib/db/auditplan";
 import { listAuditors } from "@/lib/db/auditors";
 import { ensureRunbooks, listRunbooks } from "@/lib/db/runbooks";
+import { ensureSocProcedures, listSocProcedures } from "@/lib/db/socprocedures";
 import { listContinuityPlans } from "@/lib/db/continuity";
 import { listIncidents } from "@/lib/db/incidents";
 import { listProcessing } from "@/lib/db/rgpd";
@@ -93,6 +94,8 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   const auditors = listAuditors();
   ensureRunbooks(); // amorce la bibliothèque de runbooks si vide
   const runbooks = listRunbooks();
+  ensureSocProcedures(); // amorce les procédures/checklists de départ
+  const socProcedures = listSocProcedures();
   const continuityPlans = listContinuityPlans();
   const incidents = listIncidents();
   const processing = listProcessing();
@@ -134,6 +137,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialAuditPlanItems={auditPlanItems}
       initialAuditors={auditors}
       initialRunbooks={runbooks}
+      initialSocProcedures={socProcedures}
       initialContinuityPlans={continuityPlans}
       initialIncidents={incidents}
       initialProcessing={processing}
