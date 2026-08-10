@@ -27,12 +27,14 @@ import type {
   Policy,
   PolicyDiffusion,
   Risk,
+  Runbook,
   TrainingCourse,
   TrainingLesson,
 } from "../domain";
 import { CURRICULUM, type CourseSeed } from "./trainingCurriculum";
 import { AUDIT_CURRICULUM } from "./auditCurriculum";
 import { STARTER_AUDIT_GRIDS, starterQuestions } from "./auditGrids";
+import { STARTER_RUNBOOKS, starterRunbookSteps } from "./runbooks";
 
 const NOW = () => new Date();
 const day = (offset: number) => new Date(NOW().getTime() + offset * 864e5);
@@ -469,4 +471,26 @@ export function seedAuditors(): Auditor[] {
     base({ id: "audr2", ref: `AUDR-${Y()}-002`, name: "Auditeur Système & Réseau", profileId: "u1", role: "Auditeur", competencies: ["Réseau / Pare-feu", "Système Linux", "Télétravail / VPN"], certifications: "PASSI, CEH" }),
     base({ id: "audr3", ref: `AUDR-${Y()}-003`, name: "Expert Applications", role: "Expert technique", competencies: ["Applications Web / API", "Développement sécurisé", "Bases de données"], certifications: "OSCP" }),
   ];
+}
+
+/* ---------- SOC : runbooks de départ (démonstration) ---------- */
+export function seedRunbooks(): Runbook[] {
+  return STARTER_RUNBOOKS.map((g, i) => ({
+    id: `rb${i + 1}`,
+    ref: `RB-${Y()}-${String(i + 1).padStart(3, "0")}`,
+    title: g.title,
+    category: g.category,
+    severity: g.severity,
+    trigger: g.trigger,
+    objective: g.objective,
+    attackTechniques: g.attackTechniques,
+    steps: starterRunbookSteps(g),
+    escalation: g.escalation,
+    references: g.references,
+    status: "Validé",
+    ownerId: "u1",
+    createdBy: "u1",
+    createdAt: day(-100),
+    updatedAt: day(-20),
+  }));
 }

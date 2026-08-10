@@ -3,7 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { canAccess, navForUser } from "@/lib/nav";
-import type { AppSettings, Asset, Audit, AuditGrid, AuditPlanItem, Auditor, CapaAction, Catalogue, Contact, ContinuityPlan, ControlAssessment, ConversationSummary, Direction, DirectionReview, EmailTemplate, FieldControl, GrcPlanItem, Incident, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, ProcessingActivity, Profile, Project, RefLists, Risk, Supplier, Task, TrainingCourse, TrainingDone, TrainingProgressEntry } from "@/lib/domain";
+import type { AppSettings, Asset, Audit, AuditGrid, AuditPlanItem, Auditor, CapaAction, Catalogue, Contact, ContinuityPlan, ControlAssessment, ConversationSummary, Direction, DirectionReview, EmailTemplate, FieldControl, GrcPlanItem, Incident, Item, Meeting, Mission, Negligence, NonConformite, Notif, Objective, Policy, ProcessingActivity, Profile, Project, RefLists, Risk, Runbook, Supplier, Task, TrainingCourse, TrainingDone, TrainingProgressEntry } from "@/lib/domain";
 import { AppProvider, useApp } from "./app-context";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -95,6 +95,7 @@ export function AppShell({
   initialAudits,
   initialAuditPlanItems,
   initialAuditors,
+  initialRunbooks,
   initialContinuityPlans,
   initialIncidents,
   initialProcessing,
@@ -135,6 +136,7 @@ export function AppShell({
   initialAudits?: Audit[];
   initialAuditPlanItems?: AuditPlanItem[];
   initialAuditors?: Auditor[];
+  initialRunbooks?: Runbook[];
   initialContinuityPlans?: ContinuityPlan[];
   initialIncidents?: Incident[];
   initialProcessing?: ProcessingActivity[];
@@ -176,6 +178,7 @@ export function AppShell({
       initialAudits={initialAudits}
       initialAuditPlanItems={initialAuditPlanItems}
       initialAuditors={initialAuditors}
+      initialRunbooks={initialRunbooks}
       initialContinuityPlans={initialContinuityPlans}
       initialIncidents={initialIncidents}
       initialProcessing={initialProcessing}

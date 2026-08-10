@@ -12,6 +12,7 @@ import {
   CalendarDays,
   CalendarRange,
   ClipboardCheck,
+  Radar,
   Compass,
   Share2,
   FileWarning,
@@ -49,6 +50,7 @@ const ICONS: Record<string, LucideIcon> = {
   Share2,
   ShieldCheck,
   ClipboardCheck,
+  Radar,
 };
 
 export function Sidebar() {

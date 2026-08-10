@@ -1651,6 +1651,74 @@ export const isAuditPlanLate = (p: AuditPlanItem, now: Date): boolean =>
 /** Un item « actif » compte dans la charge (ni réalisé, ni reporté, ni annulé). */
 export const isAuditPlanActive = (p: AuditPlanItem): boolean => p.status === "Planifié" || p.status === "En cours";
 
+/* ==================================================================
+ *  Module SOC : méthode & bonnes pratiques (runbooks de réponse).
+ *  Cap n'est pas un SIEM (Wazuh reste l'opérationnel) : ce module ancre
+ *  la MÉTHODE — comment réagir, selon les normes (NIST SP 800-61, ANSSI).
+ * ================================================================== */
+export const RUNBOOK_CATEGORIES = [
+  "Hameçonnage (phishing)",
+  "Rançongiciel",
+  "Compte compromis",
+  "Exfiltration de données",
+  "Malware / poste infecté",
+  "Déni de service (DDoS)",
+  "Intrusion / accès anormal",
+  "Fuite d'information",
+  "Déni / fraude interne",
+  "Autre",
+];
+export const RUNBOOK_STATUS = ["Brouillon", "Validé", "À réviser", "Obsolète"];
+export const RUNBOOK_STATUS_TONE: Record<string, string> = {
+  "Brouillon": "bg-slate-100 text-slate-600",
+  "Validé": "bg-emerald-100 text-emerald-700",
+  "À réviser": "bg-amber-100 text-amber-700",
+  "Obsolète": "bg-slate-200 text-slate-400",
+};
+/** Phases de traitement d'un incident (NIST SP 800-61 r2, simplifiées). */
+export const RUNBOOK_PHASES = ["Détection & qualification", "Confinement", "Éradication", "Rétablissement", "Post-incident (REX)"];
+export const RUNBOOK_PHASE_TONE: Record<string, string> = {
+  "Détection & qualification": "bg-sky-100 text-sky-700 border-sky-200",
+  "Confinement": "bg-rose-100 text-rose-700 border-rose-200",
+  "Éradication": "bg-orange-100 text-orange-700 border-orange-200",
+  "Rétablissement": "bg-emerald-100 text-emerald-700 border-emerald-200",
+  "Post-incident (REX)": "bg-violet-100 text-violet-700 border-violet-200",
+};
+
+/** Étape d'un runbook (procédure de réponse). */
+export interface RunbookStep {
+  id: string;
+  phase: string; // RUNBOOK_PHASES
+  title: string;
+  detail: string;
+  decision: boolean; // point de décision / critère d'escalade
+}
+/** Runbook / playbook de réponse à un type d'incident. */
+export interface Runbook {
+  id: string;
+  ref: string; // RB-AAAA-NNN
+  title: string;
+  category: string; // RUNBOOK_CATEGORIES
+  severity: string; // gravité indicative (INCIDENT_SEVERITIES)
+  trigger: string; // déclencheur : quand appliquer ce runbook
+  objective: string; // objectif / résultat attendu
+  attackTechniques: string[]; // techniques MITRE ATT&CK (codes, ex. T1566)
+  steps: RunbookStep[];
+  escalation: string; // quand ouvrir un incident (registre GRC) / qui prévenir
+  references: string; // normes & sources (NIST 800-61, ANSSI, CERT-FR…)
+  status: string; // RUNBOOK_STATUS
+  ownerId: string;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Regroupe les étapes d'un runbook par phase, dans l'ordre NIST. */
+export function runbookStepsByPhase(steps: RunbookStep[]): { phase: string; steps: RunbookStep[] }[] {
+  return RUNBOOK_PHASES
+    .map((phase) => ({ phase, steps: steps.filter((s) => (s.phase || RUNBOOK_PHASES[0]) === phase) }))
+    .filter((g) => g.steps.length > 0);
+}
+
 /** Listes de référence par défaut (seed + repli si la base est vide). */
 export const DEFAULT_REF_LISTS: RefLists = {
   appreciations: APPRECIATIONS,

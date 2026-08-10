@@ -6,6 +6,15 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.74.0] - 2026-08-10
+
+### Ajouté
+
+- **Nouveau module SOC** (entrée de menu « SOC », `/soc`) — **méthode & bonnes pratiques**, pas une console d'alertes : Cap complète les outils opérationnels (Wazuh…) en ancrant le *comment faire*. *Lot 1.*
+  - **Runbooks de réponse** : des procédures pas-à-pas pour les incidents courants (hameçonnage, rançongiciel, compte compromis, exfiltration, poste infecté…), structurées selon les **phases NIST SP 800-61** (Détection & qualification → Confinement → Éradication → Rétablissement → Post-incident/REX), avec **déclencheur**, **points de décision**, **critères d'escalade** (quand ouvrir un incident dans le registre GRC), **techniques MITRE ATT&CK** rattachées et références (NIST, ANSSI, CERT-FR). Éditeur d'étapes par phase ; **bibliothèque de départ** fournie (5 runbooks) qui apparaît automatiquement.
+  - **Tableau de bord** : nombre de runbooks, validés, scénarios couverts, techniques ATT&CK.
+  - Les incidents restent gérés dans le **module GRC** (source unique, ISO 27035) ; le SOC dit *comment* réagir et *quand* escalader.
+
 ## [1.73.0] - 2026-08-10
 
 ### Ajouté

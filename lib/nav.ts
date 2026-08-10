@@ -21,6 +21,7 @@ export const NAV: NavItem[] = [
   { id: "nonconformites", href: "/non-conformites", label: "Non-conformités", icon: "FileWarning", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "grc", href: "/grc", label: "GRC", icon: "ShieldCheck", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "audit", href: "/audit", label: "Audit", icon: "ClipboardCheck", roles: ["manager", "directeur", "admin", "dsi"] },
+  { id: "soc", href: "/soc", label: "SOC", icon: "Radar", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "stats", href: "/stats", label: "Statistiques", icon: "BarChart3", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "classement", href: "/classement", label: "Classement", icon: "Trophy", roles: ["agent", "manager", "directeur", "admin"] },
   { id: "rappels", href: "/rappels", label: "Rappels", icon: "Bell", roles: ["agent", "manager", "directeur", "admin"] },

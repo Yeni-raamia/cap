@@ -317,6 +317,14 @@ create table if not exists direction_reviews (
   next_review_date text, status text not null default 'Préparée',
   created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists runbooks (
+  id text primary key, ref text not null,
+  title text not null default '', category text not null default 'Autre', severity text not null default 'Majeur',
+  trigger text not null default '', objective text not null default '', attack_techniques text not null default '[]',
+  steps text not null default '[]', escalation text not null default '', references_ text not null default '',
+  status text not null default 'Brouillon', owner_id text,
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists audit_grids (
   id text primary key, ref text not null,
   name text not null default '', category text not null default 'Autre', source text not null default 'Interne', description text not null default '',
