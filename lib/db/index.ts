@@ -317,6 +317,13 @@ create table if not exists direction_reviews (
   next_review_date text, status text not null default 'Préparée',
   created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
+create table if not exists intel_items (
+  id text primary key, ref text not null,
+  kind text not null default 'IOC', title text not null default '', ioc_type text not null default 'Autre', value text not null default '',
+  tlp text not null default 'TLP:AMBER', severity text not null default 'Modéré', source text not null default '', status text not null default 'Actif',
+  description text not null default '', action text not null default '', attack_techniques text not null default '[]', expires_at text, owner_id text,
+  created_by text, created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
+);
 create table if not exists attack_coverage (
   technique_id text primary key, status text not null default 'Non couverte', detection_note text not null default '',
   updated_by text, updated_at text not null default (datetime('now'))

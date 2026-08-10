@@ -1,15 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import { BookOpen, CheckCircle2, Crosshair, Layers, ListChecks, Radar } from "lucide-react";
-import { RUNBOOK_CATEGORIES, RUNBOOK_STATUS_TONE, type Runbook } from "@/lib/domain";
+import { BookOpen, CheckCircle2, Crosshair, Layers, ListChecks, Radar, Radio } from "lucide-react";
+import { RUNBOOK_CATEGORIES, RUNBOOK_STATUS_TONE, isIntelActive, type Runbook } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
 
 export function SocDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
-  const { runbooks, socProcedures } = useApp();
+  const { runbooks, socProcedures, intel } = useApp();
+  const intelActifs = intel.filter((i) => isIntelActive(i, new Date())).length;
 
   const d = useMemo(() => {
     const valides = runbooks.filter((r) => r.status === "Validé").length;
@@ -35,12 +36,13 @@ export function SocDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
         <StatTile icon={BookOpen} tone="text-emerald-600" label="Runbooks" value={runbooks.length} onClick={() => onTab("runbooks")} />
         <StatTile icon={CheckCircle2} tone="text-sky-600" label="Validés" value={d.valides} onClick={() => onTab("runbooks")} />
         <StatTile icon={ListChecks} tone="text-teal-600" label="Procédures" value={socProcedures.length} onClick={() => onTab("procedures")} />
-        <StatTile icon={Layers} tone="text-indigo-600" label="Scénarios couverts" value={d.cats} sub={`/ ${RUNBOOK_CATEGORIES.length}`} onClick={() => onTab("runbooks")} />
+        <StatTile icon={Layers} tone="text-indigo-600" label="Scénarios" value={d.cats} sub={`/ ${RUNBOOK_CATEGORIES.length}`} onClick={() => onTab("runbooks")} />
         <StatTile icon={Crosshair} tone="text-rose-600" label="Techniques ATT&CK" value={d.techniques} sub="couvertes" onClick={() => onTab("attack")} />
+        <StatTile icon={Radio} tone="text-amber-600" label="Veille active" value={intelActifs} onClick={() => onTab("veille")} />
       </div>
 
       {runbooks.length === 0 ? (

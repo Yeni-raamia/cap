@@ -37,6 +37,7 @@ import {
   seedAuditors,
   seedRunbooks,
   seedSocProcedures,
+  seedIntel,
   DEFAULT_USER_ID,
   listNotifications,
   PROFILES,
@@ -99,6 +100,7 @@ import {
   type Runbook,
   type SocProcedure,
   type AttackCoverage,
+  type IntelItem,
   type Supplier,
   type Task,
   type TaskPriority,
@@ -328,6 +330,22 @@ export interface AuditInput {
   status?: string;
   responses?: import("@/lib/domain").AuditResponse[];
   summary?: string;
+}
+export interface IntelInput {
+  id?: string;
+  kind?: string;
+  title?: string;
+  iocType?: string;
+  value?: string;
+  tlp?: string;
+  severity?: string;
+  source?: string;
+  status?: string;
+  description?: string;
+  action?: string;
+  attackTechniques?: string[];
+  expiresAt?: string | null;
+  ownerId?: string;
 }
 export interface SocProcedureInput {
   id?: string;
@@ -683,6 +701,10 @@ interface AppCtx {
   attackCoverage: AttackCoverage[];
   assessAttack: (techniqueId: string, fields: { status?: string; detectionNote?: string }) => Promise<string | null>;
   resetAttack: (techniqueId: string) => Promise<string | null>;
+  intel: IntelItem[];
+  createIntel: (input: IntelInput) => Promise<string | null>;
+  updateIntel: (id: string, fields: IntelInput) => Promise<string | null>;
+  deleteIntel: (id: string) => Promise<string | null>;
   // GRC : continuité d'activité (BIA/PCA)
   continuityPlans: ContinuityPlan[];
   continuityById: (id: string) => ContinuityPlan | null;
@@ -914,6 +936,7 @@ const reviveRunbooks = (arr: Runbook[]): Runbook[] => arr.map(reviveRunbook);
 const reviveSocProcedure = (p: SocProcedure): SocProcedure => ({ ...p, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
 const reviveSocProcedures = (arr: SocProcedure[]): SocProcedure[] => arr.map(reviveSocProcedure);
 const reviveAttackCoverage = (arr: AttackCoverage[]): AttackCoverage[] => arr.map((a) => ({ ...a, updatedAt: new Date(a.updatedAt) }));
+const reviveIntel = (arr: IntelItem[]): IntelItem[] => arr.map((i) => ({ ...i, expiresAt: i.expiresAt ? new Date(i.expiresAt) : null, createdAt: new Date(i.createdAt), updatedAt: new Date(i.updatedAt) }));
 const revivePlan2 = (p: ContinuityPlan): ContinuityPlan => ({ ...p, lastTestDate: p.lastTestDate ? new Date(p.lastTestDate) : null, reviewDate: p.reviewDate ? new Date(p.reviewDate) : null, createdAt: new Date(p.createdAt), updatedAt: new Date(p.updatedAt) });
 const reviveContinuity = (arr: ContinuityPlan[]): ContinuityPlan[] => arr.map(revivePlan2);
 const reviveIncident = (i: Incident): Incident => ({ ...i, detectedAt: i.detectedAt ? new Date(i.detectedAt) : null, resolvedAt: i.resolvedAt ? new Date(i.resolvedAt) : null, createdAt: new Date(i.createdAt), updatedAt: new Date(i.updatedAt) });
@@ -1000,6 +1023,7 @@ export function AppProvider({
   initialRunbooks,
   initialSocProcedures,
   initialAttackCoverage,
+  initialIntel,
   initialContinuityPlans,
   initialIncidents,
   initialProcessing,
@@ -1043,6 +1067,7 @@ export function AppProvider({
   initialRunbooks?: Runbook[];
   initialSocProcedures?: SocProcedure[];
   initialAttackCoverage?: AttackCoverage[];
+  initialIntel?: IntelItem[];
   initialContinuityPlans?: ContinuityPlan[];
   initialIncidents?: Incident[];
   initialProcessing?: ProcessingActivity[];
@@ -1105,6 +1130,7 @@ export function AppProvider({
   const [runbooks, setRunbooks] = useState<Runbook[]>(demo ? seedRunbooks() : reviveRunbooks(initialRunbooks ?? []));
   const [socProcedures, setSocProcedures] = useState<SocProcedure[]>(demo ? seedSocProcedures() : reviveSocProcedures(initialSocProcedures ?? []));
   const [attackCoverage, setAttackCoverage] = useState<AttackCoverage[]>(demo ? [] : reviveAttackCoverage(initialAttackCoverage ?? []));
+  const [intel, setIntel] = useState<IntelItem[]>(demo ? seedIntel() : reviveIntel(initialIntel ?? []));
   const [continuityPlans, setContinuityPlans] = useState<ContinuityPlan[]>(demo ? seedContinuity() : reviveContinuity(initialContinuityPlans ?? []));
   const [incidents, setIncidents] = useState<Incident[]>(demo ? seedIncidents() : reviveIncidents(initialIncidents ?? []));
   const [processing, setProcessing] = useState<ProcessingActivity[]>(demo ? seedProcessing() : reviveProcessing(initialProcessing ?? []));
@@ -2501,6 +2527,21 @@ export function AppProvider({
   const assessAttack = (techniqueId: string, fields: { status?: string; detectionNote?: string }) => attackAction("assess", { techniqueId, ...fields });
   const resetAttack = (techniqueId: string) => attackAction("reset", { techniqueId });
 
+  /* ---------- SOC : veille & threat intel ---------- */
+  const intelAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
+    if (demo) return "Veille indisponible en mode démo.";
+    const res = await fetch("/api/intel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ op, ...input }) });
+    const d = await res.json();
+    if (!res.ok) { toast(d.error ?? "Erreur.", "error"); return d.error ?? "Erreur."; }
+    if (d.intel) setIntel(reviveIntel(d.intel));
+    if (op === "create") toast("Élément de veille ajouté.", "success");
+    else if (op === "delete") toast("Élément supprimé.", "success");
+    return null;
+  };
+  const createIntel = (input: IntelInput) => intelAction("create", input as Record<string, unknown>);
+  const updateIntel = (id: string, fields: IntelInput) => intelAction("update", { id, ...fields });
+  const deleteIntel = (id: string) => intelAction("delete", { id });
+
   /* ---------- GRC : Continuité d'activité (BIA/PCA) ---------- */
   const continuityById = (id: string): ContinuityPlan | null => continuityPlans.find((p) => p.id === id) ?? null;
   const continuityAction = async (op: "create" | "update" | "delete", input: Record<string, unknown>): Promise<string | null> => {
@@ -2929,6 +2970,10 @@ export function AppProvider({
     attackCoverage,
     assessAttack,
     resetAttack,
+    intel,
+    createIntel,
+    updateIntel,
+    deleteIntel,
     continuityPlans,
     continuityById,
     createContinuity,

@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.78.0] - 2026-08-10
+
+### Ajouté
+
+- **Module SOC — Veille & threat intelligence** (nouvel onglet « Veille ») : un **registre des IOCs** (adresses IP, domaines, URL, hashes, e-mails), **avis / bulletins** (CERT-FR…) et **vulnérabilités (CVE)**. Chaque élément porte une **valeur**, un **niveau TLP** (CLEAR/GREEN/AMBER/RED), une gravité, une source, un statut (Actif → Traité/Expiré), une **conduite à tenir** et des **techniques MITRE ATT&CK** associées, avec une date d'expiration. Filtres (nature, actifs) et indicateurs (actifs, actifs critiques, IOCs). Le tableau de bord SOC gagne un indicateur « Veille active ».
+
 ## [1.77.0] - 2026-08-10
 
 ### Ajouté

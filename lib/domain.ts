@@ -1745,6 +1745,48 @@ export const SOC_PROCEDURE_TYPE_TONE: Record<string, string> = {
   "Astreinte": "bg-indigo-50 text-indigo-700 border-indigo-200",
   "Autre": "bg-slate-50 text-slate-600 border-slate-200",
 };
+/* ---------- Module SOC : Veille & threat intelligence (IOCs) ---------- */
+export const INTEL_KINDS = ["IOC", "Bulletin / Avis", "Vulnérabilité (CVE)"];
+export const IOC_TYPES = ["Adresse IP", "Domaine", "URL", "Hash de fichier", "E-mail", "Autre"];
+export const TLP_LEVELS = ["TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:RED"];
+export const TLP_TONE: Record<string, string> = {
+  "TLP:CLEAR": "bg-slate-100 text-slate-600 border-slate-200",
+  "TLP:GREEN": "bg-emerald-100 text-emerald-700 border-emerald-200",
+  "TLP:AMBER": "bg-amber-100 text-amber-700 border-amber-200",
+  "TLP:RED": "bg-rose-100 text-rose-700 border-rose-200",
+};
+export const INTEL_STATUS = ["Actif", "En traitement", "Traité", "Expiré"];
+export const INTEL_STATUS_TONE: Record<string, string> = {
+  "Actif": "bg-rose-100 text-rose-700",
+  "En traitement": "bg-amber-100 text-amber-700",
+  "Traité": "bg-emerald-100 text-emerald-700",
+  "Expiré": "bg-slate-200 text-slate-500",
+};
+/** Élément de veille : IOC, bulletin/avis (CERT-FR…) ou vulnérabilité. */
+export interface IntelItem {
+  id: string;
+  ref: string; // INT-AAAA-NNN
+  kind: string; // INTEL_KINDS
+  title: string;
+  iocType: string; // IOC_TYPES (si kind = IOC)
+  value: string; // valeur de l'IOC / n° CVE
+  tlp: string; // TLP_LEVELS
+  severity: string; // INCIDENT_SEVERITIES
+  source: string; // CERT-FR, éditeur, OSINT…
+  status: string; // INTEL_STATUS
+  description: string;
+  action: string; // conduite à tenir
+  attackTechniques: string[]; // techniques MITRE ATT&CK associées
+  expiresAt: Date | null;
+  ownerId: string;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+/** Un élément de veille encore « chaud » (actif ou en traitement, non expiré). */
+export const isIntelActive = (i: IntelItem, now: Date): boolean =>
+  (i.status === "Actif" || i.status === "En traitement") && !(i.expiresAt && i.expiresAt.getTime() < now.getTime());
+
 /* ---------- Module SOC : couverture MITRE ATT&CK (auto-évaluation) ---------- */
 export const ATTACK_COVERAGE_STATUS = ["Couverte", "Partielle", "Non couverte", "Non applicable"];
 export const ATTACK_COVERAGE_TONE: Record<string, string> = {

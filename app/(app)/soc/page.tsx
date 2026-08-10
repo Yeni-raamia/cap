@@ -8,6 +8,7 @@ import { SocDashboardTab } from "@/components/soc/SocDashboardTab";
 import { RunbooksTab } from "@/components/soc/RunbooksTab";
 import { ProceduresTab } from "@/components/soc/ProceduresTab";
 import { AttackTab } from "@/components/soc/AttackTab";
+import { VeilleTab } from "@/components/soc/VeilleTab";
 import { AcademieTab } from "@/components/grc/AcademieTab";
 
 const TABS = [
@@ -16,6 +17,7 @@ const TABS = [
   { id: "runbooks", label: "Runbooks" },
   { id: "procedures", label: "Procédures" },
   { id: "attack", label: "ATT&CK" },
+  { id: "veille", label: "Veille" },
 ];
 
 function SocInner() {
@@ -53,6 +55,7 @@ function SocInner() {
       {active === "runbooks" && <RunbooksTab />}
       {active === "procedures" && <ProceduresTab />}
       {active === "attack" && <AttackTab />}
+      {active === "veille" && <VeilleTab />}
     </div>
   );
 }

@@ -29,6 +29,7 @@ import type {
   Risk,
   Runbook,
   SocProcedure,
+  IntelItem,
   TrainingCourse,
   TrainingLesson,
 } from "../domain";
@@ -508,4 +509,19 @@ export function seedSocProcedures(): SocProcedure[] {
     items: starterProcedureItems(p), references: p.references, status: "Validé", ownerId: "u1",
     createdBy: "u1", createdAt: day(-100), updatedAt: day(-20),
   }));
+}
+
+/* ---------- SOC : veille & threat intel (démonstration) ---------- */
+export function seedIntel(): IntelItem[] {
+  const base = (o: Partial<IntelItem> & { id: string; ref: string; title: string }): IntelItem => ({
+    kind: "IOC", iocType: "Autre", value: "", tlp: "TLP:AMBER", severity: "Modéré", source: "", status: "Actif",
+    description: "", action: "", attackTechniques: [], expiresAt: day(60), ownerId: "u1",
+    createdBy: "u1", createdAt: day(-4), updatedAt: day(-2), ...o,
+  });
+  return [
+    base({ id: "int1", ref: "INT-2026-001", title: "Domaine d'hameçonnage usurpant la messagerie", kind: "IOC", iocType: "Domaine", value: "webmail-secure-login[.]com", severity: "Majeur", source: "CERT-FR", status: "Actif", description: "Domaine utilisé dans une campagne d'hameçonnage visant les identifiants.", action: "Bloquer sur le proxy et la passerelle mail ; rechercher les accès dans Wazuh.", attackTechniques: ["T1566", "T1566.002"], tlp: "TLP:GREEN" }),
+    base({ id: "int2", ref: "INT-2026-002", title: "Hash d'un dropper observé sur le parc", kind: "IOC", iocType: "Hash de fichier", value: "a1b2c3d4e5f6...", severity: "Critique", source: "EDR interne", status: "En traitement", description: "Exécutable malveillant détecté par l'EDR sur un poste.", action: "Rechercher le hash sur l'ensemble du parc ; isoler les postes concernés.", attackTechniques: ["T1204", "T1105"], tlp: "TLP:AMBER" }),
+    base({ id: "int3", ref: "INT-2026-003", title: "Avis CERT-FR — vulnérabilité critique VPN", kind: "Vulnérabilité (CVE)", value: "CVE-2026-XXXX", severity: "Critique", source: "CERT-FR", status: "Actif", description: "Vulnérabilité d'exécution de code sur la passerelle VPN — exploitation activement observée.", action: "Appliquer le correctif en urgence ; surveiller les accès distants.", attackTechniques: ["T1190", "T1133"], tlp: "TLP:CLEAR", expiresAt: null }),
+    base({ id: "int4", ref: "INT-2026-004", title: "IP de C2 rançongiciel (bulletin sectoriel)", kind: "IOC", iocType: "Adresse IP", value: "203.0.113.66", severity: "Majeur", source: "Partage sectoriel", status: "Traité", description: "Adresse de commande & contrôle liée à une souche de rançongiciel.", action: "Bloquée au pare-feu ; aucun flux constaté.", attackTechniques: ["T1071"], tlp: "TLP:AMBER", expiresAt: day(-1) }),
+  ];
 }

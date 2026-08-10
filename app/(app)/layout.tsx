@@ -30,6 +30,7 @@ import { listAuditors } from "@/lib/db/auditors";
 import { ensureRunbooks, listRunbooks } from "@/lib/db/runbooks";
 import { ensureSocProcedures, listSocProcedures } from "@/lib/db/socprocedures";
 import { listAttackCoverage } from "@/lib/db/attackcoverage";
+import { listIntel } from "@/lib/db/intel";
 import { listContinuityPlans } from "@/lib/db/continuity";
 import { listIncidents } from "@/lib/db/incidents";
 import { listProcessing } from "@/lib/db/rgpd";
@@ -98,6 +99,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
   ensureSocProcedures(); // amorce les procédures/checklists de départ
   const socProcedures = listSocProcedures();
   const attackCoverage = listAttackCoverage();
+  const intel = listIntel();
   const continuityPlans = listContinuityPlans();
   const incidents = listIncidents();
   const processing = listProcessing();
@@ -141,6 +143,7 @@ export default async function AppGroupLayout({ children }: { children: ReactNode
       initialRunbooks={runbooks}
       initialSocProcedures={socProcedures}
       initialAttackCoverage={attackCoverage}
+      initialIntel={intel}
       initialContinuityPlans={continuityPlans}
       initialIncidents={incidents}
       initialProcessing={processing}
