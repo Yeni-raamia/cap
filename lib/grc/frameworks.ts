@@ -197,11 +197,83 @@ const RGPD_NIS2_CONTROLS: RefControl[] = [
   ["NIS2-12", "Responsabilité et engagement des organes de direction", "NIS2"],
 ].map(([code, title, group]) => ({ code, title, group }));
 
+/* ---------- EBIOS Risk Manager (ANSSI) — cadre d'auto-évaluation par atelier ---------- */
+const ER_A1 = "Atelier 1 — Cadrage & socle";
+const ER_A2 = "Atelier 2 — Sources de risque";
+const ER_A3 = "Atelier 3 — Scénarios stratégiques";
+const ER_A4 = "Atelier 4 — Scénarios opérationnels";
+const ER_A5 = "Atelier 5 — Traitement du risque";
+const EBIOS_CONTROLS: RefControl[] = [
+  ["ER-1.1", "Cadrage de l'étude (périmètre, participants, cadre temporel)", ER_A1],
+  ["ER-1.2", "Identification des valeurs métier et des biens supports", ER_A1],
+  ["ER-1.3", "Identification des événements redoutés et évaluation de leur gravité", ER_A1],
+  ["ER-1.4", "Détermination du socle de sécurité et des écarts", ER_A1],
+  ["ER-2.1", "Identification des sources de risque (SR) et objectifs visés (OV)", ER_A2],
+  ["ER-2.2", "Évaluation et sélection des couples SR/OV pertinents", ER_A2],
+  ["ER-3.1", "Cartographie de menace numérique de l'écosystème et parties prenantes", ER_A3],
+  ["ER-3.2", "Élaboration des scénarios stratégiques", ER_A3],
+  ["ER-3.3", "Définition des mesures de sécurité sur l'écosystème", ER_A3],
+  ["ER-4.1", "Élaboration des scénarios opérationnels (modes opératoires techniques)", ER_A4],
+  ["ER-4.2", "Évaluation de la vraisemblance des scénarios opérationnels", ER_A4],
+  ["ER-5.1", "Synthèse et évaluation des risques", ER_A5],
+  ["ER-5.2", "Définition de la stratégie et du plan de traitement du risque (PACS)", ER_A5],
+  ["ER-5.3", "Évaluation et acceptation des risques résiduels", ER_A5],
+  ["ER-5.4", "Mise en place du cadre de suivi et d'amélioration continue des risques", ER_A5],
+].map(([code, title, group]) => ({ code, title, group }));
+
+/* ---------- IT-Grundschutz (BSI) — standards, démarche & catalogue ---------- */
+const GS_STD = "Standards BSI 200";
+const GS_DEM = "Démarche (Vorgehensweise)";
+const GS_BAU = "Bausteine (catalogue)";
+const GRUNDSCHUTZ_CONTROLS: RefControl[] = [
+  ["GS-200-1", "SGSI selon BSI 200-1 (système de management)", GS_STD],
+  ["GS-200-2", "Choix de la démarche (Basis-, Standard-, Kern-Absicherung) — BSI 200-2", GS_STD],
+  ["GS-200-3", "Analyse de risque selon BSI 200-3", GS_STD],
+  ["GS-200-4", "Gestion de continuité et de crise (BSI 200-4)", GS_STD],
+  ["GS-D.1", "Définition du périmètre (Geltungsbereich) et analyse de structure (Strukturanalyse)", GS_DEM],
+  ["GS-D.2", "Détermination des besoins de protection (Schutzbedarfsfeststellung)", GS_DEM],
+  ["GS-D.3", "Modélisation via les Bausteine (Modellierung)", GS_DEM],
+  ["GS-D.4", "Contrôle de base (IT-Grundschutz-Check)", GS_DEM],
+  ["GS-D.5", "Analyse de risque complémentaire (actifs à besoin élevé)", GS_DEM],
+  ["GS-D.6", "Consolidation et réalisation des mesures", GS_DEM],
+  ["GS-ISMS", "ISMS — Sécurité du management", GS_BAU],
+  ["GS-ORP", "ORP — Organisation & personnel", GS_BAU],
+  ["GS-CON", "CON — Concepts & démarches", GS_BAU],
+  ["GS-OPS", "OPS — Exploitation", GS_BAU],
+  ["GS-DER", "DER — Détection & réaction", GS_BAU],
+  ["GS-APP", "APP — Applications", GS_BAU],
+  ["GS-SYS", "SYS — Systèmes informatiques", GS_BAU],
+  ["GS-NET", "NET — Réseaux & communication", GS_BAU],
+  ["GS-INF", "INF — Infrastructure", GS_BAU],
+  ["GS-IND", "IND — Systèmes industriels (OT/ICS)", GS_BAU],
+].map(([code, title, group]) => ({ code, title, group }));
+
+/* ---------- FAIR (Factor Analysis of Information Risk) — quantification ---------- */
+const FAIR_SCOPE = "Cadrage & taxonomie";
+const FAIR_EST = "Estimation des facteurs";
+const FAIR_QUANT = "Quantification & décision";
+const FAIR_CONTROLS: RefControl[] = [
+  ["FAIR-1", "Cadrage du scénario de risque (actif, menace, effet)", FAIR_SCOPE],
+  ["FAIR-2", "Maîtrise de la taxonomie FAIR (Risque = LEF × ampleur de perte)", FAIR_SCOPE],
+  ["FAIR-3", "Estimation de la fréquence d'événement de menace (TEF)", FAIR_EST],
+  ["FAIR-4", "Estimation de la vulnérabilité (capacité de menace vs résistance)", FAIR_EST],
+  ["FAIR-5", "Dérivation de la fréquence d'événement de perte (LEF)", FAIR_EST],
+  ["FAIR-6", "Estimation de l'ampleur des pertes primaires (Primary Loss)", FAIR_EST],
+  ["FAIR-7", "Estimation des pertes secondaires (réaction des parties prenantes)", FAIR_EST],
+  ["FAIR-8", "Quantification par simulation (Monte-Carlo, distributions PERT)", FAIR_QUANT],
+  ["FAIR-9", "Expression du risque en pertes annualisées (ALE) et intervalles", FAIR_QUANT],
+  ["FAIR-10", "Communication aux décideurs et aide à la priorisation", FAIR_QUANT],
+  ["FAIR-11", "Qualité des données et calibration des estimations d'experts", FAIR_QUANT],
+].map(([code, title, group]) => ({ code, title, group }));
+
 export const FRAMEWORKS: Framework[] = [
   { id: "iso27001", name: "ISO/IEC 27001:2022 — Annexe A", short: "ISO 27001", version: "2022", groups: [ISO_ORG, ISO_PPL, ISO_PHY, ISO_TEC], controls: ISO_CONTROLS },
   { id: "nistcsf", name: "NIST Cybersecurity Framework 2.0", short: "NIST CSF", version: "2.0", groups: ["Gouverner (GV)", "Identifier (ID)", "Protéger (PR)", "Détecter (DE)", "Répondre (RS)", "Rétablir (RC)"], controls: NIST_CONTROLS },
   { id: "cisv8", name: "CIS Controls v8", short: "CIS v8", version: "8", groups: ["Contrôles CIS"], controls: CIS_CONTROLS },
   { id: "rgpdnis2", name: "RGPD & NIS2", short: "RGPD / NIS2", version: "—", groups: ["RGPD", "NIS2"], controls: RGPD_NIS2_CONTROLS },
+  { id: "ebiosrm", name: "EBIOS Risk Manager (ANSSI)", short: "EBIOS RM", version: "2018", groups: [ER_A1, ER_A2, ER_A3, ER_A4, ER_A5], controls: EBIOS_CONTROLS },
+  { id: "grundschutz", name: "BSI IT-Grundschutz", short: "IT-Grundschutz", version: "200-x", groups: [GS_STD, GS_DEM, GS_BAU], controls: GRUNDSCHUTZ_CONTROLS },
+  { id: "fair", name: "FAIR — Factor Analysis of Information Risk", short: "FAIR", version: "Open FAIR", groups: [FAIR_SCOPE, FAIR_EST, FAIR_QUANT], controls: FAIR_CONTROLS },
 ];
 
 export const frameworkById = (id: string): Framework | undefined => FRAMEWORKS.find((f) => f.id === id);

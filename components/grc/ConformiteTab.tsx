@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Search, ShieldCheck } from "lucide-react";
 import { CONTROL_STATUS, CONTROL_STATUS_TONE, fmt, type ControlAssessment } from "@/lib/domain";
 import { FRAMEWORKS, frameworkById } from "@/lib/grc/frameworks";
@@ -16,7 +17,8 @@ const barTone = (p: number) => (p >= 70 ? "bg-emerald-500" : p >= 40 ? "bg-amber
 
 export function ConformiteTab() {
   const { controlAssessments, profileById } = useApp();
-  const [fwId, setFwId] = useState(FRAMEWORKS[0].id);
+  const fwParam = useSearchParams().get("fw");
+  const [fwId, setFwId] = useState(FRAMEWORKS.some((f) => f.id === fwParam) ? (fwParam as string) : FRAMEWORKS[0].id);
   const [search, setSearch] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [applicableOnly, setApplicableOnly] = useState(false);

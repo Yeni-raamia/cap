@@ -6,6 +6,14 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.84.0] - 2026-08-10
+
+### Ajouté
+
+- **GRC — Méthodes EBIOS RM, IT-Grundschutz & FAIR**, intégrées de deux façons complémentaires :
+  - **Référentiels évaluables** (onglet Conformité) : chaque méthode devient un référentiel de maturité (0–5), auto-évaluable comme ISO 27001 / NIST / CIS. **EBIOS RM** décomposé par les 5 ateliers (15 mesures), **IT-Grundschutz** par standards BSI 200 / démarche / Bausteine (20 mesures), **FAIR** par la taxonomie et les facteurs (11 mesures). Ils alimentent le score de conformité et les rapports.
+  - **Fiches méthode de référence** (nouvel onglet **Méthodes** du GRC) : un espace documentaire décrivant, pour chaque méthode, son but, quand l'utiliser, son déroulé (ateliers / démarche / facteurs), ses livrables, forces et limites — avec un lien direct pour évaluer sa maturité d'adoption dans la Conformité.
+
 ## [1.83.0] - 2026-08-10
 
 ### Ajouté
