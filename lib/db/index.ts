@@ -480,6 +480,13 @@ create table if not exists conversation_mutes (
   conversation_id text not null, profile_id text not null,
   primary key (conversation_id, profile_id)
 );
+create table if not exists presence (
+  profile_id text primary key, last_seen_at text not null default (datetime('now'))
+);
+create table if not exists typing_status (
+  conversation_id text not null, profile_id text not null, updated_at text not null default (datetime('now')),
+  primary key (conversation_id, profile_id)
+);
 create index if not exists idx_msg_conv on messages(conversation_id);
 create index if not exists idx_convmem_conv on conversation_members(conversation_id);
 create index if not exists idx_conv_ref on conversations(ref_type, ref_id);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, BellOff, CornerUpLeft, Paperclip, Send, SmilePlus, Trash2, X } from "lucide-react";
+import { Bell, BellOff, Check, CheckCheck, CornerUpLeft, Paperclip, Send, SmilePlus, Trash2, X } from "lucide-react";
 import { fmt, formatBytes, isImageAttachment, REACTION_EMOJIS, type Message } from "@/lib/domain";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
@@ -14,7 +14,7 @@ interface Target {
 
 /** Fil de discussion réutilisable (suivi, négligence, projet ou groupe). */
 export function Discussion({ target, height = "h-72" }: { target: Target; height?: string }) {
-  const { demo, me, profileById, loadMessages, muteConversation, sendMessage, sendMessageFile, reactToMessage, deleteMessage } = useApp();
+  const { demo, me, profileById, loadMessages, muteConversation, sendMessage, sendMessageFile, reactToMessage, deleteMessage, pingPresence } = useApp();
   const [messages, setMessages] = useState<Message[]>([]);
   const [convId, setConvId] = useState<string | null>(target.convId ?? null);
   const [muted, setMuted] = useState(false);
@@ -25,8 +25,13 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
   const [err, setErr] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const [typingIds, setTypingIds] = useState<string[]>([]);
+  const [reads, setReads] = useState<Record<string, string>>({});
+  const [otherMemberIds, setOtherMemberIds] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const lastTypeRef = useRef(0);
+  const lastPingRef = useRef(0);
 
   const key = target.convId ?? `${target.refType}:${target.refId}`;
 
@@ -53,6 +58,27 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
     endRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length]);
 
+  // Présence par sondage : qui écrit, qui a lu (accusés), rythme ~4 s.
+  useEffect(() => {
+    if (demo || !convId) return;
+    let alive = true;
+    const beat = async () => {
+      const typing = Date.now() - lastTypeRef.current < 5000;
+      const d = await pingPresence(convId, typing);
+      if (!alive) return;
+      setTypingIds(d.typing);
+      setReads(d.reads);
+      setOtherMemberIds(d.memberIds.filter((id) => id !== me.id));
+    };
+    beat();
+    const iv = setInterval(beat, 4000);
+    return () => {
+      alive = false;
+      clearInterval(iv);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convId, demo]);
+
   const submit = async () => {
     const body = input.trim();
     if (!body || sending) return;
@@ -64,6 +90,18 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
     setMessages(msgs);
     if (!convId && target.convId) setConvId(target.convId);
     setSending(false);
+    lastTypeRef.current = 0;
+    if (convId) pingPresence(convId, false); // je n'écris plus
+  };
+
+  const onType = (v: string) => {
+    setInput(v);
+    lastTypeRef.current = Date.now();
+    // Signal « en train d'écrire » immédiat, throttlé à ~2,5 s.
+    if (convId && Date.now() - lastPingRef.current > 2500) {
+      lastPingRef.current = Date.now();
+      pingPresence(convId, true).then((d) => { setTypingIds(d.typing); setReads(d.reads); });
+    }
   };
 
   const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,6 +121,8 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
       if (!convId && target.convId) setConvId(target.convId);
     }
     setUploading(false);
+    lastTypeRef.current = 0;
+    if (convId) pingPresence(convId, false);
   };
 
   const react = async (messageId: string, emoji: string) => {
@@ -108,6 +148,13 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
     if (ok) setMuted(!muted);
     setMuting(false);
   };
+
+  // Accusés de lecture : mon dernier message est-il lu par tous les autres membres ?
+  const myLastId = [...messages].reverse().find((m) => m.authorId === me.id)?.id ?? null;
+  const readByAll = (m: Message) =>
+    otherMemberIds.length > 0 &&
+    otherMemberIds.every((id) => { const t = reads[id]; return t ? new Date(t).getTime() >= m.createdAt.getTime() : false; });
+  const typerNames = typingIds.map((id) => profileById(id).nom);
 
   return (
     <div className="flex flex-col">
@@ -228,13 +275,32 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
                     </div>
                   )}
 
-                  <div className="text-[10px] text-slate-400 mt-0.5">
-                    {mine ? "" : author.nom + " · "}{fmt(m.createdAt)}
+                  <div className={`text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 ${mine ? "justify-end" : ""}`}>
+                    <span>{mine ? "" : author.nom + " · "}{fmt(m.createdAt)}</span>
+                    {mine && m.id === myLastId && (
+                      readByAll(m) ? (
+                        <span className="inline-flex items-center gap-0.5 text-emerald-600" title="Lu"><CheckCheck size={12} /> Lu</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-0.5 text-slate-400" title="Envoyé"><Check size={12} /> Envoyé</span>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
             );
           })
+        )}
+        {typerNames.length > 0 && (
+          <div className="text-[11px] text-slate-400 italic pl-8 flex items-center gap-1">
+            <span className="inline-flex gap-0.5">
+              <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "120ms" }} />
+              <span className="w-1 h-1 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: "240ms" }} />
+            </span>
+            {typerNames.length === 1
+              ? `${typerNames[0]} est en train d'écrire…`
+              : `${typerNames.slice(0, 2).join(", ")}${typerNames.length > 2 ? "…" : ""} sont en train d'écrire…`}
+          </div>
         )}
         <div ref={endRef} />
       </div>
@@ -267,7 +333,7 @@ export function Discussion({ target, height = "h-72" }: { target: Target; height
         </button>
         <input
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => onType(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
           placeholder={uploading ? "Envoi du fichier…" : replyingTo ? "Votre réponse…" : "Écrire un message…"}
           disabled={uploading}

@@ -18,7 +18,8 @@ const kindIcon: Record<string, typeof MessageSquare> = {
 };
 
 export default function MessageriePage() {
-  const { demo, conversations, profiles, me, createGroup, startDirect, deleteGroup, markConversationRead } = useApp();
+  const { demo, conversations, profiles, me, createGroup, startDirect, deleteGroup, markConversationRead, isOnline } = useApp();
+  const directOther = (c: ConversationSummary) => (c.kind === "direct" ? c.memberIds.find((id) => id !== me.id) ?? null : null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [panel, setPanel] = useState<null | "group" | "direct">(null);
   const [title, setTitle] = useState("");
@@ -145,7 +146,10 @@ export default function MessageriePage() {
                 return (
                   <div key={c.id} className={`group flex items-center ${active ? "bg-emerald-50" : "hover:bg-slate-50"}`}>
                     <button onClick={() => open(c)} className="flex-1 flex items-start gap-2 px-3 py-2.5 text-left min-w-0">
-                      <div className="h-8 w-8 rounded-lg bg-slate-100 text-slate-500 grid place-items-center shrink-0"><Icon size={16} /></div>
+                      <div className="relative shrink-0">
+                        <div className="h-8 w-8 rounded-lg bg-slate-100 text-slate-500 grid place-items-center"><Icon size={16} /></div>
+                        {(() => { const o = directOther(c); return o && isOnline(o) ? <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" title="En ligne" /> : null; })()}
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[13px] font-medium text-slate-800 truncate flex-1">{c.title}</span>
@@ -174,7 +178,12 @@ export default function MessageriePage() {
                 {(() => { const Icon = kindIcon[selected.kind] ?? MessageSquare; return <Icon size={16} className="text-slate-500" />; })()}
                 <span className="text-[14px] font-semibold text-slate-800">{selected.title}</span>
                 {selected.kind === "group" && <span className="text-[11px] text-slate-400">· {selected.memberIds.length} membre(s)</span>}
-                {selected.kind === "direct" && <span className="text-[11px] text-emerald-600">· privé</span>}
+                {selected.kind === "direct" && (() => {
+                  const o = directOther(selected);
+                  return o && isOnline(o)
+                    ? <span className="text-[11px] text-emerald-600 inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> en ligne</span>
+                    : <span className="text-[11px] text-slate-400">hors ligne</span>;
+                })()}
                 {canDeleteGroup(selected) && (
                   <button onClick={() => removeGroup(selected)} className="ml-auto inline-flex items-center gap-1 text-[12px] text-rose-600 hover:bg-rose-50 rounded-lg px-2 py-1">
                     <Trash2 size={13} /> Supprimer le groupe

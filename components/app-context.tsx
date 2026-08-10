@@ -581,6 +581,9 @@ interface AppCtx {
   muteConversation: (t: MsgTarget, muted: boolean) => Promise<boolean>;
   sendMessage: (t: MsgTarget, body: string, replyTo?: string | null) => Promise<Message[]>;
   sendMessageFile: (t: MsgTarget, file: File, body?: string, replyTo?: string | null) => Promise<{ messages: Message[]; error: string | null }>;
+  onlineIds: string[];
+  isOnline: (profileId: string) => boolean;
+  pingPresence: (convId?: string | null, typing?: boolean) => Promise<{ onlineIds: string[]; memberIds: string[]; typing: string[]; reads: Record<string, string> }>;
   reactToMessage: (messageId: string, emoji: string) => Promise<Message[] | null>;
   createGroup: (title: string, memberIds: string[]) => Promise<string | null>;
   startDirect: (profileId: string) => Promise<string | null>;
@@ -1126,6 +1129,7 @@ export function AppProvider({
   const [conversations, setConversations] = useState<ConversationSummary[]>(
     demo ? [] : reviveConvs(initialConversations ?? [])
   );
+  const [onlineIds, setOnlineIds] = useState<string[]>([]);
   const [projects, setProjects] = useState<Project[]>(
     demo ? seedProjects() : reviveProjects(initialProjects ?? [])
   );
@@ -2726,6 +2730,24 @@ export function AppProvider({
     return { messages: d.messages ? reviveMsgs(d.messages) : [], error: null };
   };
 
+  /** Battement de cœur + saisie ; renvoie l'état de présence du fil (ou global). */
+  const pingPresence = async (
+    convId?: string | null,
+    typing = false
+  ): Promise<{ onlineIds: string[]; memberIds: string[]; typing: string[]; reads: Record<string, string> }> => {
+    const empty = { onlineIds: [] as string[], memberIds: [] as string[], typing: [] as string[], reads: {} as Record<string, string> };
+    if (demo) return empty;
+    const r = await fetch("/api/presence", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ convId: convId ?? null, typing }),
+    }).catch(() => null);
+    if (!r || !r.ok) return empty;
+    const d = await r.json().catch(() => empty);
+    if (Array.isArray(d.onlineIds)) setOnlineIds(d.onlineIds);
+    return { onlineIds: d.onlineIds ?? [], memberIds: d.memberIds ?? [], typing: d.typing ?? [], reads: d.reads ?? {} };
+  };
+
   const reactToMessage = async (messageId: string, emoji: string): Promise<Message[] | null> => {
     if (demo) return null;
     const r = await fetch("/api/messages/react", {
@@ -2811,9 +2833,11 @@ export function AppProvider({
   // Sondage périodique (pas de WebSocket sur le serveur local).
   useEffect(() => {
     if (demo) return;
+    pingPresence(); // battement immédiat pour apparaître « en ligne »
     const iv = setInterval(() => {
       refreshConversations();
       refreshTasks();
+      pingPresence(); // maintient la présence + rafraîchit qui est en ligne
     }, 20000);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2910,6 +2934,9 @@ export function AppProvider({
     muteConversation,
     sendMessage,
     sendMessageFile,
+    onlineIds,
+    isOnline: (profileId: string) => onlineIds.includes(profileId),
+    pingPresence,
     reactToMessage,
     createGroup,
     startDirect,

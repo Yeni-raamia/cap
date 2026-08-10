@@ -6,6 +6,15 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.86.0] - 2026-08-10
+
+### Ajouté
+
+- **Messagerie — indicateurs de présence (façon WhatsApp)**, par sondage (le serveur local n'a pas de WebSocket) :
+  - **En ligne / hors ligne** : un point vert signale les contacts actuellement connectés, sur les messages privés (liste et en-tête de conversation). La présence est entretenue par un battement de cœur périodique tant que l'application est ouverte.
+  - **« … est en train d'écrire »** : quand un correspondant saisit un message, une mention animée apparaît en bas du fil (gérée par personne, jamais soi-même).
+  - **Accusés de lecture (lu / envoyé)** : sous votre dernier message, une double coche verte « Lu » apparaît lorsque tous les autres membres l'ont lu, sinon une simple coche « Envoyé ».
+
 ## [1.85.0] - 2026-08-10
 
 ### Ajouté
