@@ -6,6 +6,13 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.82.0] - 2026-08-10
+
+### Ajouté
+
+- **Module Audit — Rapport global** : bouton **« Rapport global »** sur le tableau de bord Audit. Un document consolidé imprimable : couverture et posture (nombre d'audits, score moyen, constats, constats critiques, grilles), **score moyen par catégorie**, inventaire complet des audits (cible, auditeur, statut, score, constats), tableau des **constats critiques** (point de contrôle, cotation, recommandation) et inventaire des grilles de contrôle disponibles.
+- **Module Audit — 15 grilles de contrôle supplémentaires** (36 grilles au total) : gestion des vulnérabilités, EDR/XDR, accès à privilèges (PAM), sécurité DNS, filtrage web / proxy, identité cloud (Entra ID), Cloud IaaS (AWS), durcissement des équipements réseau, terminaux mobiles (MDM), prévention des fuites (DLP), gestion des secrets, AD Certificate Services, stockage & partages, sécurité physique, authentification e-mail (SPF/DKIM/DMARC). Ajout de 9 catégories d'audit associées. Les grilles apparaissent automatiquement dans la bibliothèque.
+
 ## [1.81.0] - 2026-08-10
 
 ### Ajouté

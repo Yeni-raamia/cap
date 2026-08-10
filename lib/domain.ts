@@ -1392,6 +1392,15 @@ export const AUDIT_CATEGORIES = [
   "Messagerie / Anti-spam",
   "IoT / OT",
   "Sécurité physique",
+  "Gestion des vulnérabilités",
+  "Détection & réponse (EDR/XDR)",
+  "Réseau / DNS",
+  "Filtrage web / Proxy",
+  "Cloud / IaaS",
+  "Terminaux mobiles (MDM)",
+  "Prévention des fuites (DLP)",
+  "Gestion des secrets",
+  "Stockage & partages",
   "Autre",
 ];
 export const AUDIT_SOURCES = ["CIS Benchmark", "ANSSI", "NIST", "ISO 27002", "OWASP", "Microsoft", "Interne", "Autre"];

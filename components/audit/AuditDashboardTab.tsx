@@ -8,6 +8,7 @@ import { Card, Token } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { ConsolidatedRadarCard } from "@/components/audit/ConsolidatedRadarCard";
+import { AuditRapportGlobalPdf } from "@/components/audit/AuditRapportGlobalPdf";
 
 export function AuditDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
   const { audits, auditGrids, assetById, profileById } = useApp();
@@ -35,7 +36,7 @@ export function AuditDashboardTab({ onTab }: { onTab: (tab: string) => void }) {
 
   return (
     <div className="space-y-5">
-      <GrcTabHeader title="Tableau de bord Audit" subtitle="Vue d'ensemble des audits techniques : couverture, scores et constats à traiter." />
+      <GrcTabHeader title="Tableau de bord Audit" subtitle="Vue d'ensemble des audits techniques : couverture, scores et constats à traiter." right={audits.length > 0 ? <AuditRapportGlobalPdf /> : undefined} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatTile icon={ClipboardCheck} tone="text-emerald-600" label="Audits" value={audits.length} sub={`${auditGrids.length} grilles`} onClick={() => onTab("audits")} />
