@@ -26,6 +26,34 @@ import { EmptyState } from "@/components/EmptyState";
 import { ItemCard } from "@/components/ItemCard";
 import { SuiviExplorer } from "@/components/SuiviExplorer";
 
+/* Défini hors du composant de page : une définition imbriquée changerait
+ * d'identité à chaque rendu, React remonterait tout le sous-arbre et les
+ * champs de saisie perdraient le focus à chaque frappe. */
+function Section({
+  icon: Icon,
+  title,
+  count,
+  tone = "text-slate-500",
+  children,
+}: {
+  icon: typeof Bell;
+  title: string;
+  count: number;
+  tone?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <Icon size={15} className={tone} />
+        <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">{title}</h2>
+        <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{count}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function MonEspacePage() {
   const { items, now, me, scores, rs, projects, negligences, conversations, tasks, taskAction, projectTask, setShowNew, setOpenTaskId } = useApp();
   const [newTask, setNewTask] = useState("");
@@ -78,17 +106,6 @@ export default function MonEspacePage() {
     await taskAction("create", { title: newTask.trim(), assigneeId: me.id });
     setNewTask("");
   };
-
-  const Section = ({ icon: Icon, title, count, tone = "text-slate-500", children }: { icon: typeof Bell; title: string; count: number; tone?: string; children: React.ReactNode }) => (
-    <div>
-      <div className="flex items-center gap-2 mb-2">
-        <Icon size={15} className={tone} />
-        <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">{title}</h2>
-        <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{count}</span>
-      </div>
-      {children}
-    </div>
-  );
 
   return (
     <div className="space-y-6">

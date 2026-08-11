@@ -6,6 +6,12 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.86.2] - 2026-08-11
+
+### Corrigé
+
+- **Mon espace — saisie impossible dans le champ « Ajouter une tâche personnelle »** : une lettre sur deux était perdue et le curseur quittait le champ à chaque frappe. Le composant `Section` qui encadre le formulaire était défini *à l'intérieur* du composant de page : il changeait d'identité à chaque rendu, ce qui poussait React à démonter puis remonter tout le sous-arbre — donc à détruire et recréer le champ de saisie (et son focus) à chaque caractère. `Section` est désormais défini au niveau du module.
+
 ## [1.86.1] - 2026-08-10
 
 ### Corrigé
