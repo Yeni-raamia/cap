@@ -15,7 +15,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Plus, Rows3 } from "lucide-react";
-import { fmt, isPublished } from "@/lib/domain";
+import { fmt, formatDuration, isPublished } from "@/lib/domain";
 import { sameDay, startOfDay, toDayInput } from "@/lib/period";
 import {
   buildPlanEvents,
@@ -57,6 +57,7 @@ export default function PlanningPage() {
     projectTask,
     updateProject,
     updateMeeting,
+    readOnly,
     toast,
   } = useApp();
   const router = useRouter();
@@ -152,6 +153,14 @@ export default function PlanningPage() {
           (target.minutes !== null ? ` à ${p2(next.getHours())}:${p2(next.getMinutes())}` : ""),
         "success"
       );
+  };
+
+  /** Fin du redimensionnement : la nouvelle durée est enregistrée sur la réunion. */
+  const onResize = async (e: PlanEvent, minutes: number) => {
+    if (e.kind !== "reunion") return;
+    const err = await updateMeeting(e.refId, { durationMinutes: minutes });
+    if (err) toast(err, "error");
+    else toast(`« ${e.title} » — durée : ${formatDuration(minutes)}.`, "success");
   };
 
   const heading =
@@ -295,6 +304,8 @@ export default function PlanningPage() {
                 now={now}
                 onOpen={openEvent}
                 onCreate={(d, minutes) => setCreateOn({ day: d, minutes: minutes ?? null })}
+                onResize={onResize}
+                canResize={!readOnly}
               />
             </Card>
           ) : (

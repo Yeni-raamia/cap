@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   buildPlanEvents,
   dayDropId,
+  eventStartMinutes,
   dayKey,
   groupByDay,
   SLOTS,
@@ -11,6 +12,7 @@ import {
   movedDate,
   parseDropId,
   positionEvents,
+  resizedDuration,
   slotId,
   weekGrid,
   type PlanEvent,
@@ -204,5 +206,44 @@ describe("positionEvents — blocs horaires", () => {
     const byId = Object.fromEntries(out.map((p) => [p.event.id, p]));
     expect(byId.a.lanes).toBe(2);
     expect(byId.c.lanes).toBe(1); // seul l'après-midi → pleine largeur
+  });
+});
+
+describe("resizedDuration — redimensionnement à la souris", () => {
+  const NEUF_H = 9 * 60;
+
+  it("cale la durée sur le pas de 15 minutes", () => {
+    expect(resizedDuration(60, 20, NEUF_H)).toBe(75); // 80 → 75
+    expect(resizedDuration(60, 7, NEUF_H)).toBe(60); // 67 → 60
+    expect(resizedDuration(60, 8, NEUF_H)).toBe(75); // 68 → 75
+  });
+
+  it("permet d'allonger comme de raccourcir", () => {
+    expect(resizedDuration(60, 60, NEUF_H)).toBe(120);
+    expect(resizedDuration(60, -30, NEUF_H)).toBe(30);
+  });
+
+  it("ne descend jamais sous une durée utilisable", () => {
+    // Sans plancher, un geste brusque réduirait le bloc à zéro et le rendrait
+    // impossible à rattraper à la souris.
+    expect(resizedDuration(60, -500, NEUF_H)).toBe(15);
+    expect(resizedDuration(15, -15, NEUF_H)).toBe(15);
+  });
+
+  it("ne déborde pas de la journée affichée", () => {
+    // Grille jusqu'à 20 h : depuis 19 h, on ne peut pas dépasser 1 h.
+    expect(resizedDuration(60, 600, 19 * 60)).toBe(60);
+    expect(resizedDuration(60, 600, NEUF_H)).toBe(11 * 60); // 9 h → 20 h
+  });
+
+  it("reste utilisable même pour une réunion qui commence en fin de grille", () => {
+    expect(resizedDuration(30, 0, 19 * 60 + 45)).toBe(15);
+  });
+});
+
+describe("eventStartMinutes", () => {
+  it("compte les minutes depuis minuit", () => {
+    const e = { date: at(2026, 3, 12, 14, 30) } as PlanEvent;
+    expect(eventStartMinutes(e)).toBe(870);
   });
 });

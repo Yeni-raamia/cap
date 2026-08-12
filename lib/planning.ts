@@ -242,6 +242,34 @@ export function isSamePlacement(event: PlanEvent, target: DropTarget): boolean {
   return movedDate(event, target).getTime() === event.date.getTime();
 }
 
+/* ---------- Redimensionnement à la souris ---------- */
+
+/**
+ * Pas du redimensionnement, en minutes.
+ *
+ * Plus fin que la grille (30 min) : on veut pouvoir régler un point à
+ * 15 ou 45 minutes en tirant, sans passer par le formulaire.
+ */
+export const RESIZE_STEP = 15;
+export const MIN_DURATION = 15;
+
+/**
+ * Durée obtenue en tirant le bas d'un bloc.
+ *
+ * `deltaMinutes` est l'équivalent en minutes du déplacement vertical. Le
+ * résultat est calé sur le pas, ne descend jamais sous une durée utilisable,
+ * et ne déborde pas de la journée affichée — un bloc qui dépasserait la
+ * grille deviendrait invisible en bas.
+ */
+export function resizedDuration(current: number, deltaMinutes: number, startAtMinutes: number): number {
+  const snapped = Math.round((current + deltaMinutes) / RESIZE_STEP) * RESIZE_STEP;
+  const maxByDay = DAY_END_HOUR * 60 - startAtMinutes;
+  return Math.min(Math.max(MIN_DURATION, snapped), Math.max(MIN_DURATION, maxByDay));
+}
+
+/** Minutes depuis minuit du début d'un événement. */
+export const eventStartMinutes = (e: PlanEvent): number => e.date.getHours() * 60 + e.date.getMinutes();
+
 /* ---------- Placement des blocs horaires ---------- */
 
 export interface PositionedEvent {

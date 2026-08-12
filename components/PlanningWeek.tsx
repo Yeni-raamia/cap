@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { GripVertical } from "lucide-react";
 import { formatDuration } from "@/lib/domain";
@@ -8,6 +9,10 @@ import {
   dayDropId,
   dayKey,
   EVENT_KINDS,
+  eventStartMinutes,
+  MIN_DURATION,
+  resizedDuration,
+  RESIZE_STEP,
   positionEvents,
   SLOT_MINUTES,
   SLOTS,
@@ -64,7 +69,7 @@ export function DraggableEvent({
   );
 }
 
-/** Bloc d'une réunion, dimensionné à sa durée réelle. */
+/** Bloc d'une réunion, dimensionné à sa durée réelle et redimensionnable. */
 function TimedBlock({
   e,
   offset,
@@ -72,6 +77,8 @@ function TimedBlock({
   lane,
   lanes,
   onOpen,
+  onResize,
+  canResize,
 }: {
   e: PlanEvent;
   offset: number;
@@ -79,26 +86,65 @@ function TimedBlock({
   lane: number;
   lanes: number;
   onOpen: (e: PlanEvent) => void;
+  onResize: (e: PlanEvent, minutes: number) => void;
+  canResize: boolean;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `ev:${e.id}`, data: { event: e } });
+  // Durée affichée pendant le geste : le bloc suit la souris avant l'enregistrement.
+  const [preview, setPreview] = useState<number | null>(null);
+  const duree = preview ?? e.durationMinutes;
+  const affSpan = preview !== null ? preview / SLOT_MINUTES : span;
+
   const debut = e.date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   // Sous ~45 min, le bloc est trop bas pour deux lignes de texte.
-  const serre = span <= 1.5;
+  const serre = affSpan <= 1.5;
+
+  /**
+   * Redimensionnement à la souris, en événements de pointeur bruts plutôt
+   * qu'via dnd-kit : on veut suivre le curseur en continu, pas déposer sur
+   * une cible. `setPointerCapture` garde le geste même si le curseur sort du
+   * bloc, y compris hors de la colonne.
+   */
+  const startResize = (ev: React.PointerEvent) => {
+    ev.preventDefault();
+    ev.stopPropagation(); // ne pas déclencher le capteur de déplacement
+    const startY = ev.clientY;
+    const startDuration = e.durationMinutes;
+    const startAt = eventStartMinutes(e);
+    const el = ev.currentTarget as HTMLElement;
+    el.setPointerCapture(ev.pointerId);
+
+    const move = (m: PointerEvent) => {
+      const deltaMinutes = ((m.clientY - startY) / SLOT_H) * SLOT_MINUTES;
+      setPreview(resizedDuration(startDuration, deltaMinutes, startAt));
+    };
+    const up = (m: PointerEvent) => {
+      el.releasePointerCapture(m.pointerId);
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerup", up);
+      const deltaMinutes = ((m.clientY - startY) / SLOT_H) * SLOT_MINUTES;
+      const next = resizedDuration(startDuration, deltaMinutes, startAt);
+      setPreview(null);
+      if (next !== startDuration) onResize(e, next);
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up);
+  };
 
   return (
     <div
       ref={setNodeRef}
       style={{
         top: offset * SLOT_H + 2,
-        height: Math.max(SLOT_H - 4, span * SLOT_H - 4),
+        height: Math.max(SLOT_H - 4, affSpan * SLOT_H - 4),
         left: `calc(${(lane / lanes) * 100}% + 2px)`,
         width: `calc(${100 / lanes}% - 4px)`,
       }}
-      className={`absolute rounded-md border px-1 py-0.5 overflow-hidden ${
+      className={`group/blk absolute rounded-md border px-1 py-0.5 overflow-hidden ${
         e.done
           ? "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
           : "bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40"
-      } ${isDragging ? "opacity-40" : ""}`}
+      } ${isDragging ? "opacity-40" : ""} ${preview !== null ? "ring-1 ring-amber-400" : ""}`}
     >
       <div className="flex items-start gap-0.5">
         <span
@@ -117,11 +163,40 @@ function TimedBlock({
           </div>
           {!serre && (
             <div className="text-[9.5px] text-amber-700/80 dark:text-amber-300/70 font-mono">
-              {debut} · {formatDuration(e.durationMinutes)}
+              {debut} · {formatDuration(duree)}
             </div>
           )}
         </button>
       </div>
+
+      {canResize && (
+        <div
+          onPointerDown={startResize}
+          role="slider"
+          tabIndex={0}
+          aria-label={`Durée de ${e.title}`}
+          aria-valuemin={MIN_DURATION}
+          aria-valuenow={duree}
+          aria-valuetext={formatDuration(duree)}
+          onKeyDown={(k) => {
+            // Accessible au clavier : flèches haut/bas par pas de 15 minutes.
+            if (k.key !== "ArrowUp" && k.key !== "ArrowDown") return;
+            k.preventDefault();
+            const next = resizedDuration(e.durationMinutes, k.key === "ArrowDown" ? RESIZE_STEP : -RESIZE_STEP, eventStartMinutes(e));
+            if (next !== e.durationMinutes) onResize(e, next);
+          }}
+          title="Tirer pour changer la durée"
+          className="absolute inset-x-0 bottom-0 h-2 cursor-ns-resize flex items-end justify-center"
+        >
+          <span className="h-1 w-6 rounded-full bg-amber-400/60 opacity-0 group-hover/blk:opacity-100 transition-opacity mb-0.5" />
+        </div>
+      )}
+
+      {preview !== null && (
+        <span className="absolute right-1 bottom-1 text-[9.5px] font-mono text-amber-800 dark:text-amber-200 bg-white/80 dark:bg-slate-900/80 rounded px-1">
+          {formatDuration(duree)}
+        </span>
+      )}
     </div>
   );
 }
@@ -164,12 +239,16 @@ export function PlanningWeek({
   now,
   onOpen,
   onCreate,
+  onResize,
+  canResize,
 }: {
   days: Date[];
   eventsOf: (d: Date) => PlanEvent[];
   now: Date;
   onOpen: (e: PlanEvent) => void;
   onCreate: (d: Date, minutes?: number) => void;
+  onResize: (e: PlanEvent, minutes: number) => void;
+  canResize: boolean;
 }) {
   const gridHeight = SLOTS.length * SLOT_H;
 
@@ -235,6 +314,8 @@ export function PlanningWeek({
                     lane={p.lane}
                     lanes={p.lanes}
                     onOpen={onOpen}
+                    onResize={onResize}
+                    canResize={canResize}
                   />
                 ))}
               </div>

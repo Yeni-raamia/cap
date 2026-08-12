@@ -6,6 +6,21 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.95.0] - 2026-08-12
+
+### Ajouté
+
+- **Redimensionner une réunion à la souris** : une poignée apparaît au survol, en bas du bloc. On tire vers le bas pour allonger, vers le haut pour raccourcir ; le bloc suit le curseur et affiche la durée en cours de geste, puis la valeur est enregistrée au relâchement.
+  - Le réglage se fait **par pas de 15 minutes** — plus fin que la grille (30 min), pour qu'un point de 45 minutes reste possible à la souris.
+  - Le geste **ne peut pas réduire un bloc à néant** (plancher de 15 minutes) ni le faire déborder de la journée affichée : dans les deux cas, il deviendrait impossible à rattraper.
+  - Le geste **se poursuit hors du bloc** et même hors de la colonne (capture du pointeur), sans jamais déclencher un déplacement par mégarde.
+  - **Accessible au clavier** : la poignée est un curseur ARIA, les flèches haut et bas ajustent la durée par pas de 15 minutes.
+  - En lecture seule, la poignée n'apparaît pas.
+
+### Note technique
+
+- Le calcul (`resizedDuration`) est une fonction pure couverte par 6 tests — calage sur le pas, plancher, débordement de fin de journée. Le suivi du curseur utilise les événements de pointeur natifs plutôt que dnd-kit : un redimensionnement suit le curseur en continu, il ne se dépose pas sur une cible.
+
 ## [1.94.0] - 2026-08-12
 
 ### Ajouté
