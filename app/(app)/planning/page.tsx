@@ -2,22 +2,67 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  pointerWithin,
+  useSensor,
+  useDroppable,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Plus, Rows3 } from "lucide-react";
 import { fmt, isPublished } from "@/lib/domain";
 import { sameDay, startOfDay, toDayInput } from "@/lib/period";
-import { buildPlanEvents, EVENT_KINDS, groupByDay, inMonth, monthGrid, weekGrid, type PlanEvent, type PlanEventKind } from "@/lib/planning";
+import {
+  buildPlanEvents,
+  dayDropId,
+  EVENT_KINDS,
+  groupByDay,
+  inMonth,
+  isSamePlacement,
+  monthGrid,
+  movedDate,
+  parseDropId,
+  weekGrid,
+  type PlanEvent,
+  type PlanEventKind,
+} from "@/lib/planning";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHero } from "@/components/PageHero";
+import { PlanningWeek, DraggableEvent } from "@/components/PlanningWeek";
 import { QuickCreateModal } from "@/components/QuickCreateModal";
 
 type ViewMode = "mois" | "semaine" | "liste";
 
 const DAY_NAMES = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+const p2 = (n: number) => String(n).padStart(2, "0");
 
 export default function PlanningPage() {
-  const { tasks: allTasks, projects: allProjects, meetings, profiles, me, now, profileById, setOpenTaskId } = useApp();
+  const {
+    tasks: allTasks,
+    projects: allProjects,
+    meetings,
+    profiles,
+    me,
+    now,
+    profileById,
+    setOpenTaskId,
+    taskAction,
+    projectTask,
+    updateProject,
+    updateMeeting,
+    toast,
+  } = useApp();
+  const router = useRouter();
+  const [dragging, setDragging] = useState<PlanEvent | null>(null);
+  // Un seuil de 6 px évite qu'un simple clic sur la poignée soit pris pour un glissement.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const tasks = useMemo(() => allTasks.filter(isPublished), [allTasks]);
   const projects = useMemo(() => allProjects.filter(isPublished), [allProjects]);
@@ -68,6 +113,46 @@ export default function PlanningPage() {
 
   const toggleKind = (k: PlanEventKind) =>
     setKinds((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]));
+
+  /** Ouvre l'élément : fiche de tâche en modale, page dédiée sinon. */
+  const openEvent = (e: PlanEvent) => {
+    if (e.taskId) setOpenTaskId(e.taskId);
+    else if (e.href) router.push(e.href);
+  };
+
+  /**
+   * Déplacement par glisser-déposer : on écrit la nouvelle date sur l'objet
+   * d'origine. Les droits sont vérifiés côté serveur — un refus revient en
+   * message, et l'affichage se recale sur la donnée renvoyée.
+   */
+  const onDragEnd = async (ev: DragEndEvent) => {
+    setDragging(null);
+    const target = ev.over ? parseDropId(String(ev.over.id)) : null;
+    const e = ev.active.data.current?.event as PlanEvent | undefined;
+    if (!target || !e) return;
+    if (isSamePlacement(e, target)) return;
+
+    const next = movedDate(e, target);
+    const jour = toDayInput(next);
+    let err: string | null = null;
+
+    if (e.kind === "tache") err = await taskAction("update", { id: e.refId, dueDate: jour });
+    else if (e.kind === "tache-projet") err = await projectTask("update", { taskId: e.refId, dueDate: jour });
+    else if (e.kind === "projet") err = await updateProject(e.refId, { deadline: jour });
+    else if (e.kind === "reunion") {
+      // La réunion garde une heure : on renvoie une date-heure locale complète.
+      const p = (n: number) => String(n).padStart(2, "0");
+      err = await updateMeeting(e.refId, { date: `${jour}T${p(next.getHours())}:${p(next.getMinutes())}` });
+    }
+
+    if (err) toast(err, "error");
+    else
+      toast(
+        `« ${e.title} » déplacé au ${next.toLocaleDateString("fr-FR", { day: "2-digit", month: "long" })}` +
+          (target.hour !== null ? ` à ${p2(next.getHours())}:00` : ""),
+        "success"
+      );
+  };
 
   const heading =
     view === "semaine"
@@ -195,85 +280,55 @@ export default function PlanningPage() {
           )}
         </Card>
       ) : (
-        <>
-          <Card className="p-2">
-            <div className="grid grid-cols-7 gap-1 mb-1">
-              {DAY_NAMES.map((d) => (
-                <div key={d} className="text-[11px] font-medium text-slate-400 text-center py-1">{d}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {days.map((d) => {
-                const dayEvents = eventsOf(d);
-                const isToday = sameDay(d, now);
-                const dim = view === "mois" && !inMonth(d, anchor);
-                const isSelected = selectedDay && sameDay(d, selectedDay);
-                return (
-                  <button
+        <DndContext
+          sensors={sensors}
+          collisionDetection={pointerWithin}
+          onDragStart={(e: DragStartEvent) => setDragging((e.active.data.current?.event as PlanEvent) ?? null)}
+          onDragEnd={onDragEnd}
+          onDragCancel={() => setDragging(null)}
+        >
+          {view === "semaine" ? (
+            <Card className="p-2">
+              <PlanningWeek
+                days={days}
+                eventsOf={eventsOf}
+                now={now}
+                onOpen={openEvent}
+                onCreate={(d) => setCreateOn(d)}
+              />
+            </Card>
+          ) : (
+            <Card className="p-2">
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {DAY_NAMES.map((d) => (
+                  <div key={d} className="text-[11px] font-medium text-slate-400 text-center py-1">{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {days.map((d) => (
+                  <MonthCell
                     key={d.toISOString()}
-                    onClick={() => setSelectedDay(isSelected ? null : d)}
-                    onDoubleClick={() => setCreateOn(d)}
-                    title="Cliquer pour voir le détail, double-cliquer pour créer"
-                    className={`relative group text-left rounded-lg border p-1.5 transition ${
-                      view === "semaine" ? "min-h-[8rem]" : "min-h-[5.5rem]"
-                    } ${
-                      isSelected
-                        ? "border-emerald-400 bg-emerald-50/60"
-                        : isToday
-                          ? "border-emerald-300 bg-emerald-50/30"
-                          : "border-slate-100 hover:border-slate-200 bg-white dark:bg-slate-900"
-                    } ${dim ? "opacity-40" : ""}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[11.5px] font-medium ${isToday ? "text-emerald-700" : "text-slate-500"}`}>
-                        {d.getDate()}
-                      </span>
-                      {dayEvents.length > 0 && (
-                        <span className="text-[10px] text-slate-400 group-hover:hidden">{dayEvents.length}</span>
-                      )}
-                      {/* Créer directement sur ce jour — la date est reprise dans le formulaire. */}
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Créer un élément le ${d.toLocaleDateString("fr-FR")}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCreateOn(d);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setCreateOn(d);
-                          }
-                        }}
-                        className="hidden group-hover:grid place-items-center h-4 w-4 rounded text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-                        title="Créer une tâche ou une réunion ce jour-là"
-                      >
-                        <Plus size={12} />
-                      </span>
-                    </div>
-                    <div className="space-y-0.5 mt-1">
-                      {dayEvents.slice(0, view === "semaine" ? 6 : 3).map((e) => {
-                        const kind = EVENT_KINDS.find((k) => k.key === e.kind)!;
-                        return (
-                          <div key={e.id} className="flex items-center gap-1 min-w-0">
-                            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${e.late ? "bg-rose-500" : kind.dot}`} />
-                            <span className={`text-[10.5px] truncate ${e.done ? "text-slate-400 line-through" : e.late ? "text-rose-600" : "text-slate-600"}`}>
-                              {e.title}
-                            </span>
-                          </div>
-                        );
-                      })}
-                      {dayEvents.length > (view === "semaine" ? 6 : 3) && (
-                        <div className="text-[10px] text-slate-400">+ {dayEvents.length - (view === "semaine" ? 6 : 3)} autre(s)</div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
+                    d={d}
+                    events={eventsOf(d)}
+                    isToday={sameDay(d, now)}
+                    dim={!inMonth(d, anchor)}
+                    isSelected={Boolean(selectedDay && sameDay(d, selectedDay))}
+                    onSelect={() => setSelectedDay(selectedDay && sameDay(d, selectedDay) ? null : d)}
+                    onCreate={() => setCreateOn(d)}
+                    onOpen={openEvent}
+                  />
+                ))}
+              </div>
+            </Card>
+          )}
+
+          <DragOverlay dropAnimation={null}>
+            {dragging && (
+              <div className="rounded border border-emerald-300 bg-white dark:bg-slate-900 shadow-lg px-2 py-1 text-[11px] text-slate-700 dark:text-slate-200">
+                {dragging.title}
+              </div>
+            )}
+          </DragOverlay>
 
           {/* Détail du jour sélectionné */}
           {selectedDay && (
@@ -294,10 +349,95 @@ export default function PlanningPage() {
               </Card>
             </div>
           )}
-        </>
+        </DndContext>
       )}
 
       {createOn && <QuickCreateModal day={createOn} onClose={() => setCreateOn(null)} />}
+    </div>
+  );
+}
+
+/**
+ * Case d'un jour dans la vue mois : sélectionnable, créable, et zone de dépôt.
+ *
+ * Ce n'est volontairement pas un `<button>` : elle contient elle-même des
+ * boutons (chips d'événements, « + »), ce qu'un bouton ne peut pas héberger.
+ */
+function MonthCell({
+  d,
+  events,
+  isToday,
+  dim,
+  isSelected,
+  onSelect,
+  onCreate,
+  onOpen,
+}: {
+  d: Date;
+  events: PlanEvent[];
+  isToday: boolean;
+  dim: boolean;
+  isSelected: boolean;
+  onSelect: () => void;
+  onCreate: () => void;
+  onOpen: (e: PlanEvent) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: dayDropId(d) });
+  const MAX = 3;
+
+  return (
+    <div
+      ref={setNodeRef}
+      onClick={onSelect}
+      onDoubleClick={onCreate}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onSelect();
+      }}
+      title="Cliquer pour voir le détail, double-cliquer pour créer"
+      className={`relative group text-left rounded-lg border p-1.5 min-h-[5.5rem] transition cursor-pointer ${
+        isOver
+          ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 ring-1 ring-emerald-300"
+          : isSelected
+            ? "border-emerald-400 bg-emerald-50/60"
+            : isToday
+              ? "border-emerald-300 bg-emerald-50/30"
+              : "border-slate-100 hover:border-slate-200 bg-white dark:bg-slate-900"
+      } ${dim ? "opacity-40" : ""}`}
+    >
+      <div className="flex items-center justify-between">
+        <span className={`text-[11.5px] font-medium ${isToday ? "text-emerald-700" : "text-slate-500"}`}>{d.getDate()}</span>
+        {events.length > 0 && <span className="text-[10px] text-slate-400 group-hover:hidden">{events.length}</span>}
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label={`Créer un élément le ${d.toLocaleDateString("fr-FR")}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onCreate();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              onCreate();
+            }
+          }}
+          className="hidden group-hover:grid place-items-center h-4 w-4 rounded text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+          title="Créer une tâche ou une réunion ce jour-là"
+        >
+          <Plus size={12} />
+        </span>
+      </div>
+      <div className="space-y-0.5 mt-1" onClick={(e) => e.stopPropagation()}>
+        {events.slice(0, MAX).map((e) => (
+          <DraggableEvent key={e.id} e={e} onOpen={onOpen} compact />
+        ))}
+        {events.length > MAX && (
+          <div className="text-[10px] text-slate-400 pl-1">+ {events.length - MAX} autre(s)</div>
+        )}
+      </div>
     </div>
   );
 }

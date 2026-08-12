@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CalendarDays, ListTodo, Plus, X } from "lucide-react";
-import { MEETING_STATUTS, type MeetingStatus } from "@/lib/domain";
+import { contactDisplayName, MEETING_STATUTS, type MeetingParticipant, type MeetingStatus } from "@/lib/domain";
 import { toDayInput } from "@/lib/period";
 import { useApp } from "./app-context";
 import { NewTaskForm } from "./NewTaskForm";
@@ -27,7 +27,7 @@ export function QuickCreateModal({
   defaultKind?: Kind;
   onClose: () => void;
 }) {
-  const { me, now, createMeeting, toast } = useApp();
+  const { me, now, profiles, contacts, createMeeting, toast } = useApp();
   const [kind, setKind] = useState<Kind>(defaultKind);
   const [err, setErr] = useState<string | null>(null);
 
@@ -41,6 +41,20 @@ export function QuickCreateModal({
   const [status, setStatus] = useState<MeetingStatus>("planifiée");
   const [agenda, setAgenda] = useState("");
   const [busy, setBusy] = useState(false);
+  // Participants choisis dès la création : le compte rendu part avec sa liste
+  // de présents, plutôt que de la reconstituer après coup.
+  const [participants, setParticipants] = useState<MeetingParticipant[]>([
+    { kind: "member", id: me.id, presence: "invité" },
+  ]);
+
+  const hasParticipant = (kind: "member" | "contact", id: string) =>
+    participants.some((p) => p.kind === kind && p.id === id);
+  const toggleParticipant = (kind: "member" | "contact", id: string) =>
+    setParticipants((prev) =>
+      hasParticipant(kind, id)
+        ? prev.filter((p) => !(p.kind === kind && p.id === id))
+        : [...prev, { kind, id, presence: "invité" }]
+    );
 
   const saveMeeting = async () => {
     if (!title.trim()) return setErr("Titre requis.");
@@ -52,6 +66,7 @@ export function QuickCreateModal({
       location: location.trim(),
       status,
       agenda: agenda.trim(),
+      participants,
     });
     setBusy(false);
     if (e) return setErr(e);
@@ -138,6 +153,52 @@ export function QuickCreateModal({
               <div>
                 <label className={labelCls} htmlFor="qc-loc">Lieu</label>
                 <input id="qc-loc" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Salle de réunion, visio…" className={inputCls} />
+              </div>
+              <div>
+                <span className={labelCls}>Participants ({participants.length})</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {profiles.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => toggleParticipant("member", p.id)}
+                      aria-pressed={hasParticipant("member", p.id)}
+                      className={`text-[12px] rounded-full border px-2.5 py-1 transition ${
+                        hasParticipant("member", p.id)
+                          ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50"
+                      }`}
+                    >
+                      {p.id === me.id ? "Moi" : p.nom}
+                    </button>
+                  ))}
+                </div>
+                {contacts.length > 0 && (
+                  <>
+                    <div className="text-[11px] text-slate-400 mt-2 mb-1">Contacts externes</div>
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                      {contacts.map((c) => {
+                        const name = contactDisplayName(c) || c.email || "—";
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => toggleParticipant("contact", c.id)}
+                            aria-pressed={hasParticipant("contact", c.id)}
+                            className={`text-[12px] rounded-full border px-2.5 py-1 transition ${
+                              hasParticipant("contact", c.id)
+                                ? "bg-sky-100 text-sky-800 border-sky-300"
+                                : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50"
+                            }`}
+                          >
+                            {name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+                <div className="text-[11px] text-slate-400 mt-1">
+                  Tous sont invités par défaut ; la présence effective se coche dans la fiche de la réunion.
+                </div>
               </div>
               <div>
                 <label className={labelCls} htmlFor="qc-agenda">Ordre du jour</label>

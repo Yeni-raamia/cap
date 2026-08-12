@@ -11,10 +11,15 @@ import { sameDay, startOfDay } from "./period";
 export type PlanEventKind = "tache" | "tache-projet" | "projet" | "reunion";
 
 export interface PlanEvent {
+  /** Identifiant d'affichage, préfixé par type (unique dans le calendrier). */
   id: string;
+  /** Identifiant de l'objet sous-jacent — c'est lui qu'on met à jour au déplacement. */
+  refId: string;
   kind: PlanEventKind;
   title: string;
   date: Date;
+  /** L'objet porte-t-il une heure significative ? (réunions seulement) */
+  timed: boolean;
   /** Personne concernée (assignée / responsable), pour le filtre par personne. */
   personId: string | null;
   /** Contexte affiché en second ligne (nom du projet, lieu…). */
@@ -52,7 +57,9 @@ export function buildPlanEvents(input: {
     const proj = t.projectId ? projects.find((p) => p.id === t.projectId) : null;
     events.push({
       id: `tache-${t.id}`,
+      refId: t.id,
       kind: "tache",
+      timed: false,
       title: t.title,
       date: t.dueDate,
       personId: t.assigneeId,
@@ -69,7 +76,9 @@ export function buildPlanEvents(input: {
       if (!t.dueDate) return;
       events.push({
         id: `ptache-${t.id}`,
+        refId: t.id,
         kind: "tache-projet",
+        timed: false,
         title: t.title,
         date: t.dueDate,
         personId: t.assigneeId,
@@ -83,7 +92,9 @@ export function buildPlanEvents(input: {
     if (p.deadline) {
       events.push({
         id: `projet-${p.id}`,
+        refId: p.id,
         kind: "projet",
+        timed: false,
         title: p.name,
         date: p.deadline,
         personId: p.ownerId,
@@ -100,7 +111,9 @@ export function buildPlanEvents(input: {
     if (!m.date) return;
     events.push({
       id: `reunion-${m.id}`,
+      refId: m.id,
       kind: "reunion",
+      timed: true,
       title: m.title || "Réunion",
       date: m.date,
       personId: m.createdBy ?? null,
@@ -157,5 +170,64 @@ export function weekGrid(anchor: Date): Date[] {
 /** Vrai si `d` appartient au mois de `anchor` (pour griser les jours débordants). */
 export const inMonth = (d: Date, anchor: Date): boolean =>
   d.getMonth() === anchor.getMonth() && d.getFullYear() === anchor.getFullYear();
+
+/* ---------- Créneaux horaires (vue semaine) ---------- */
+
+/** Amplitude affichée : une journée de bureau, pas 24 h de lignes vides. */
+export const DAY_START_HOUR = 7;
+export const DAY_END_HOUR = 20;
+
+export const HOUR_SLOTS: number[] = Array.from(
+  { length: DAY_END_HOUR - DAY_START_HOUR },
+  (_, i) => DAY_START_HOUR + i
+);
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Clé `yyyy-mm-dd` d'un jour (identifiant de zone de dépôt « journée »). */
+export const dayKey = (d: Date): string => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+/** Identifiant de zone de dépôt d'un créneau horaire. */
+export const slotId = (d: Date, hour: number): string => `slot:${dayKey(d)}:${hour}`;
+/** Identifiant de zone de dépôt d'une journée entière (bandeau « toute la journée »). */
+export const dayDropId = (d: Date): string => `day:${dayKey(d)}`;
+
+export interface DropTarget {
+  day: Date;
+  /** Heure visée, ou null pour un dépôt « toute la journée ». */
+  hour: number | null;
+}
+
+/** Décode l'identifiant d'une zone de dépôt, ou null s'il n'en est pas une. */
+export function parseDropId(id: string): DropTarget | null {
+  const m = /^(slot|day):(\d{4})-(\d{2})-(\d{2})(?::(\d{1,2}))?$/.exec(id);
+  if (!m) return null;
+  const day = new Date(Number(m[2]), Number(m[3]) - 1, Number(m[4]));
+  if (Number.isNaN(day.getTime())) return null;
+  return { day, hour: m[1] === "slot" && m[5] !== undefined ? Number(m[5]) : null };
+}
+
+/**
+ * Nouvelle date d'un événement déplacé.
+ *
+ * Un dépôt sur un créneau impose l'heure (minutes remises à zéro : le geste
+ * doit être prévisible). Un dépôt « toute la journée » ne change que le jour
+ * et conserve l'heure d'origine, pour ne pas décaler une réunion à minuit.
+ */
+export function movedDate(event: PlanEvent, target: DropTarget): Date {
+  const d = new Date(target.day);
+  if (target.hour === null) {
+    d.setHours(event.date.getHours(), event.date.getMinutes(), 0, 0);
+  } else {
+    d.setHours(target.hour, 0, 0, 0);
+  }
+  return d;
+}
+
+/** L'événement est-il déjà exactement à cette place ? (évite un appel réseau inutile) */
+export function isSamePlacement(event: PlanEvent, target: DropTarget): boolean {
+  const next = movedDate(event, target);
+  return next.getTime() === event.date.getTime();
+}
 
 export { sameDay };

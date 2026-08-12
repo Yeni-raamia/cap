@@ -6,6 +6,18 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.93.0] - 2026-08-12
+
+### Ajouté
+
+- **Planning — vue semaine en créneaux horaires** : la semaine s'affiche désormais en grille, de 7 h à 20 h. Les **réunions** se posent sur leur créneau ; les **échéances** (tâches, tâches de projet, projets), qui n'ont pas d'heure, vivent dans un bandeau « journée » en haut de chaque colonne. Survoler un créneau libre propose de créer directement dessus.
+- **Déplacement par glisser-déposer** : chaque élément porte une poignée. On le glisse d'un jour à l'autre (vue mois) ou d'un créneau à l'autre (vue semaine), et la date est enregistrée sur l'objet d'origine — échéance de tâche, de tâche de projet, de projet, ou date et heure de réunion. Un dépôt sur un créneau impose l'heure ; un dépôt sur le bandeau « journée » **conserve l'heure d'origine**, pour ne pas ramener une réunion à minuit en changeant simplement de jour. Le chip reste cliquable pour ouvrir la fiche : seule la poignée déclenche le glissement. Les droits sont vérifiés côté serveur — un refus revient en message.
+- **Réunion : les participants se choisissent à la création**. Membres de l'équipe et contacts externes, en une ligne de pastilles ; tous sont « invités » par défaut, la présence effective se coche ensuite dans la fiche. Le compte rendu part ainsi avec sa liste, au lieu de la reconstituer après coup.
+
+### Corrigé
+
+- **Impossible d'attribuer une tâche à quelqu'un d'autre depuis « Mon espace »** : le formulaire y était figé sur l'utilisateur courant, même pour un manager, un directeur ou un administrateur. Le sélecteur de responsable apparaît maintenant selon le rôle, comme ailleurs dans l'application.
+
 ## [1.92.0] - 2026-08-12
 
 ### Corrigé

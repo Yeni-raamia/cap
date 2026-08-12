@@ -81,6 +81,9 @@ export default function MonEspacePage() {
     return byDay.get(iso(d)) ?? 0;
   });
 
+  // Un encadrant peut assigner à quelqu'un d'autre, y compris depuis son espace.
+  const canAssignOthers = ["manager", "directeur", "admin"].includes(me.role);
+
   // À justifier : mes blocages dont le motif n'est pas encore qualifié.
   const aJustifier = mine.filter((i) => i.statut === "Bloqué" && !i.appreciation);
 
@@ -182,7 +185,7 @@ export default function MonEspacePage() {
       <Section icon={ListTodo} title="Mes tâches" count={openTaskCount} tone="text-violet-500">
         <Card className="p-3">
           <div className="mb-3">
-            <NewTaskForm canAssignOthers={false} inputRef={taskInputRef} onCreate={run} />
+            <NewTaskForm canAssignOthers={canAssignOthers} inputRef={taskInputRef} onCreate={run} />
           </div>
           {taskErr && <div className="mb-2 text-[12px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{taskErr}</div>}
           {myAssignedTasks.length > 0 && <PeriodFilter value={taskPeriod} onChange={setTaskPeriod} compact className="mb-2" />}
