@@ -675,6 +675,81 @@ export interface Policy {
   updatedAt: Date;
 }
 
+/* ---------- Module GRC : Textes légaux & réglementaires ----------
+ * Les référentiels (ISO, NIST, CIS…) sont figés dans le code : ils ne
+ * bougent pas d'une organisation à l'autre. Les lois, si — elles dépendent
+ * du pays et du secteur. Ce registre les laisse saisir, avec leurs articles,
+ * et chaque article devient une mesure évaluable comme les autres. */
+export const LEGAL_KINDS = [
+  "Loi",
+  "Décret",
+  "Arrêté",
+  "Ordonnance",
+  "Règlement",
+  "Directive",
+  "Circulaire",
+  "Norme",
+  "Autre",
+];
+export const LEGAL_STATUS = ["En vigueur", "À venir", "Abrogé"];
+export const LEGAL_STATUS_TONE: Record<string, string> = {
+  "En vigueur": "bg-emerald-100 text-emerald-700",
+  "À venir": "bg-sky-100 text-sky-700",
+  Abrogé: "bg-slate-100 text-slate-500",
+};
+
+/** Une exigence du texte : article, alinéa, chapitre… */
+export interface LegalArticle {
+  /** Repère court affiché en tête de ligne (« Art. 12 », « §3.1 »). */
+  code: string;
+  title: string;
+  /** Ce que le texte impose, en clair. */
+  requirement: string;
+  /** Regroupement d'affichage (chapitre, titre, section). */
+  group: string;
+}
+
+export interface LegalText {
+  id: string;
+  ref: string;
+  name: string;
+  kind: string;
+  /** Autorité émettrice (ministère, parlement, régulateur…). */
+  authority: string;
+  /** Numéro officiel du texte. */
+  reference: string;
+  publishedAt: Date | null;
+  /** Date d'entrée en vigueur. */
+  effectiveAt: Date | null;
+  url: string;
+  description: string;
+  /** À qui/quoi le texte s'applique dans l'organisation. */
+  scope: string;
+  status: string;
+  /** Hors périmètre : conservé au registre mais non évalué. */
+  applicable: boolean;
+  articles: LegalArticle[];
+  ownerId: string | null;
+  reviewDate: Date | null;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Identifiant de référentiel d'un texte légal.
+ *
+ * Préfixé pour ne jamais entrer en collision avec un référentiel du code, et
+ * pour que les évaluations déjà saisies restent rattachées au bon texte.
+ */
+export const legalFrameworkId = (textId: string): string => `loi:${textId}`;
+export const isLegalFrameworkId = (fwId: string): boolean => fwId.startsWith("loi:");
+export const legalTextIdOf = (fwId: string): string => fwId.slice(4);
+
+/** Un texte n'est évaluable que s'il est applicable, en vigueur et doté d'articles. */
+export const isLegalAssessable = (t: LegalText): boolean =>
+  t.applicable && t.status !== "Abrogé" && t.articles.length > 0;
+
 /* ---------- Module GRC : Registre des actifs (ISO 27005) ----------
  * Ce que l'organisation protège. Chaque actif est valorisé selon les trois
  * critères de sécurité C/I/D (échelle 1–4) ; sa criticité = max(C, I, D). */

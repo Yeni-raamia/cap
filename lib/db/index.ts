@@ -307,6 +307,18 @@ create table if not exists policy_publications (
   created_at text not null default (datetime('now'))
 );
 create index if not exists idx_pollpub_policy on policy_publications(policy_id);
+create table if not exists legal_texts (
+  id text primary key, ref text not null,
+  name text not null default '', kind text not null default 'Loi',
+  authority text not null default '', reference text not null default '',
+  published_at text, effective_at text,
+  url text not null default '', description text not null default '',
+  scope text not null default '', status text not null default 'En vigueur',
+  applicable integer not null default 1, articles text not null default '[]',
+  owner_id text, review_date text, created_by text,
+  created_at text not null default (datetime('now')),
+  updated_at text not null default (datetime('now'))
+);
 create table if not exists assets (
   id text primary key, ref text not null,
   name text not null default '', type text not null default '', description text not null default '',

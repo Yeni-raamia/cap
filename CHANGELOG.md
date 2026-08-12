@@ -6,6 +6,21 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.103.0] - 2026-08-12
+
+### Ajouté
+
+- **GRC — registre des lois et règlements, évaluables comme les référentiels.** Les référentiels (ISO 27001, NIST, CIS, EBIOS RM…) sont figés dans le code : ils ne varient pas d'une organisation à l'autre. Les lois, si — elles dépendent du pays et du secteur. Elles se saisissent désormais depuis l'onglet **Conformité**.
+  - Un texte porte sa **nature** (loi, décret, arrêté, ordonnance, règlement, directive, circulaire, norme), son **numéro officiel**, son **autorité émettrice**, ses dates de **publication** et d'**entrée en vigueur**, sa **portée** dans l'organisation, un lien vers le texte officiel, un responsable et une date de revue.
+  - Ses **articles** se saisissent un par un (repère, intitulé, exigence en clair, chapitre) et **deviennent des mesures évaluables** : applicabilité, statut, maturité 0–5, responsable et preuve — exactement comme une mesure ISO. Le texte apparaît alors comme un référentiel de plus, et **compte dans le score de conformité**.
+  - Un texte **hors périmètre, abrogé, ou sans article** reste au registre sans polluer l'évaluation ; il est rappelé à part, d'un clic pour le compléter.
+  - Supprimer un texte **emporte les évaluations de ses articles**, qui deviendraient sinon des orphelines comptées dans les scores.
+
+### Corrigé
+
+- **L'évaluation d'un article de loi était rejetée** (« Mesure inconnue »). La route d'évaluation ne connaissait que les référentiels figés dans le code : les articles d'un texte saisi par l'organisation n'existaient pas à ses yeux, ce qui rendait la fonctionnalité inutilisable. Elle prend désormais en compte les deux sources — et continue de refuser un article inexistant.
+
+
 ## [1.102.0] - 2026-08-12
 
 ### Ajouté

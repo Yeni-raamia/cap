@@ -6,6 +6,8 @@
  *  CIS Controls v8, RGPD & NIS2.
  * ================================================================== */
 
+import { isLegalAssessable, legalFrameworkId, type LegalText } from "@/lib/domain";
+
 export interface RefControl {
   code: string;
   title: string;
@@ -277,4 +279,31 @@ export const FRAMEWORKS: Framework[] = [
 ];
 
 export const frameworkById = (id: string): Framework | undefined => FRAMEWORKS.find((f) => f.id === id);
+
+/**
+ * Présente un texte légal comme un référentiel évaluable.
+ *
+ * Les articles deviennent des mesures, les chapitres des thèmes : tout le
+ * moteur d'évaluation (applicabilité, statut, maturité, preuve) s'applique
+ * alors sans y toucher, et un article se cote comme une mesure ISO.
+ */
+export function legalTextToFramework(t: LegalText): Framework {
+  const groups: string[] = [];
+  t.articles.forEach((a) => {
+    if (!groups.includes(a.group)) groups.push(a.group);
+  });
+  return {
+    id: legalFrameworkId(t.id),
+    name: [t.kind, t.name].filter(Boolean).join(" — "),
+    short: t.reference || t.name.slice(0, 24),
+    version: t.reference || "—",
+    groups: groups.length > 0 ? groups : ["Dispositions générales"],
+    controls: t.articles.map((a) => ({ code: a.code, title: a.title || a.code, group: a.group })),
+  };
+}
+
+/** Référentiels du code + textes légaux évaluables saisis par l'organisation. */
+export function allFrameworks(legalTexts: LegalText[]): Framework[] {
+  return [...FRAMEWORKS, ...legalTexts.filter(isLegalAssessable).map(legalTextToFramework)];
+}
 export const controlCodesOf = (frameworkId: string): Set<string> => new Set((frameworkById(frameworkId)?.controls ?? []).map((c) => c.code));

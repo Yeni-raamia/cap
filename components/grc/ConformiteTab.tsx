@@ -2,34 +2,49 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, Search, ShieldCheck } from "lucide-react";
-import { CONTROL_STATUS, CONTROL_STATUS_TONE, fmt, type ControlAssessment } from "@/lib/domain";
-import { FRAMEWORKS, frameworkById } from "@/lib/grc/frameworks";
+import { CheckCircle2, Plus, Scale, Search, ShieldCheck } from "lucide-react";
+import {
+  CONTROL_STATUS,
+  CONTROL_STATUS_TONE,
+  fmt,
+  isLegalAssessable,
+  isLegalFrameworkId,
+  legalTextIdOf,
+  LEGAL_STATUS_TONE,
+  type ControlAssessment,
+} from "@/lib/domain";
+import { allFrameworks } from "@/lib/grc/frameworks";
 import { scoreFramework, scoreGroup } from "@/lib/grc/scoring";
 import { useApp } from "@/components/app-context";
 import { Card } from "@/components/atoms";
 import { GrcTabHeader } from "@/components/grc/GrcTabHeader";
 import { ConformiteRapportPdf } from "@/components/grc/ConformiteRapportPdf";
 import { ControlAssessmentModal } from "@/components/ControlAssessmentModal";
+import { LegalTextModal } from "@/components/grc/LegalTextModal";
 
 const pctTone = (p: number) => (p >= 70 ? "text-emerald-600" : p >= 40 ? "text-amber-600" : "text-rose-600");
 const barTone = (p: number) => (p >= 70 ? "bg-emerald-500" : p >= 40 ? "bg-amber-500" : "bg-rose-500");
 
 export function ConformiteTab() {
-  const { controlAssessments, profileById } = useApp();
+  const { controlAssessments, legalTexts, profileById, readOnly } = useApp();
   const fwParam = useSearchParams().get("fw");
-  const [fwId, setFwId] = useState(FRAMEWORKS.some((f) => f.id === fwParam) ? (fwParam as string) : FRAMEWORKS[0].id);
+  // Les référentiels du code, plus les textes légaux saisis par l'organisation.
+  const frameworks = useMemo(() => allFrameworks(legalTexts), [legalTexts]);
+  const [fwId, setFwId] = useState(fwParam ?? frameworks[0].id);
+  const [editLegal, setEditLegal] = useState<{ id: string | null } | null>(null);
   const [search, setSearch] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [applicableOnly, setApplicableOnly] = useState(false);
   const [openCode, setOpenCode] = useState<string | null>(null);
 
-  const fw = frameworkById(fwId)!;
+  // Un texte supprimé ou devenu inapplicable ne doit pas laisser un écran vide.
+  const fw = frameworks.find((f) => f.id === fwId) ?? frameworks[0];
+  const legalOfTab = isLegalFrameworkId(fw.id) ? legalTexts.find((t) => t.id === legalTextIdOf(fw.id)) ?? null : null;
   const byCode = useMemo(() => {
     const m = new Map<string, ControlAssessment>();
-    controlAssessments.filter((a) => a.frameworkId === fwId).forEach((a) => m.set(a.controlCode, a));
+    controlAssessments.filter((a) => a.frameworkId === fw.id).forEach((a) => m.set(a.controlCode, a));
     return m;
-  }, [controlAssessments, fwId]);
+  }, [controlAssessments, fw.id]);
 
   const fwScore = useMemo(() => scoreFramework(fw, byCode), [fw, byCode]);
 
@@ -59,16 +74,51 @@ export function ConformiteTab() {
 
       {/* Sélecteur de référentiel */}
       <div className="flex items-center gap-2 flex-wrap">
-        {FRAMEWORKS.map((f) => {
+        {frameworks.map((f) => {
           const s = scoreFramework(f, new Map(controlAssessments.filter((a) => a.frameworkId === f.id).map((a) => [a.controlCode, a])));
+          const legal = isLegalFrameworkId(f.id);
           return (
             <button key={f.id} onClick={() => setFwId(f.id)} className={`text-left rounded-xl border px-3 py-2 transition-colors ${fwId === f.id ? "border-emerald-400 bg-emerald-50/60 dark:bg-emerald-500/10" : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"}`}>
-              <div className="text-[12.5px] font-semibold text-slate-800 dark:text-slate-100">{f.short}</div>
+              <div className="text-[12.5px] font-semibold text-slate-800 dark:text-slate-100 inline-flex items-center gap-1">
+                {legal && <Scale size={12} className="text-indigo-500" />}
+                {f.short}
+              </div>
               <div className={`text-[15px] font-bold ${pctTone(s.conformity)}`}>{s.conformity}%</div>
             </button>
           );
         })}
       </div>
+
+      {!readOnly && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setEditLegal({ id: null })}
+            className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-indigo-700 border border-indigo-200 hover:bg-indigo-50 rounded-lg px-3 py-1.5"
+          >
+            <Plus size={14} /> Ajouter une loi ou un règlement
+          </button>
+          {legalTexts.length > 0 && (
+            <span className="text-[11.5px] text-slate-400">
+              {legalTexts.length} texte(s) au registre · {legalTexts.filter(isLegalAssessable).length} évalué(s) ici
+            </span>
+          )}
+          {legalTexts
+            .filter((t) => !isLegalAssessable(t))
+            .map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setEditLegal({ id: t.id })}
+                title={t.articles.length === 0 ? "Aucun article : ajoutez-en pour l'évaluer" : "Hors périmètre ou abrogé"}
+                className="inline-flex items-center gap-1 text-[11.5px] text-slate-500 border border-dashed border-slate-300 rounded-full px-2.5 py-1 hover:bg-slate-50"
+              >
+                <Scale size={11} /> {t.name}
+                <span className={`px-1.5 rounded-full ${LEGAL_STATUS_TONE[t.status] ?? ""}`}>
+                  {t.articles.length === 0 ? "sans article" : t.status}
+                </span>
+              </button>
+            ))}
+        </div>
+      )}
 
       {/* Score du référentiel sélectionné */}
       <Card className="p-4">
@@ -98,6 +148,31 @@ export function ConformiteTab() {
           })}
         </div>
       </Card>
+
+      {legalOfTab && (
+        <div className="flex items-start gap-2 text-[12px] text-indigo-900 dark:text-indigo-200 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 rounded-xl px-3 py-2">
+          <Scale size={15} className="mt-0.5 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div>
+              <b>{legalOfTab.kind}</b>
+              {legalOfTab.reference && <> n° {legalOfTab.reference}</>}
+              {legalOfTab.authority && <> · {legalOfTab.authority}</>}
+              {legalOfTab.effectiveAt && <> · en vigueur depuis le {fmt(legalOfTab.effectiveAt)}</>}
+            </div>
+            {legalOfTab.scope && <div className="text-[11.5px] opacity-80">Portée : {legalOfTab.scope}</div>}
+          </div>
+          {legalOfTab.url && (
+            <a href={legalOfTab.url} target="_blank" rel="noopener noreferrer" className="shrink-0 text-[11.5px] underline">
+              texte officiel
+            </a>
+          )}
+          {!readOnly && (
+            <button onClick={() => setEditLegal({ id: legalOfTab.id })} className="shrink-0 text-[11.5px] font-medium underline">
+              modifier
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Filtres */}
       <Card className="p-2.5">
@@ -157,8 +232,16 @@ export function ConformiteTab() {
         {controls.length === 0 && <Card className="p-6 text-center text-[13px] text-slate-400 flex items-center justify-center gap-2"><CheckCircle2 size={15} /> Aucune mesure ne correspond au filtre.</Card>}
       </div>
 
+      {editLegal && (
+        <LegalTextModal
+          creating={!editLegal.id}
+          text={editLegal.id ? legalTexts.find((t) => t.id === editLegal.id) ?? null : null}
+          onClose={() => setEditLegal(null)}
+        />
+      )}
+
       {open && (
-        <ControlAssessmentModal frameworkId={fwId} frameworkShort={fw.short} control={open} assessment={byCode.get(open.code) ?? null} onClose={() => setOpenCode(null)} />
+        <ControlAssessmentModal frameworkId={fw.id} frameworkShort={fw.short} control={open} assessment={byCode.get(open.code) ?? null} onClose={() => setOpenCode(null)} />
       )}
     </div>
   );

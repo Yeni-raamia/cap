@@ -104,6 +104,7 @@ import {
   type IntelItem,
   type OnCallShift,
   type Supplier,
+  type LegalText,
   type Report,
   type ReportRefType,
   type Task,
@@ -632,6 +633,9 @@ interface AppCtx {
   // Tâches (productivité)
   tasks: Task[];
   taskAction: (op: "create" | "update" | "delete", input: TaskInput) => Promise<string | null>;
+  // GRC : textes légaux & réglementaires (référentiels saisis par l'organisation)
+  legalTexts: LegalText[];
+  legalTextAction: (op: "create" | "update" | "delete", input: Record<string, unknown>) => Promise<string | null>;
   // Comptes rendus (points d'avancement et bilans de clôture)
   reports: Report[];
   /** Comptes rendus d'un objet, du plus récent au plus ancien. */
@@ -1204,6 +1208,7 @@ export function AppProvider({
   const [recurrences, setRecurrences] = useState<TaskRecurrence[]>([]);
   const [recurrenceCounts, setRecurrenceCounts] = useState<Record<string, { total: number; open: number }>>({});
   const [reports, setReports] = useState<Report[]>([]);
+  const [legalTexts, setLegalTexts] = useState<LegalText[]>([]);
   const [objectives, setObjectives] = useState<Objective[]>(demo ? seedObjectives() : reviveObjectives(initialObjectives ?? []));
   const [risks, setRisks] = useState<Risk[]>(demo ? seedRisks() : reviveRisks(initialRisks ?? []));
   const [policies, setPolicies] = useState<Policy[]>(demo ? seedPolicies() : revivePolicies(initialPolicies ?? []));
@@ -2305,6 +2310,44 @@ export function AppProvider({
     return null;
   };
 
+  /* ---------- Textes légaux ---------- */
+  const reviveLegal = (arr: LegalText[]): LegalText[] =>
+    arr.map((t) => ({
+      ...t,
+      publishedAt: t.publishedAt ? new Date(t.publishedAt) : null,
+      effectiveAt: t.effectiveAt ? new Date(t.effectiveAt) : null,
+      reviewDate: t.reviewDate ? new Date(t.reviewDate) : null,
+      createdAt: new Date(t.createdAt),
+      updatedAt: new Date(t.updatedAt),
+      articles: t.articles ?? [],
+    }));
+  const refreshLegalTexts = async () => {
+    if (demo) return;
+    try {
+      const r = await fetch("/api/legal-texts", { cache: "no-store" });
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d.legalTexts) setLegalTexts(reviveLegal(d.legalTexts));
+    } catch {
+      /* réseau : réessai au prochain chargement */
+    }
+  };
+  const legalTextAction = async (
+    op: "create" | "update" | "delete",
+    input: Record<string, unknown>
+  ): Promise<string | null> => {
+    if (demo) return DEMO_MSG;
+    const res = await fetch("/api/legal-texts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, ...input }),
+    });
+    const d = await res.json();
+    if (!res.ok) return d.error ?? "Erreur.";
+    if (d.legalTexts) setLegalTexts(reviveLegal(d.legalTexts));
+    return null;
+  };
+
   /* ---------- Comptes rendus ---------- */
   const refreshReports = async () => {
     if (demo) return;
@@ -2988,6 +3031,7 @@ export function AppProvider({
   useEffect(() => {
     refreshRecurrences();
     refreshReports();
+    refreshLegalTexts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo]);
 
@@ -3124,6 +3168,8 @@ export function AppProvider({
     deleteProjectNow,
     tasks,
     taskAction,
+    legalTexts,
+    legalTextAction,
     reports,
     reportsFor,
     reportAction,

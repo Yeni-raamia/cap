@@ -8,7 +8,8 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
 import { listControlAssessments, resetAssessment, upsertAssessment } from "@/lib/db/controls";
 import { logActivity } from "@/lib/db/admin";
-import { frameworkById } from "@/lib/grc/frameworks";
+import { allFrameworks } from "@/lib/grc/frameworks";
+import { listLegalTexts } from "@/lib/db/legaltexts";
 
 const toIso = (d?: string | null) => (d ? new Date(`${d}T00:00:00`).toISOString() : null);
 
@@ -21,7 +22,9 @@ export async function POST(request: Request) {
   const op: string = body?.op;
   const frameworkId = String(body?.frameworkId || "");
   const controlCode = String(body?.controlCode || "");
-  const fw = frameworkById(frameworkId);
+  // Les textes légaux saisis par l'organisation sont des référentiels à part
+  // entière : sans eux ici, l'évaluation de leurs articles serait rejetée.
+  const fw = allFrameworks(listLegalTexts()).find((f) => f.id === frameworkId);
   if (!fw || !fw.controls.some((c) => c.code === controlCode)) {
     return NextResponse.json({ error: "Mesure inconnue." }, { status: 404 });
   }
