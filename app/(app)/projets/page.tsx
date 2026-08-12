@@ -13,6 +13,7 @@ import {
   Plus,
   Rows3,
   Table2,
+  Trash2,
   Users2,
 } from "lucide-react";
 import {
@@ -241,12 +242,40 @@ export default function ProjetsPage() {
 }
 
 function ProjectCard({ p, now, owner, linked, late, compact }: { p: Project; now: Date; owner: Profile; linked: number; late: boolean; compact?: boolean }) {
-  const { profileById } = useApp();
+  const { profileById, me, demo, deleteProjectNow, toast } = useApp();
   const m = projectMetrics(p, now);
   const members = p.memberIds.map(profileById);
   const ringColor = m.progress >= 100 ? "#10b981" : late ? "#f43f5e" : "#0ea5e9";
+  // Suppression directe : directeur et administrateur uniquement.
+  const canDelete = !demo && (me.role === "directeur" || me.role === "admin");
+
+  const remove = async (e: React.MouseEvent) => {
+    // La carte est un lien : sans cela, le clic ouvrirait le projet.
+    e.preventDefault();
+    e.stopPropagation();
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(
+        `Supprimer définitivement le projet « ${p.name} » ?\n\nSes tâches, notes, comptes rendus et fichiers seront perdus. Les suivis de mail liés seront détachés, pas supprimés.`
+      )
+    )
+      return;
+    const err = await deleteProjectNow(p.id);
+    if (err) toast(err, "error");
+  };
+
   return (
-    <Link href={`/projets/${p.id}`} className="group block h-full">
+    <Link href={`/projets/${p.id}`} className="group block h-full relative">
+      {canDelete && (
+        <button
+          onClick={remove}
+          title="Supprimer ce projet"
+          aria-label={`Supprimer le projet ${p.name}`}
+          className="absolute top-2 right-2 z-10 text-slate-300 hover:text-rose-600 bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+        >
+          <Trash2 size={14} />
+        </button>
+      )}
       <Card className={`p-4 h-full transition-transform duration-200 group-hover:-translate-y-0.5 ${late ? "border-l-[3px] border-l-rose-400" : ""}`}>
         <div className="flex items-start gap-3">
           <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-slate-800 to-slate-950 text-emerald-400 grid place-items-center shrink-0 shadow-soft"><FolderKanban size={19} /></div>
@@ -254,7 +283,7 @@ function ProjectCard({ p, now, owner, linked, late, compact }: { p: Project; now
             <div className="text-[14.5px] font-bold text-slate-800 truncate">{p.name}</div>
             {!compact && <div className="text-[11.5px] text-slate-400 truncate">{p.description || "—"}</div>}
           </div>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusBadge[p.status]}`}>{p.status}</span>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusBadge[p.status]} ${canDelete ? "mr-7" : ""}`}>{p.status}</span>
         </div>
 
         <div className="flex items-center gap-4 mt-4">

@@ -5,6 +5,11 @@ import { Download, FileText, ImageIcon, Loader2, Paperclip, Trash2, Upload } fro
 import { ATTACH_EXTS, ATTACH_MAX_BYTES, fileExt, formatBytes, fmt, type AuditAttachment, type AuditQuestion } from "@/lib/domain";
 import { useApp } from "@/components/app-context";
 
+/** L'API renvoie du JSON : les dates en reviennent en chaînes, à revivifier. */
+const reviveFiles = (files: AuditAttachment[] = []): AuditAttachment[] =>
+  files.map((f) => ({ ...f, createdAt: new Date(f.createdAt) }));
+
+
 const IMG_EXTS = ["png", "jpg", "jpeg", "webp", "gif"];
 function iconFor(name: string) {
   const e = fileExt(name);
@@ -31,7 +36,7 @@ export function AuditFiles({ auditId, questions, canWrite }: { auditId: string; 
     try {
       const r = await fetch(`/api/audit-files?auditId=${encodeURIComponent(auditId)}`, { cache: "no-store" });
       const d = await r.json();
-      if (r.ok) setList(d.files); else setList([]);
+      if (r.ok) setList(reviveFiles(d.files)); else setList([]);
     } catch { setList([]); }
   }, [auditId]);
   useEffect(() => { void load(); }, [load]);
@@ -49,7 +54,7 @@ export function AuditFiles({ auditId, questions, canWrite }: { auditId: string; 
       const r = await fetch("/api/audit-files", { method: "POST", body: fd });
       const d = await r.json();
       if (!r.ok) toast(d.error ?? "Échec du téléversement.", "error");
-      else { setList(d.files); toast("Preuve ajoutée.", "success"); }
+      else { setList(reviveFiles(d.files)); toast("Preuve ajoutée.", "success"); }
     } catch { toast("Échec du téléversement.", "error"); }
     finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
   };
@@ -59,7 +64,7 @@ export function AuditFiles({ auditId, questions, canWrite }: { auditId: string; 
     const r = await fetch("/api/audit-files/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: a.id }) });
     const d = await r.json();
     if (!r.ok) toast(d.error ?? "Échec de la suppression.", "error");
-    else { setList(d.files); toast("Preuve supprimée.", "success"); }
+    else { setList(reviveFiles(d.files)); toast("Preuve supprimée.", "success"); }
   };
 
   const isManager = ["manager", "directeur", "admin"].includes(me.role);

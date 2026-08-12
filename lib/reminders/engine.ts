@@ -123,6 +123,23 @@ export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<Re
     if (emailOn && to) emails.push({ to, subject: "Cap · Tâche en retard", text: message });
   }
 
+  // Échéance qui approche (J-2 → J) : prévenir AVANT, pas seulement une fois
+  // le retard constaté. Idempotent par jour grâce à notifExistsToday.
+  const preavis = 2 * 86400000;
+  for (const t of listTasks().filter(isPublished)) {
+    if (!t.assigneeId || t.status === "fait" || !t.dueDate) continue;
+    const reste = t.dueDate.getTime() - now.getTime();
+    if (reste < 0 || reste > preavis) continue;
+    if (notifExistsToday(t.assigneeId, t.id, "echeance")) continue;
+    const jours = Math.ceil(reste / 86400000);
+    const quand = jours <= 1 ? "aujourd'hui" : `dans ${jours} jours`;
+    const message = `Échéance ${quand} : « ${t.title} ».`;
+    insertNotification({ userId: t.assigneeId, itemId: t.id, kind: "echeance", message, channel, link: "/planning" });
+    echeances++;
+    const to = getEmailById(t.assigneeId);
+    if (emailOn && to) emails.push({ to, subject: "Cap · Échéance proche", text: message });
+  }
+
   // Tâches de PROJET en retard : même logique, rappel à la personne assignée.
   for (const proj of listProjects()) {
     for (const t of proj.tasks) {

@@ -32,6 +32,7 @@ export function NewTaskForm({
   fixedAssignee,
   compact,
   inputRef,
+  defaultDueDate,
   onCreate,
 }: {
   canAssignOthers: boolean;
@@ -40,14 +41,16 @@ export function NewTaskForm({
   /** Version resserrée, sans encadré ni titre. */
   compact?: boolean;
   inputRef?: RefObject<HTMLInputElement | null>;
+  /** Échéance pré-remplie (`yyyy-mm-dd`) — clic sur une case du planning. */
+  defaultDueDate?: string;
   onCreate: (p: Promise<string | null>) => void;
 }) {
   const { profiles, taskAction, recurrenceAction, me, now, profileById } = useApp();
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState(fixedAssignee ?? me.id);
   const [priority, setPriority] = useState<TaskPriority>("Normale");
-  const [start, setStart] = useState("");
-  const [due, setDue] = useState("");
+  const [start, setStart] = useState(defaultDueDate ?? "");
+  const [due, setDue] = useState(defaultDueDate ?? "");
   const [repeat, setRepeat] = useState<"" | RecurrenceFrequency>("");
 
   const assigneeId = fixedAssignee ?? assignee;
@@ -84,8 +87,8 @@ export function NewTaskForm({
     }
 
     setTitle("");
-    setStart("");
-    setDue("");
+    setStart(defaultDueDate ?? "");
+    setDue(defaultDueDate ?? "");
     setPriority("Normale");
     setRepeat("");
   };

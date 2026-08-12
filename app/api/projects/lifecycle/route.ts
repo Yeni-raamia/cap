@@ -4,6 +4,7 @@
  *  op=request_delete : soumet une demande de suppression (tout contributeur).
  *  op=approve_delete : manager/directeur/admin → supprime définitivement.
  *  op=reject_delete  : manager/directeur/admin → rejette la demande.
+ *  op=delete_now     : directeur/admin → suppression directe, sans demande.
  * ================================================================== */
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -21,6 +22,8 @@ import { insertNotification, listItems, listProfiles } from "@/lib/db/repo";
 import { logActivity } from "@/lib/db/admin";
 
 const isApprover = (role: string) => role === "manager" || role === "directeur" || role === "admin";
+/** La suppression sans passer par une demande reste au sommet de la hiérarchie. */
+const canDeleteOutright = (role: string) => role === "directeur" || role === "admin";
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -68,6 +71,29 @@ export async function POST(request: Request) {
       );
     logActivity(user.id, "projet.suppression.demande", `${projName} — ${reason}`);
     return NextResponse.json({ projects: listProjects(user.id) });
+  }
+
+  if (op === "delete_now") {
+    if (!canDeleteOutright(user.role)) {
+      return NextResponse.json(
+        { error: "Seul un directeur ou un administrateur peut supprimer un projet directement." },
+        { status: 403 }
+      );
+    }
+    // Prévenir le responsable : son projet disparaît sans qu'il l'ait demandé.
+    if (proj.ownerId && proj.ownerId !== user.id) {
+      insertNotification({
+        userId: proj.ownerId,
+        itemId: null,
+        kind: "projet",
+        message: `${user.nom} a supprimé le projet « ${projName} ».`,
+        channel: ["in-app"],
+        link: "/projets",
+      });
+    }
+    deleteProject(id);
+    logActivity(user.id, "projet.suppression.directe", projName);
+    return NextResponse.json({ projects: listProjects(user.id), items: listItems(user.id) });
   }
 
   if (op === "approve_delete") {

@@ -6,6 +6,23 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.92.0] - 2026-08-12
+
+### Corrigé
+
+- **Une pièce jointe de projet rendait la page inutilisable** (`d.toLocaleDateString is not a function`), au point qu'on ne pouvait plus supprimer le projet. La liste des fichiers était rangée telle quelle depuis l'API : les dates, passées par JSON, en revenaient sous forme de **chaînes**, et la mise en forme échouait — l'erreur remontait jusqu'à faire tomber toute la page du projet. Les dates sont désormais revivifiées au chargement. **Le même défaut existait sur les preuves d'audit** : corrigé aussi.
+- En renfort, `fmt` et `fmtLong` ne peuvent plus écrouler un écran : une date sérialisée est acceptée, une valeur inutilisable affiche « — ». Une absence de date ne s'affiche plus « 01 janv. » (le 1ᵉʳ janvier 1970 de `new Date(null)`). Couvert par des tests.
+
+### Ajouté
+
+- **Création directe depuis un bouton** : « Nouvelle tâche » ouvre désormais le **formulaire complet en fenêtre** — intitulé, responsable, priorité, dates, répétition — au lieu de faire défiler la page jusqu'à un champ. La même fenêtre permet aussi de planifier une **réunion** (date et heure, lieu, ordre du jour, statut).
+- **Planning — création et édition au clic** :
+  - **Survoler un jour** fait apparaître un « + » ; un **double-clic** sur la case fonctionne aussi. La fenêtre s'ouvre avec **la date déjà remplie**.
+  - Un bouton **« Nouveau »** dans l'en-tête crée sur le jour sélectionné (ou aujourd'hui).
+  - Cliquer un élément mène à son édition : une tâche ouvre sa fiche, un projet sa page, et **une réunion ouvre désormais sa fiche** (elle renvoyait vers la liste).
+- **Rappel avant l'échéance** : jusqu'ici on n'était prévenu qu'une fois **en retard**. Un rappel part maintenant à **J-2**, puis le jour même (« Échéance aujourd'hui »), vers la personne assignée — in-app et par e-mail si l'envoi est configuré. Une seule notification par jour et par tâche.
+- **Suppression d'un projet au survol**, réservée au **directeur et à l'administrateur** : une corbeille apparaît sur la carte du projet, avec confirmation rappelant ce qui sera perdu. Le responsable du projet est notifié. Les autres profils continuent de passer par la demande de suppression soumise à approbation.
+
 ## [1.91.0] - 2026-08-12
 
 ### Modifié

@@ -22,6 +22,7 @@ import { fmt, fmtLong, greeting, isTaskLate, isTaskOpen, projectMetrics, subtask
 import { DEFAULT_PERIOD, matchesPeriod, type PeriodFilter as Period } from "@/lib/period";
 import { useApp } from "@/components/app-context";
 import { NewTaskForm } from "@/components/NewTaskForm";
+import { QuickCreateModal } from "@/components/QuickCreateModal";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { Card } from "@/components/atoms";
 import { CountUp, Sparkline } from "@/components/dataviz";
@@ -62,6 +63,7 @@ export default function MonEspacePage() {
   const [taskPeriod, setTaskPeriod] = useState<Period>(DEFAULT_PERIOD);
   const [taskErr, setTaskErr] = useState<string | null>(null);
   const taskInputRef = useRef<HTMLInputElement>(null);
+  const [quickCreate, setQuickCreate] = useState(false);
 
   const mine = items.filter((i) => i.ownerId === me.id);
   const attends = mine.filter((i) => ["relance", "escalade"].includes(rs(i).level));
@@ -111,12 +113,6 @@ export default function MonEspacePage() {
     setTaskErr(await p);
   };
 
-  // Le bouton du bandeau amène au formulaire et y place le curseur : la
-  // création de tâche était invisible en bas de page.
-  const focusNewTask = () => {
-    document.getElementById("mes-taches")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    setTimeout(() => taskInputRef.current?.focus(), 350);
-  };
 
   return (
     <div className="space-y-6">
@@ -137,7 +133,7 @@ export default function MonEspacePage() {
             <div className="flex flex-col items-end gap-2">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={focusNewTask}
+                  onClick={() => setQuickCreate(true)}
                   className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-violet-700 dark:text-violet-300 bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 rounded-xl px-4 py-2.5 hover:-translate-y-0.5 transition-transform shadow-soft"
                 >
                   <ListTodo size={16} /> Nouvelle tâche
@@ -365,6 +361,8 @@ export default function MonEspacePage() {
           <SuiviExplorer items={mine} showResponsable={false} defaultView="cartes" />
         )}
       </div>
+
+      {quickCreate && <QuickCreateModal onClose={() => setQuickCreate(false)} />}
     </div>
   );
 }

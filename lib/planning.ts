@@ -107,7 +107,7 @@ export function buildPlanEvents(input: {
       context: m.location || "",
       late: false,
       done: m.status === "tenue" || m.status === "annulée",
-      href: "/reunions",
+      href: `/reunions/${m.id}`,
       taskId: null,
     });
   });

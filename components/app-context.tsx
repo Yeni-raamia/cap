@@ -619,6 +619,8 @@ interface AppCtx {
   archiveProject: (id: string, archived: boolean) => Promise<string | null>;
   requestProjectDeletion: (id: string, reason: string) => Promise<string | null>;
   decideProjectDeletion: (id: string, approve: boolean, note?: string) => Promise<string | null>;
+  /** Suppression directe, réservée au directeur et à l'administrateur. */
+  deleteProjectNow: (id: string) => Promise<string | null>;
   // Tâches (productivité)
   tasks: Task[];
   taskAction: (op: "create" | "update" | "delete", input: TaskInput) => Promise<string | null>;
@@ -2201,6 +2203,13 @@ export function AppProvider({
     if (!e) toast(approve ? "Projet supprimé." : "Demande de suppression refusée.", approve ? "success" : "info");
     return e;
   };
+  /** Suppression directe (directeur/admin), sans passer par une demande. */
+  const deleteProjectNow = async (id: string) => {
+    if (demo) return DEMO_MSG;
+    const e = await postProjects("/api/projects/lifecycle", { op: "delete_now", id });
+    if (!e) toast("Projet supprimé.", "success");
+    return e;
+  };
   const decideProjectClosure = async (id: string, approve: boolean, note = "") => {
     if (demo) return DEMO_MSG;
     const e = await postProjects("/api/projects/closure", { op: "decide", id, approve, note });
@@ -3084,6 +3093,7 @@ export function AppProvider({
     archiveProject,
     requestProjectDeletion,
     decideProjectDeletion,
+    deleteProjectNow,
     tasks,
     taskAction,
     reports,

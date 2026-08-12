@@ -3,6 +3,8 @@ import {
   type Item,
   type Task,
   daysBetween,
+  fmt,
+  fmtLong,
   buildRef,
   nextRefNumber,
   parseSubject,
@@ -262,5 +264,27 @@ describe("isTaskLate", () => {
   });
   it("jamais en retard sans échéance", () => {
     expect(isTaskLate(mkTask({ dueDate: null }), now)).toBe(false);
+  });
+});
+
+describe("fmt / fmtLong — robustesse aux dates sérialisées", () => {
+  // Une date qui traverse JSON revient en chaîne. Avant, fmt() appelait
+  // toLocaleDateString dessus et faisait tomber toute la page (vu sur les
+  // fichiers joints d'un projet, qui devenait alors impossible à supprimer).
+  it("formate une vraie Date", () => {
+    expect(fmt(new Date(2026, 2, 11))).toMatch(/11/);
+    expect(fmtLong(new Date(2026, 2, 11))).toMatch(/11/);
+  });
+  it("accepte une date sérialisée sans lever d'exception", () => {
+    const serialisee = "2026-03-11T00:00:00.000Z" as unknown as Date;
+    expect(() => fmt(serialisee)).not.toThrow();
+    expect(fmt(serialisee)).not.toBe("—");
+    expect(() => fmtLong(serialisee)).not.toThrow();
+  });
+  it("renvoie un tiret plutôt que de planter sur une valeur inutilisable", () => {
+    expect(fmt(null as unknown as Date)).toBe("—");
+    expect(fmt("pas une date" as unknown as Date)).toBe("—");
+    expect(fmt(undefined as unknown as Date)).toBe("—");
+    expect(fmtLong({} as unknown as Date)).toBe("—");
   });
 });

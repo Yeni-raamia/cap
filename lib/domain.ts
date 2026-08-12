@@ -2079,10 +2079,26 @@ export const DAY = 864e5;
 export const daysAgo = (n: number): Date => new Date(Date.now() - n * DAY);
 export const daysBetween = (a: Date, b: Date): number =>
   Math.floor((b.getTime() - a.getTime()) / DAY);
+/**
+ * Ramène une valeur de date à un vrai `Date`.
+ *
+ * Les dates traversent JSON à plusieurs endroits (réponses d'API montées
+ * telles quelles dans un état React) et reviennent alors sous forme de
+ * chaîne. Un `toLocaleDateString` sur une chaîne fait tomber toute la page :
+ * mieux vaut afficher « — » qu'écrouler l'écran. Le typage reste `Date`, pour
+ * que la bonne correction se fasse à la source (revivifier au chargement).
+ */
+const asDate = (d: Date | string | number): Date | null => {
+  // `new Date(null)` vaut le 1er janvier 1970 : une absence de date doit
+  // s'afficher « — », pas une date d'apparence plausible.
+  if (d === null || d === undefined || d === "") return null;
+  const x = d instanceof Date ? d : new Date(d);
+  return Number.isNaN(x.getTime()) ? null : x;
+};
 export const fmt = (d: Date): string =>
-  d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
+  asDate(d)?.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }) ?? "—";
 export const fmtLong = (d: Date): string =>
-  d.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "long" });
+  asDate(d)?.toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit", month: "long" }) ?? "—";
 
 /* ---------- 4.8 · Parse d'un objet de mail normalisé ---------- */
 export interface ParsedSubject {

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Rows3 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, LayoutList, Plus, Rows3 } from "lucide-react";
 import { fmt, isPublished } from "@/lib/domain";
 import { sameDay, startOfDay, toDayInput } from "@/lib/period";
 import { buildPlanEvents, EVENT_KINDS, groupByDay, inMonth, monthGrid, weekGrid, type PlanEvent, type PlanEventKind } from "@/lib/planning";
@@ -10,6 +10,7 @@ import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHero } from "@/components/PageHero";
+import { QuickCreateModal } from "@/components/QuickCreateModal";
 
 type ViewMode = "mois" | "semaine" | "liste";
 
@@ -27,6 +28,8 @@ export default function PlanningPage() {
   const [kinds, setKinds] = useState<PlanEventKind[]>(EVENT_KINDS.map((k) => k.key));
   const [hideDone, setHideDone] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  /** Jour pour lequel on ouvre la création (clic sur « + », ou double-clic). */
+  const [createOn, setCreateOn] = useState<Date | null>(null);
 
   const allEvents = useMemo(
     () => buildPlanEvents({ tasks, projects, meetings, now }),
@@ -91,8 +94,15 @@ export default function PlanningPage() {
         title="Planning"
         subtitle="Toutes les échéances au même endroit : tâches, tâches de projet, projets et réunions."
         right={
-          <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 text-[12px] bg-white dark:bg-slate-900">
-            {VIEWS.map((v) => (
+          <>
+            <button
+              onClick={() => setCreateOn(selectedDay ?? now)}
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft"
+            >
+              <Plus size={16} /> Nouveau
+            </button>
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 text-[12px] bg-white dark:bg-slate-900">
+              {VIEWS.map((v) => (
               <button
                 key={v.id}
                 onClick={() => setView(v.id)}
@@ -103,8 +113,9 @@ export default function PlanningPage() {
                 <v.icon size={14} />
                 <span className="hidden sm:inline">{v.label}</span>
               </button>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         }
       />
 
@@ -201,7 +212,9 @@ export default function PlanningPage() {
                   <button
                     key={d.toISOString()}
                     onClick={() => setSelectedDay(isSelected ? null : d)}
-                    className={`text-left rounded-lg border p-1.5 transition ${
+                    onDoubleClick={() => setCreateOn(d)}
+                    title="Cliquer pour voir le détail, double-cliquer pour créer"
+                    className={`relative group text-left rounded-lg border p-1.5 transition ${
                       view === "semaine" ? "min-h-[8rem]" : "min-h-[5.5rem]"
                     } ${
                       isSelected
@@ -216,8 +229,29 @@ export default function PlanningPage() {
                         {d.getDate()}
                       </span>
                       {dayEvents.length > 0 && (
-                        <span className="text-[10px] text-slate-400">{dayEvents.length}</span>
+                        <span className="text-[10px] text-slate-400 group-hover:hidden">{dayEvents.length}</span>
                       )}
+                      {/* Créer directement sur ce jour — la date est reprise dans le formulaire. */}
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Créer un élément le ${d.toLocaleDateString("fr-FR")}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCreateOn(d);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setCreateOn(d);
+                          }
+                        }}
+                        className="hidden group-hover:grid place-items-center h-4 w-4 rounded text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                        title="Créer une tâche ou une réunion ce jour-là"
+                      >
+                        <Plus size={12} />
+                      </span>
                     </div>
                     <div className="space-y-0.5 mt-1">
                       {dayEvents.slice(0, view === "semaine" ? 6 : 3).map((e) => {
@@ -262,6 +296,8 @@ export default function PlanningPage() {
           )}
         </>
       )}
+
+      {createOn && <QuickCreateModal day={createOn} onClose={() => setCreateOn(null)} />}
     </div>
   );
 }

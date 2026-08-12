@@ -7,6 +7,10 @@ import { useApp } from "./app-context";
 import { Card } from "./atoms";
 
 const IMG_EXTS = ["png", "jpg", "jpeg", "webp", "gif"];
+
+/** L'API renvoie du JSON : les dates en reviennent en chaînes, à revivifier. */
+const reviveFiles = (files: ProjectAttachment[] = []): ProjectAttachment[] =>
+  files.map((f) => ({ ...f, createdAt: new Date(f.createdAt) }));
 function iconFor(name: string) {
   const e = fileExt(name);
   if (IMG_EXTS.includes(e)) return ImageIcon;
@@ -25,7 +29,7 @@ export function ProjectFiles({ projectId, canWrite }: { projectId: string; canWr
     try {
       const r = await fetch(`/api/project-files?projectId=${encodeURIComponent(projectId)}`, { cache: "no-store" });
       const d = await r.json();
-      if (r.ok) setList(d.files);
+      if (r.ok) setList(reviveFiles(d.files));
     } catch {
       setList([]);
     }
@@ -45,7 +49,7 @@ export function ProjectFiles({ projectId, canWrite }: { projectId: string; canWr
       const r = await fetch("/api/project-files", { method: "POST", body: fd });
       const d = await r.json();
       if (!r.ok) toast(d.error ?? "Échec du téléversement.", "error");
-      else { setList(d.files); toast("Fichier partagé.", "success"); }
+      else { setList(reviveFiles(d.files)); toast("Fichier partagé.", "success"); }
     } catch {
       toast("Échec du téléversement.", "error");
     } finally {
@@ -63,7 +67,7 @@ export function ProjectFiles({ projectId, canWrite }: { projectId: string; canWr
     });
     const d = await r.json();
     if (!r.ok) toast(d.error ?? "Échec de la suppression.", "error");
-    else { setList(d.files); toast("Fichier supprimé.", "success"); }
+    else { setList(reviveFiles(d.files)); toast("Fichier supprimé.", "success"); }
   };
 
   const isManager = ["manager", "directeur", "admin"].includes(me.role);
