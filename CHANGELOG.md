@@ -6,6 +6,17 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.97.0] - 2026-08-12
+
+### Ajouté
+
+- **Motif de blocage obligatoire.** Passer une tâche en « bloqué » demande désormais d'écrire **ce qui bloque** — le statut existait mais ne menait à rien : on voyait qu'une tâche était arrêtée sans savoir pourquoi ni par quoi la débloquer. Le motif s'affiche en évidence sur la fiche, se précise à tout moment, et **le créateur comme la personne assignée sont notifiés**. Il s'efface automatiquement dès que la tâche repart.
+- **Historique des modifications d'une tâche.** Les suivis de mail avaient une chronologie, les tâches non : impossible de savoir qui avait déplacé une échéance ou réassigné le travail. Chaque tâche porte maintenant son journal — création, changement de statut, attribution, échéance, priorité, renommage, blocage et déblocage — en phrases lisibles, avec l'auteur et la date. Repliable, en bas de la fiche.
+
+### Note technique
+
+- Nouvelle table `task_events` et colonne `blocked_reason` sur `tasks` (migration automatique) ; le journal disparaît avec sa tâche. Les entrées sont ordonnées par date **puis par ordre d'insertion** : `datetime('now')` n'ayant qu'une précision à la seconde, plusieurs entrées d'un même geste se retrouvaient à égalité et s'affichaient dans un ordre arbitraire.
+
 ## [1.96.2] - 2026-08-12
 
 ### Corrigé

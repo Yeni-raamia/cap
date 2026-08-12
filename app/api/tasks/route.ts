@@ -9,11 +9,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
-import { createTask, deleteTask, getTask, listTasks, publishTask, updateTask } from "@/lib/db/tasks";
+import { createTask, deleteTask, getTask, listTasks, logTaskEvent, publishTask, updateTask } from "@/lib/db/tasks";
 import { generateDueTasks } from "@/lib/db/recurrences";
 import { insertNotification } from "@/lib/db/repo";
 import { logActivity } from "@/lib/db/admin";
-import { TASK_PRIORITIES, TASK_STATUTS, type TaskPriority, type TaskStatus } from "@/lib/domain";
+import { fmt, TASK_PRIORITIES, TASK_STATUTS, type TaskPriority, type TaskStatus } from "@/lib/domain";
 
 const toIso = (d?: string | null) => (d ? new Date(`${d}T00:00:00`).toISOString() : null);
 const canAssignOthers = (role: string) => ["manager", "directeur", "admin"].includes(role);
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     }
     if (!assigneeId) assigneeId = user.id;
     const priority: TaskPriority = TASK_PRIORITIES.includes(body?.priority) ? body.priority : "Normale";
-    createTask({
+    const newId = createTask({
       title,
       description: String(body?.description || ""),
       assigneeId,
@@ -55,6 +55,7 @@ export async function POST(request: Request) {
       startDate: toIso(body?.startDate),
       dueDate: toIso(body?.dueDate),
     });
+    logTaskEvent(newId, "creation", `Tâche créée par ${user.nom}.`, user.id);
     if (assigneeId !== user.id) {
       insertNotification({
         userId: assigneeId,
@@ -84,7 +85,16 @@ export async function POST(request: Request) {
     }
     const status: TaskStatus | undefined = TASK_STATUTS.includes(body?.status) ? body.status : undefined;
     const priority: TaskPriority | undefined = TASK_PRIORITIES.includes(body?.priority) ? body.priority : undefined;
+    const blockedReason = typeof body?.blockedReason === "string" ? body.blockedReason.trim() : undefined;
+
+    // Une tâche « bloquée » sans motif ne mène à rien : on l'exige au passage
+    // en blocage (et on l'accepte aussi pour préciser un blocage déjà posé).
+    if (status === "bloqué" && cur.status !== "bloqué" && !blockedReason) {
+      return NextResponse.json({ error: "Indiquez ce qui bloque cette tâche." }, { status: 400 });
+    }
+
     updateTask(id, {
+      blockedReason,
       title: typeof body?.title === "string" ? body.title.trim() : undefined,
       description: typeof body?.description === "string" ? body.description : undefined,
       assigneeId: assigneeId !== undefined ? (assigneeId || null) : undefined,
@@ -94,6 +104,49 @@ export async function POST(request: Request) {
       startDate: body?.startDate !== undefined ? toIso(body.startDate) : undefined,
       dueDate: body?.dueDate !== undefined ? toIso(body.dueDate) : undefined,
     });
+    /* Journal : on ne consigne que ce qui a réellement changé, en phrases
+     * lisibles — le but est de répondre à « qui a déplacé cette échéance ? ». */
+    if (status && status !== cur.status) {
+      if (status === "bloqué") {
+        logTaskEvent(id, "blocage", `${user.nom} a bloqué la tâche — ${blockedReason}`, user.id);
+      } else if (cur.status === "bloqué") {
+        logTaskEvent(id, "deblocage", `${user.nom} a débloqué la tâche (statut « ${status} »).`, user.id);
+      } else {
+        logTaskEvent(id, "statut", `${user.nom} a changé le statut : ${cur.status} → ${status}.`, user.id);
+      }
+    } else if (status === "bloqué" && blockedReason && blockedReason !== cur.blockedReason) {
+      logTaskEvent(id, "blocage", `${user.nom} a précisé le blocage — ${blockedReason}`, user.id);
+    }
+    if (assigneeId !== undefined && (assigneeId || null) !== cur.assigneeId) {
+      logTaskEvent(id, "assignation", `${user.nom} a modifié l'attribution de la tâche.`, user.id);
+    }
+    if (body?.dueDate !== undefined) {
+      const avant = cur.dueDate ? fmt(cur.dueDate) : "aucune";
+      const apres = body.dueDate ? fmt(new Date(`${body.dueDate}T00:00:00`)) : "aucune";
+      if (avant !== apres) logTaskEvent(id, "echeance", `${user.nom} a changé l'échéance : ${avant} → ${apres}.`, user.id);
+    }
+    if (priority && priority !== cur.priority) {
+      logTaskEvent(id, "priorite", `${user.nom} a changé la priorité : ${cur.priority} → ${priority}.`, user.id);
+    }
+    if (typeof body?.title === "string" && body.title.trim() && body.title.trim() !== cur.title) {
+      logTaskEvent(id, "titre", `${user.nom} a renommé la tâche (était « ${cur.title} »).`, user.id);
+    }
+
+    // Blocage : prévenir ceux qui peuvent lever l'obstacle.
+    if (status === "bloqué" && cur.status !== "bloqué") {
+      const cibles = new Set([cur.createdBy, cur.assigneeId].filter((x): x is string => Boolean(x) && x !== user.id));
+      cibles.forEach((uid) =>
+        insertNotification({
+          userId: uid,
+          itemId: null,
+          kind: "tache",
+          message: `${user.nom} a bloqué la tâche « ${cur.title} » — ${blockedReason}`,
+          channel: ["in-app"],
+          link: "/productivite",
+        })
+      );
+    }
+
     // Notifier la nouvelle personne assignée.
     if (assigneeId !== undefined && assigneeId && assigneeId !== user.id && assigneeId !== cur.assigneeId) {
       insertNotification({

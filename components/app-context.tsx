@@ -146,6 +146,8 @@ export interface TaskInput {
   priority?: TaskPriority;
   startDate?: string | null;
   dueDate?: string | null;
+  /** Motif exigé au passage en « bloqué ». */
+  blockedReason?: string | null;
 }
 export interface SubtaskInput {
   taskId?: string;
@@ -890,6 +892,7 @@ const reviveMsgs = (arr: Message[]): Message[] =>
   }));
 const reviveTask = (t: Task): Task => ({
   ...t,
+  events: (t.events ?? []).map((e) => ({ ...e, createdAt: new Date(e.createdAt) })),
   startDate: t.startDate ? new Date(t.startDate) : null,
   dueDate: t.dueDate ? new Date(t.dueDate) : null,
   completedAt: t.completedAt ? new Date(t.completedAt) : null,

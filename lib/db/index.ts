@@ -84,6 +84,12 @@ create table if not exists task_subtasks (
   created_at text not null default (datetime('now'))
 );
 create index if not exists idx_subtasks_task on task_subtasks(task_id);
+create table if not exists task_events (
+  id text primary key, task_id text not null, kind text not null default 'maj',
+  label text not null default '', author_id text,
+  created_at text not null default (datetime('now'))
+);
+create index if not exists idx_taskevents_task on task_events(task_id);
 create table if not exists task_recurrences (
   id text primary key, title text not null, description text not null default '',
   priority text not null default 'Normale', project_id text,
@@ -678,6 +684,10 @@ function ensureColumns(db: Database.Database) {
   }
   if (tkcols.length > 0 && !tkcols.includes("published")) {
     db.exec("alter table tasks add column published integer not null default 1");
+  }
+  // Motif de blocage : une tâche « bloquée » sans raison est un cul-de-sac.
+  if (tkcols.length > 0 && !tkcols.includes("blocked_reason")) {
+    db.exec("alter table tasks add column blocked_reason text");
   }
   // Tâches engendrées par un gabarit récurrent : lien vers la série + jour d'occurrence.
   if (tkcols.length > 0 && !tkcols.includes("recurrence_id")) {

@@ -2385,6 +2385,10 @@ export interface Task {
   subtasks: Subtask[];
   /** Visibilité : `false` = privé (créateur seul), `true`/absent = publié (équipe). */
   published?: boolean;
+  /** Motif du blocage quand `status === "bloqué"` ; null sinon. */
+  blockedReason?: string | null;
+  /** Journal des changements, du plus récent au plus ancien. */
+  events?: TaskEvent[];
   /** Gabarit récurrent qui a engendré cette occurrence, le cas échéant. */
   recurrenceId?: string | null;
   /** Jour d'occurrence (`yyyy-mm-dd`) pour une tâche engendrée par un gabarit. */
@@ -2461,6 +2465,41 @@ export interface TaskRecurrence {
   createdAt: Date;
   updatedAt: Date;
 }
+
+/* ---------- Journal d'une tâche ----------
+ * Les suivis de mail ont une chronologie ; les tâches n'en avaient pas, si
+ * bien qu'on ne pouvait pas savoir qui avait déplacé une échéance ou
+ * réassigné le travail. */
+export type TaskEventKind =
+  | "creation"
+  | "statut"
+  | "assignation"
+  | "echeance"
+  | "priorite"
+  | "titre"
+  | "blocage"
+  | "deblocage";
+
+export interface TaskEvent {
+  id: string;
+  taskId: string;
+  kind: TaskEventKind;
+  /** Phrase déjà rédigée, prête à afficher. */
+  label: string;
+  authorId: string | null;
+  createdAt: Date;
+}
+
+export const TASK_EVENT_TONE: Record<string, string> = {
+  creation: "bg-slate-100 text-slate-600",
+  statut: "bg-sky-100 text-sky-700",
+  assignation: "bg-violet-100 text-violet-700",
+  echeance: "bg-amber-100 text-amber-700",
+  priorite: "bg-slate-100 text-slate-600",
+  titre: "bg-slate-100 text-slate-600",
+  blocage: "bg-rose-100 text-rose-700",
+  deblocage: "bg-emerald-100 text-emerald-700",
+};
 
 /** Élément d'une checklist de sous-tâches. */
 export interface Subtask {

@@ -3,7 +3,15 @@
  * ================================================================== */
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
-import { PRIVATE_SPACE_ENABLED, type Subtask, type Task, type TaskPriority, type TaskStatus } from "@/lib/domain";
+import {
+  PRIVATE_SPACE_ENABLED,
+  type Subtask,
+  type Task,
+  type TaskEvent,
+  type TaskEventKind,
+  type TaskPriority,
+  type TaskStatus,
+} from "@/lib/domain";
 
 const now = () => new Date().toISOString();
 
@@ -23,6 +31,37 @@ interface TaskRow {
   published: number;
   recurrence_id: string | null;
   occurrence_date: string | null;
+  blocked_reason: string | null;
+}
+interface EventRow {
+  id: string;
+  task_id: string;
+  kind: TaskEventKind;
+  label: string;
+  author_id: string | null;
+  created_at: string;
+}
+const mapEvent = (r: EventRow): TaskEvent => ({
+  id: r.id,
+  taskId: r.task_id,
+  kind: r.kind,
+  label: r.label,
+  authorId: r.author_id,
+  createdAt: new Date(r.created_at),
+});
+
+/** Consigne un changement dans le journal de la tâche. */
+export function logTaskEvent(taskId: string, kind: TaskEventKind, label: string, authorId: string | null): void {
+  getDb()
+    .prepare("insert into task_events (id, task_id, kind, label, author_id) values (?,?,?,?,?)")
+    .run(randomUUID(), taskId, kind, label, authorId);
+}
+
+export function listTaskEvents(taskId: string): TaskEvent[] {
+  const rows = getDb()
+    .prepare("select * from task_events where task_id=? order by created_at desc, rowid desc")
+    .all(taskId) as EventRow[];
+  return rows.map(mapEvent);
 }
 interface SubtaskRow {
   id: string;
@@ -39,7 +78,7 @@ const mapSubtask = (r: SubtaskRow): Subtask => ({
   ordre: r.ordre,
 });
 
-function mapTask(r: TaskRow, subs: SubtaskRow[]): Task {
+function mapTask(r: TaskRow, subs: SubtaskRow[], events: EventRow[] = []): Task {
   return {
     id: r.id,
     title: r.title,
@@ -57,6 +96,8 @@ function mapTask(r: TaskRow, subs: SubtaskRow[]): Task {
     published: r.published !== 0,
     recurrenceId: r.recurrence_id ?? null,
     occurrenceDate: r.occurrence_date ?? null,
+    blockedReason: r.blocked_reason ?? null,
+    events: events.filter((e) => e.task_id === r.id).map(mapEvent),
   };
 }
 
@@ -65,7 +106,8 @@ function mapTask(r: TaskRow, subs: SubtaskRow[]): Task {
 export function listTasks(viewerId?: string): Task[] {
   const rows = getDb().prepare("select * from tasks order by created_at desc").all() as TaskRow[];
   const subs = getDb().prepare("select * from task_subtasks order by ordre, created_at").all() as SubtaskRow[];
-  const mapped = rows.map((r) => mapTask(r, subs));
+  const evts = getDb().prepare("select * from task_events order by created_at desc, rowid desc").all() as EventRow[];
+  const mapped = rows.map((r) => mapTask(r, subs, evts));
   if (!viewerId) return mapped;
   return mapped.filter((t) => t.published !== false || t.createdBy === viewerId || t.assigneeId === viewerId);
 }
@@ -74,7 +116,8 @@ export function getTask(id: string): Task | null {
   const r = getDb().prepare("select * from tasks where id=?").get(id) as TaskRow | undefined;
   if (!r) return null;
   const subs = getDb().prepare("select * from task_subtasks where task_id=? order by ordre, created_at").all(id) as SubtaskRow[];
-  return mapTask(r, subs);
+  const evts = getDb().prepare("select * from task_events where task_id=? order by created_at desc, rowid desc").all(id) as EventRow[];
+  return mapTask(r, subs, evts);
 }
 
 export function createTask(input: {
@@ -128,6 +171,7 @@ export function updateTask(
     priority?: TaskPriority;
     startDate?: string | null;
     dueDate?: string | null;
+    blockedReason?: string | null;
   }
 ): void {
   const cur = getDb().prepare("select * from tasks where id=?").get(id) as TaskRow | undefined;
@@ -137,9 +181,12 @@ export function updateTask(
   let completedAt = cur.completed_at;
   if (status === "fait" && cur.status !== "fait") completedAt = now();
   if (status !== "fait") completedAt = null;
+  // Le motif ne vit que le temps du blocage : on l'efface en sortant du statut.
+  const blockedReason =
+    status !== "bloqué" ? null : fields.blockedReason !== undefined ? fields.blockedReason : cur.blocked_reason;
   getDb()
     .prepare(
-      "update tasks set title=?, description=?, assignee_id=?, project_id=?, status=?, priority=?, start_date=?, due_date=?, completed_at=? where id=?"
+      "update tasks set title=?, description=?, assignee_id=?, project_id=?, status=?, priority=?, start_date=?, due_date=?, completed_at=?, blocked_reason=? where id=?"
     )
     .run(
       fields.title ?? cur.title,
@@ -151,6 +198,7 @@ export function updateTask(
       fields.startDate !== undefined ? fields.startDate : cur.start_date,
       fields.dueDate !== undefined ? fields.dueDate : cur.due_date,
       completedAt,
+      blockedReason,
       id
     );
 }
@@ -158,6 +206,7 @@ export function updateTask(
 export function deleteTask(id: string): void {
   const db = getDb();
   db.prepare("delete from task_subtasks where task_id=?").run(id);
+  db.prepare("delete from task_events where task_id=?").run(id);
   db.prepare("delete from reports where ref_type='task' and ref_id=?").run(id);
   db.prepare("delete from tasks where id=?").run(id);
 }

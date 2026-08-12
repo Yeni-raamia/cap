@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarClock, Check, Globe, ListTodo, Lock, Plus, Repeat, Trash2, X } from "lucide-react";
+import { Ban, CalendarClock, Check, Globe, History, ListTodo, Lock, Plus, Repeat, Trash2, X } from "lucide-react";
 import {
   fmt,
   isTaskLate,
   subtaskProgress,
+  TASK_EVENT_TONE,
   TASK_PRIORITIES,
   TASK_STATUTS,
   type TaskPriority,
@@ -32,6 +33,10 @@ export function TaskModal() {
   const [desc, setDesc] = useState("");
   const [newSub, setNewSub] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  /** Saisie du motif quand on demande le passage en « bloqué ». */
+  const [askBlock, setAskBlock] = useState(false);
+  const [blockReason, setBlockReason] = useState("");
+  const [showJournal, setShowJournal] = useState(false);
 
   // Synchronise les champs texte locaux quand la tâche ouverte change.
   useEffect(() => {
@@ -40,6 +45,8 @@ export function TaskModal() {
       setDesc(task.description);
       setErr(null);
       setNewSub("");
+      setAskBlock(false);
+      setBlockReason("");
     }
   }, [openTaskId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -126,7 +133,16 @@ export function TaskModal() {
                 <button
                   key={s}
                   disabled={!canEdit}
-                  onClick={() => patch({ status: s })}
+                  onClick={() => {
+                    // Bloquer exige un motif : sans lui, le statut ne mène à rien.
+                    if (s === "bloqué" && task.status !== "bloqué") {
+                      setBlockReason("");
+                      setAskBlock(true);
+                      return;
+                    }
+                    setAskBlock(false);
+                    patch({ status: s });
+                  }}
                   className={`text-[12px] px-3 py-1.5 rounded-lg border font-medium transition ${
                     task.status === s ? STATUS_STYLE[s] : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
                   } disabled:opacity-60`}
@@ -135,6 +151,58 @@ export function TaskModal() {
                 </button>
               ))}
             </div>
+
+            {askBlock && (
+              <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 dark:bg-rose-950/20 p-2.5">
+                <label htmlFor="blk-reason" className="block text-[11.5px] font-medium text-rose-800 dark:text-rose-200 mb-1">
+                  Qu&apos;est-ce qui bloque ?
+                </label>
+                <textarea
+                  id="blk-reason"
+                  value={blockReason}
+                  onChange={(e) => setBlockReason(e.target.value)}
+                  rows={2}
+                  autoFocus
+                  placeholder="En attente d'une réponse du prestataire, accès non fourni…"
+                  className="w-full text-[13px] border border-rose-200 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-900"
+                />
+                <div className="flex items-center gap-2 mt-1.5">
+                  <button
+                    onClick={async () => {
+                      if (!blockReason.trim()) return;
+                      await patch({ status: "bloqué", blockedReason: blockReason.trim() });
+                      setAskBlock(false);
+                    }}
+                    disabled={!blockReason.trim()}
+                    className="text-[12px] font-medium text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-40 rounded-lg px-3 py-1.5"
+                  >
+                    Bloquer la tâche
+                  </button>
+                  <button onClick={() => setAskBlock(false)} className="text-[12px] text-slate-500 px-2 py-1.5">Annuler</button>
+                  <span className="text-[11px] text-rose-700/80 dark:text-rose-300/70">
+                    Le créateur et la personne assignée seront prévenus.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {task.status === "bloqué" && task.blockedReason && !askBlock && (
+              <div className="mt-2 flex items-start gap-1.5 text-[12px] text-rose-800 dark:text-rose-200 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 rounded-lg px-2.5 py-1.5">
+                <Ban size={13} className="mt-px shrink-0" />
+                <span className="flex-1"><b>Bloquée :</b> {task.blockedReason}</span>
+                {canEdit && (
+                  <button
+                    onClick={() => {
+                      setBlockReason(task.blockedReason ?? "");
+                      setAskBlock(true);
+                    }}
+                    className="shrink-0 text-[11.5px] underline decoration-dotted hover:no-underline"
+                  >
+                    Préciser
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Planification + méta */}
@@ -272,6 +340,32 @@ export function TaskModal() {
               </div>
             )}
           </div>
+
+          {/* Journal des changements */}
+          {(task.events?.length ?? 0) > 0 && (
+            <div>
+              <button
+                onClick={() => setShowJournal((v) => !v)}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 uppercase tracking-wide hover:text-slate-600"
+              >
+                <History size={12} /> Historique · {task.events!.length}
+                <span className="normal-case tracking-normal text-slate-400">{showJournal ? "masquer" : "afficher"}</span>
+              </button>
+              {showJournal && (
+                <ol className="mt-1.5 space-y-1 border-l-2 border-slate-100 dark:border-slate-800 pl-3">
+                  {task.events!.map((ev) => (
+                    <li key={ev.id} className="flex items-start gap-2">
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${TASK_EVENT_TONE[ev.kind] ?? "bg-slate-100 text-slate-600"}`}>
+                        {ev.kind}
+                      </span>
+                      <span className="flex-1 text-[12px] text-slate-600 dark:text-slate-300">{ev.label}</span>
+                      <span className="text-[10.5px] text-slate-400 shrink-0">{fmt(ev.createdAt)}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          )}
 
           {/* Comptes rendus de la tâche */}
           <ReportsSection refType="task" refId={task.id} refLabel={task.title} canWrite={canEdit} compact />
