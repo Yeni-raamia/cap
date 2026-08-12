@@ -6,6 +6,21 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.99.0] - 2026-08-12
+
+### Ajouté
+
+- **Charge par personne et par semaine** (nouvel onglet « Charge » de Productivité) : une grille *personnes × semaines* qui répond d'un coup d'œil à « qui est surchargé, et quand ». Chaque case additionne les **estimations** des travaux non terminés dont l'échéance tombe cette semaine-là — tâches de Productivité **et** tâches de projet confondues.
+  - **Capacité de référence : 5 journées de 7 heures**, soit 35 h par semaine. Vert en dessous de 80 %, orange à partir de 80 %, rouge au-delà de 100 %.
+  - **Les travaux non estimés sont comptés à part**, jamais estimés d'office : ils s'affichent « 3 ? ». Les ignorer ferait passer une semaine pleine pour une semaine calme, leur inventer une durée serait pire. Un bandeau rappelle combien il en reste et où les renseigner.
+  - **Rien ne disparaît** : deux colonnes hors grille recueillent ce qui est *déjà en retard* et ce qui est *sans échéance*.
+  - Navigation semaine par semaine sur 6 semaines glissantes, retour à la semaine en cours, et **clic sur une case** pour lister les travaux qui la composent (une tâche s'ouvre depuis la liste).
+
+### Note technique
+
+- `lib/workload.ts` (répartition, numéro de semaine ISO, seuils d'alerte) est couvert par 21 tests, dont les cas qui font mentir ce genre de vue : tâche terminée, tâche non assignée, sans échéance, hors horizon, et non estimée.
+
+
 ## [1.98.0] - 2026-08-12
 
 ### Ajouté
