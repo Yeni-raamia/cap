@@ -6,6 +6,22 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.106.0] - 2026-08-12
+
+### Ajouté
+
+- **Journal de connexion par compte** (Statistiques → « Activité des comptes ») : qui se sert de l'outil, et depuis quand on ne l'a plus vu.
+  - Par compte : **jours actifs** sur la période (7, 30 ou 90 jours), **dernière activité** en clair (« aujourd'hui », « il y a 12 j », « jamais »), **amplitude horaire** du dernier jour actif, et nombre d'**actions enregistrées** au journal.
+  - Les comptes **sans aucune activité** apparaissent en tête et surlignés : ce sont eux que l'on cherche.
+  - **Sans durée cumulée**, volontairement : un onglet ouvert ne mesure pas du travail, et un total d'heures par personne se lirait comme une note. L'amplitude affichée (« 09 h → 18 h ») est explicitement présentée comme n'étant **pas** une durée.
+  - **Vue d'équipe réservée au directeur et à l'administrateur.** Toute autre personne n'obtient **que sa propre ligne**, y compris en interrogeant l'API directement.
+  - **Chacun voit ses propres données** : la même vue apparaît dans « Mon espace », section « Mon activité sur l'application » — rien n'est mesuré dans le dos des personnes.
+
+### Note technique
+
+- `accountActivity` s'appuie sur les marques d'usage (activité réelle uniquement, conservation 90 jours), la table de présence et le journal d'activité. Couvert par 3 tests, dont la présence des comptes à zéro activité — les omettre viderait la vue de son intérêt.
+
+
 ## [1.105.0] - 2026-08-12
 
 ### Ajouté

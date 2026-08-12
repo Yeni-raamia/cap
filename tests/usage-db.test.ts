@@ -81,3 +81,39 @@ describe("purgeUsageMarks", () => {
     expect(usage.activeUserCount(30, NOW)).toBe(3);
   });
 });
+
+describe("accountActivity — journal nominatif", () => {
+  it("renvoie une ligne par compte, y compris ceux sans activité", async () => {
+    // Ce sont précisément les comptes silencieux que l'on cherche : les
+    // omettre viderait la vue de son intérêt.
+    const { getDb } = await import("@/lib/db/index");
+    getDb().prepare("insert or ignore into profiles (id, email, password_hash, full_name, initials) values (?,?,?,?,?)")
+      .run("u1", "u1@x", "h", "Un", "U");
+    getDb().prepare("insert or ignore into profiles (id, email, password_hash, full_name, initials) values (?,?,?,?,?)")
+      .run("zz", "zz@x", "h", "Zéro activité", "Z");
+
+    const rows = usage.accountActivity(30, NOW);
+    const inactif = rows.find((r) => r.profileId === "zz");
+    expect(inactif).toBeDefined();
+    expect(inactif!.activeDays).toBe(0);
+    expect(inactif!.lastActiveDay).toBeNull();
+  });
+
+  it("compte les jours distincts et retient le dernier jour actif", () => {
+    usage.markUsage("u1", "/espace", at(2026, 3, 9, 8));
+    usage.markUsage("u1", "/espace", at(2026, 3, 9, 17));
+    usage.markUsage("u1", "/projets", at(2026, 3, 11, 14));
+    const r = usage.accountActivity(30, NOW).find((x) => x.profileId === "u1")!;
+    expect(r.activeDays).toBeGreaterThanOrEqual(2);
+    expect(r.lastActiveDay).toBe("2026-03-11");
+  });
+
+  it("donne l'amplitude horaire du dernier jour, pas une durée", () => {
+    // min et max de l'heure : on ne prétend pas savoir ce qui s'est passé entre.
+    usage.markUsage("u1", "/grc", at(2026, 3, 11, 9));
+    usage.markUsage("u1", "/grc", at(2026, 3, 11, 18));
+    const r = usage.accountActivity(30, NOW).find((x) => x.profileId === "u1")!;
+    expect(r.firstHour).toBe(9);
+    expect(r.lastHour).toBe(18);
+  });
+});

@@ -41,6 +41,7 @@ type BlockSize = "full" | "half";
 type LayoutItem = { id: string; size: BlockSize };
 import { useApp } from "@/components/app-context";
 import { AdoptionPanel } from "@/components/AdoptionPanel";
+import { ComptesActivitePanel } from "@/components/ComptesActivitePanel";
 import { PageHero } from "@/components/PageHero";
 import { RapportPdf } from "@/components/RapportPdf";
 import { ExportSuivis } from "@/components/ExportSuivis";
@@ -122,7 +123,7 @@ function SortableBlock({
 }
 
 export default function StatsPage() {
-  const [vue, setVue] = useState<"dashboard" | "adoption">("dashboard");
+  const [vue, setVue] = useState<"dashboard" | "adoption" | "comptes">("dashboard");
   const { items: allItems, profiles, catalogue, now, projects: allProjects, theme, negligences, nonConformites, me } = useApp();
   // Statistiques d'équipe : sur les éléments publiés uniquement.
   const items = useMemo(() => allItems.filter(isPublished), [allItems]);
@@ -789,6 +790,10 @@ export default function StatsPage() {
         {[
           { id: "dashboard" as const, label: "Tableau de bord" },
           { id: "adoption" as const, label: "Adoption de l'outil" },
+          // Vue nominative : réservée au directeur et à l'administrateur.
+          ...(me.role === "directeur" || me.role === "admin"
+            ? [{ id: "comptes" as const, label: "Activité des comptes" }]
+            : []),
         ].map((v) => (
           <button
             key={v.id}
@@ -804,6 +809,8 @@ export default function StatsPage() {
       </div>
 
       {vue === "adoption" && <AdoptionPanel />}
+
+      {vue === "comptes" && <ComptesActivitePanel />}
 
       {vue === "dashboard" && customize && (
         <div className="text-[12px] text-slate-500 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">

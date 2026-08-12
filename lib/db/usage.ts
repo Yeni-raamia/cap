@@ -110,3 +110,76 @@ export function purgeUsageMarks(now = new Date(), retentionDays = USAGE_RETENTIO
   const info = getDb().prepare("delete from usage_marks where day < ?").run(dayKey(limit));
   return info.changes ?? 0;
 }
+
+/* ---------- Journal de connexion, nominatif ----------
+ * Vue distincte de l'adoption : ici on nomme les personnes, pour repérer un
+ * compte inutilisé ou quelqu'un qui décroche de l'outil. Volontairement
+ * SANS durée cumulée — un onglet ouvert ne mesure pas du travail, et un
+ * total d'heures par personne se lirait comme une note. */
+
+export interface AccountActivity {
+  profileId: string;
+  /** Dernier battement de cœur connu, ou null si jamais vu. */
+  lastSeenAt: string | null;
+  /** Nombre de jours distincts avec activité réelle sur la période. */
+  activeDays: number;
+  /** Dernier jour d'activité (`yyyy-mm-dd`), ou null. */
+  lastActiveDay: string | null;
+  /** Première et dernière heure d'activité ce jour-là (granularité : l'heure). */
+  firstHour: number | null;
+  lastHour: number | null;
+  /** Actions enregistrées au journal sur la période — signal d'usage effectif. */
+  actions: number;
+}
+
+/**
+ * Activité par compte sur les `days` derniers jours.
+ *
+ * Renvoie une ligne par profil, y compris ceux sans aucune activité : ce sont
+ * précisément eux qu'on cherche.
+ */
+export function accountActivity(days: number, now = new Date()): AccountActivity[] {
+  const db = getDb();
+  const from = new Date(now);
+  from.setDate(from.getDate() - (days - 1));
+  const since = dayKey(from);
+
+  const profiles = db.prepare("select id from profiles order by full_name").all() as { id: string }[];
+
+  const jours = db
+    .prepare(
+      "select profile_id, count(distinct day) as n, max(day) as dernier from usage_marks where day >= ? group by profile_id"
+    )
+    .all(since) as { profile_id: string; n: number; dernier: string }[];
+  const parProfil = new Map(jours.map((r) => [r.profile_id, r]));
+
+  const bornes = db
+    .prepare("select profile_id, day, min(hour) as h1, max(hour) as h2 from usage_marks where day >= ? group by profile_id, day")
+    .all(since) as { profile_id: string; day: string; h1: number; h2: number }[];
+
+  const presences = db.prepare("select profile_id, last_seen_at from presence").all() as {
+    profile_id: string;
+    last_seen_at: string;
+  }[];
+  const vus = new Map(presences.map((r) => [r.profile_id, r.last_seen_at]));
+
+  const actions = db
+    .prepare("select actor_id, count(*) as n from activity_log where created_at >= ? group by actor_id")
+    .all(`${since} 00:00:00`) as { actor_id: string | null; n: number }[];
+  const parActeur = new Map(actions.filter((a) => a.actor_id).map((a) => [a.actor_id as string, a.n]));
+
+  return profiles.map((p) => {
+    const j = parProfil.get(p.id);
+    const dernier = j?.dernier ?? null;
+    const borne = dernier ? bornes.find((b) => b.profile_id === p.id && b.day === dernier) : undefined;
+    return {
+      profileId: p.id,
+      lastSeenAt: vus.get(p.id) ?? null,
+      activeDays: j?.n ?? 0,
+      lastActiveDay: dernier,
+      firstHour: borne?.h1 ?? null,
+      lastHour: borne?.h2 ?? null,
+      actions: parActeur.get(p.id) ?? 0,
+    };
+  });
+}

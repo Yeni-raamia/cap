@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import {
+  Activity,
   AlertOctagon,
   Bell,
   CheckCircle2,
@@ -22,6 +23,7 @@ import { fmt, fmtLong, greeting, isTaskLate, isTaskOpen, projectMetrics, TASK_ST
 import { DEFAULT_PERIOD, matchesPeriod, type PeriodFilter as Period } from "@/lib/period";
 import { useApp } from "@/components/app-context";
 import { NewTaskForm } from "@/components/NewTaskForm";
+import { ComptesActivitePanel } from "@/components/ComptesActivitePanel";
 import { QuickCreateModal } from "@/components/QuickCreateModal";
 import { TaskList, TaskViewSwitch, type TaskView } from "@/components/TaskList";
 import { PeriodFilter } from "@/components/PeriodFilter";
@@ -352,6 +354,11 @@ export default function MonEspacePage() {
           <SuiviExplorer items={mine} showResponsable={false} defaultView="cartes" />
         )}
       </div>
+
+      {/* Transparence : chacun voit ce qui est mesuré le concernant. */}
+      <Section icon={Activity} title="Mon activité sur l'application" count={0} tone="text-slate-400">
+        <ComptesActivitePanel />
+      </Section>
 
       {quickCreate && <QuickCreateModal onClose={() => setQuickCreate(false)} />}
     </div>
