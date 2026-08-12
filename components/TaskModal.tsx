@@ -12,6 +12,7 @@ import {
   type TaskPriority,
   type TaskStatus,
 } from "@/lib/domain";
+import { toDayInput } from "@/lib/period";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
 
@@ -21,7 +22,6 @@ const STATUS_STYLE: Record<TaskStatus, string> = {
   fait: "bg-emerald-100 text-emerald-700 border-emerald-200",
   bloqué: "bg-rose-100 text-rose-700 border-rose-200",
 };
-const toDateInput = (d: Date | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 
 export function TaskModal() {
   const { openTaskId, setOpenTaskId, tasks, profiles, projects, me, now, taskAction, subtaskAction, publishTask, profileById } = useApp();
@@ -161,14 +161,14 @@ export function TaskModal() {
             </Field>
             <Field label="Début prévu">
               {canEdit ? (
-                <input type="date" value={toDateInput(task.startDate)} onChange={(e) => patch({ startDate: e.target.value || null })} className="w-full text-[13px] border border-slate-200 rounded-lg px-2 py-1.5" />
+                <input type="date" value={toDayInput(task.startDate)} onChange={(e) => patch({ startDate: e.target.value || null })} className="w-full text-[13px] border border-slate-200 rounded-lg px-2 py-1.5" />
               ) : (
                 <div className="text-[13px] text-slate-700 py-1.5">{task.startDate ? fmt(task.startDate) : "—"}</div>
               )}
             </Field>
             <Field label="Échéance">
               {canEdit ? (
-                <input type="date" value={toDateInput(task.dueDate)} onChange={(e) => patch({ dueDate: e.target.value || null })} className={`w-full text-[13px] border rounded-lg px-2 py-1.5 ${late ? "border-rose-300" : "border-slate-200"}`} />
+                <input type="date" value={toDayInput(task.dueDate)} onChange={(e) => patch({ dueDate: e.target.value || null })} className={`w-full text-[13px] border rounded-lg px-2 py-1.5 ${late ? "border-rose-300" : "border-slate-200"}`} />
               ) : (
                 <div className="text-[13px] text-slate-700 py-1.5">{task.dueDate ? fmt(task.dueDate) : "—"}</div>
               )}

@@ -47,6 +47,7 @@ create index if not exists idx_blocage_item on blocage_actions(item_id);
 create table if not exists projects (
   id text primary key, name text not null, description text not null default '',
   owner_id text not null, status text not null default 'En cours',
+  start_date text,
   deadline text, source_item_id text, created_at text not null default (datetime('now')),
   pending_status text, pending_by text,
   archived integer not null default 0,
@@ -55,7 +56,7 @@ create table if not exists projects (
 );
 create table if not exists project_tasks (
   id text primary key, project_id text not null, title text not null,
-  assignee_id text, status text not null default 'à faire', due_date text,
+  assignee_id text, status text not null default 'à faire', start_date text, due_date text,
   ordre integer not null default 0, created_at text not null default (datetime('now')),
   proposed_by text,
   description text not null default '', priority text not null default 'Normale', completed_at text
@@ -642,6 +643,10 @@ function ensureColumns(db: Database.Database) {
   if (!pjcols.includes("published")) {
     db.exec("alter table projects add column published integer not null default 1");
   }
+  // Projets : date de début prévue (parité avec l'échéance, pour le planning).
+  if (!pjcols.includes("start_date")) {
+    db.exec("alter table projects add column start_date text");
+  }
   const tkcols = (db.prepare("pragma table_info(tasks)").all() as { name: string }[]).map((c) => c.name);
   if (tkcols.length > 0 && !tkcols.includes("start_date")) {
     db.exec("alter table tasks add column start_date text");
@@ -659,6 +664,10 @@ function ensureColumns(db: Database.Database) {
     db.exec("alter table project_tasks add column description text not null default ''");
     db.exec("alter table project_tasks add column priority text not null default 'Normale'");
     db.exec("alter table project_tasks add column completed_at text");
+  }
+  // Tâches de projet : date de début prévue (parité avec les tâches Productivité).
+  if (ptcols.length > 0 && !ptcols.includes("start_date")) {
+    db.exec("alter table project_tasks add column start_date text");
   }
   // Risques : passage au modèle ISO 27005 (résiduel, actif, menace/vuln, acceptation).
   const rkcols = (db.prepare("pragma table_info(risks)").all() as { name: string }[]).map((c) => c.name);

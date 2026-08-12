@@ -23,6 +23,7 @@ interface ProjectRow {
   description: string;
   owner_id: string;
   status: ProjectStatus;
+  start_date: string | null;
   deadline: string | null;
   source_item_id: string | null;
   created_at: string;
@@ -40,6 +41,7 @@ interface TaskRow {
   title: string;
   assignee_id: string | null;
   status: TaskStatus;
+  start_date: string | null;
   due_date: string | null;
   ordre: number;
   created_at: string;
@@ -69,6 +71,7 @@ function mapTask(r: TaskRow): ProjectTask {
     assigneeId: r.assignee_id,
     status: r.status,
     priority: r.priority ?? "Normale",
+    startDate: r.start_date ? new Date(r.start_date) : null,
     dueDate: r.due_date ? new Date(r.due_date) : null,
     completedAt: r.completed_at ? new Date(r.completed_at) : null,
     ordre: r.ordre,
@@ -181,6 +184,7 @@ export function listProjects(viewerId?: string): Project[] {
     description: p.description,
     ownerId: p.owner_id,
     status: p.status,
+    startDate: p.start_date ? new Date(p.start_date) : null,
     deadline: p.deadline ? new Date(p.deadline) : null,
     sourceItemId: p.source_item_id,
     createdAt: new Date(p.created_at),
@@ -299,6 +303,7 @@ export function createProject(input: {
   description?: string;
   ownerId: string;
   sourceItemId?: string | null;
+  startDate?: string | null;
   deadline?: string | null;
   memberIds?: string[];
   /** Publier immédiatement (visible par l'équipe). Défaut : privé (créateur seul). */
@@ -307,7 +312,7 @@ export function createProject(input: {
   const id = randomUUID();
   getDb()
     .prepare(
-      "insert into projects (id, name, description, owner_id, status, deadline, source_item_id, published) values (?,?,?,?,?,?,?,?)"
+      "insert into projects (id, name, description, owner_id, status, start_date, deadline, source_item_id, published) values (?,?,?,?,?,?,?,?,?)"
     )
     .run(
       id,
@@ -315,6 +320,7 @@ export function createProject(input: {
       input.description ?? "",
       input.ownerId,
       "En cours",
+      input.startDate ?? null,
       input.deadline ?? null,
       input.sourceItemId ?? null,
       // Espace privé désactivé → toujours publié (comportement d'avant le Lot 2).
@@ -341,16 +347,23 @@ export function publishProject(id: string): void {
 
 export function updateProject(
   id: string,
-  fields: { name?: string; description?: string; status?: ProjectStatus; deadline?: string | null }
+  fields: {
+    name?: string;
+    description?: string;
+    status?: ProjectStatus;
+    startDate?: string | null;
+    deadline?: string | null;
+  }
 ): void {
   const cur = getDb().prepare("select * from projects where id = ?").get(id) as ProjectRow | undefined;
   if (!cur) return;
   getDb()
-    .prepare("update projects set name=?, description=?, status=?, deadline=? where id=?")
+    .prepare("update projects set name=?, description=?, status=?, start_date=?, deadline=? where id=?")
     .run(
       fields.name ?? cur.name,
       fields.description ?? cur.description,
       fields.status ?? cur.status,
+      fields.startDate !== undefined ? fields.startDate : cur.start_date,
       fields.deadline !== undefined ? fields.deadline : cur.deadline,
       id
     );
@@ -361,6 +374,7 @@ export function addTask(input: {
   projectId: string;
   title: string;
   assigneeId?: string | null;
+  startDate?: string | null;
   dueDate?: string | null;
   description?: string;
   priority?: TaskPriority;
@@ -370,13 +384,14 @@ export function addTask(input: {
     .prepare("select coalesce(max(ordre),0)+1 as n from project_tasks where project_id = ?")
     .get(input.projectId) as { n: number };
   db.prepare(
-    "insert into project_tasks (id, project_id, title, assignee_id, status, due_date, ordre, description, priority) values (?,?,?,?,?,?,?,?,?)"
+    "insert into project_tasks (id, project_id, title, assignee_id, status, start_date, due_date, ordre, description, priority) values (?,?,?,?,?,?,?,?,?,?)"
   ).run(
     randomUUID(),
     input.projectId,
     input.title,
     input.assigneeId ?? null,
     "à faire",
+    input.startDate ?? null,
     input.dueDate ?? null,
     max.n,
     input.description ?? "",
@@ -390,6 +405,7 @@ export function updateTask(
     title?: string;
     assigneeId?: string | null;
     status?: TaskStatus;
+    startDate?: string | null;
     dueDate?: string | null;
     description?: string;
     priority?: TaskPriority;
@@ -403,12 +419,13 @@ export function updateTask(
     nextStatus === "fait" ? cur.completed_at ?? new Date().toISOString() : null;
   getDb()
     .prepare(
-      "update project_tasks set title=?, assignee_id=?, status=?, due_date=?, description=?, priority=?, completed_at=? where id=?"
+      "update project_tasks set title=?, assignee_id=?, status=?, start_date=?, due_date=?, description=?, priority=?, completed_at=? where id=?"
     )
     .run(
       fields.title ?? cur.title,
       fields.assigneeId !== undefined ? fields.assigneeId : cur.assignee_id,
       nextStatus,
+      fields.startDate !== undefined ? fields.startDate : cur.start_date,
       fields.dueDate !== undefined ? fields.dueDate : cur.due_date,
       fields.description !== undefined ? fields.description : cur.description ?? "",
       fields.priority ?? cur.priority ?? "Normale",

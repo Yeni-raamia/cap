@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     }
     const assigneeId: string | null = body?.assigneeId || null;
     const addPriority: TaskPriority | undefined = TASK_PRIORITIES.includes(body?.priority) ? body.priority : undefined;
-    addTask({ projectId, title, assigneeId, dueDate: toIso(body?.dueDate), description: typeof body?.description === "string" ? body.description : undefined, priority: addPriority });
+    addTask({ projectId, title, assigneeId, startDate: toIso(body?.startDate), dueDate: toIso(body?.dueDate), description: typeof body?.description === "string" ? body.description : undefined, priority: addPriority });
     // Prévenir la personne assignée (si ce n'est pas soi-même).
     if (assigneeId) notifyAssignee(assigneeId, user.nom, user.id, projectId, projName(projectId), title);
   } else if (action === "update" || action === "delete") {
@@ -60,6 +60,7 @@ export async function POST(request: Request) {
         title: typeof body?.title === "string" ? body.title.trim() : undefined,
         assigneeId: body?.assigneeId !== undefined ? body.assigneeId || null : undefined,
         status,
+        startDate: body?.startDate !== undefined ? toIso(body.startDate) : undefined,
         dueDate: body?.dueDate !== undefined ? toIso(body.dueDate) : undefined,
         description: typeof body?.description === "string" ? body.description : undefined,
         priority,

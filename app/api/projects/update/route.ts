@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     name: typeof body?.name === "string" ? body.name.trim() : undefined,
     description: typeof body?.description === "string" ? body.description : undefined,
     status,
+    startDate: body?.startDate !== undefined ? toIso(body.startDate) : undefined,
     deadline: body?.deadline !== undefined ? toIso(body.deadline) : undefined,
   });
   return NextResponse.json({ projects: listProjects(user.id) });

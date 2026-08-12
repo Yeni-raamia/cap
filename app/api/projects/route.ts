@@ -24,6 +24,7 @@ export async function POST(request: Request) {
     name,
     description: String(body?.description || ""),
     ownerId: user.id,
+    startDate: toIso(body?.startDate),
     deadline: toIso(body?.deadline),
     memberIds,
   });

@@ -18,8 +18,10 @@ import {
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
-import { fmt, fmtLong, greeting, isTaskOpen, projectMetrics, subtaskProgress, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
+import { fmt, fmtLong, greeting, isTaskLate, isTaskOpen, projectMetrics, subtaskProgress, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
+import { DEFAULT_PERIOD, matchesPeriod, type PeriodFilter as Period } from "@/lib/period";
 import { useApp } from "@/components/app-context";
+import { PeriodFilter } from "@/components/PeriodFilter";
 import { Card } from "@/components/atoms";
 import { CountUp, Sparkline } from "@/components/dataviz";
 import { EmptyState } from "@/components/EmptyState";
@@ -57,6 +59,7 @@ function Section({
 export default function MonEspacePage() {
   const { items, now, me, scores, rs, projects, negligences, conversations, tasks, taskAction, projectTask, setShowNew, setOpenTaskId } = useApp();
   const [newTask, setNewTask] = useState("");
+  const [taskPeriod, setTaskPeriod] = useState<Period>(DEFAULT_PERIOD);
 
   const mine = items.filter((i) => i.ownerId === me.id);
   const attends = mine.filter((i) => ["relance", "escalade"].includes(rs(i).level));
@@ -100,6 +103,7 @@ export default function MonEspacePage() {
     .filter((t) => t.assigneeId === me.id)
     .sort((a, b) => Number(isTaskOpen(b)) - Number(isTaskOpen(a)) || (a.dueDate?.getTime() ?? Infinity) - (b.dueDate?.getTime() ?? Infinity));
   const openTaskCount = myAssignedTasks.filter(isTaskOpen).length;
+  const visibleTasks = myAssignedTasks.filter((t) => matchesPeriod(t.dueDate, isTaskLate(t, now), taskPeriod, now));
 
   const addTask = async () => {
     if (!newTask.trim()) return;
@@ -177,11 +181,14 @@ export default function MonEspacePage() {
               <Plus size={15} /> Ajouter
             </button>
           </div>
+          {myAssignedTasks.length > 0 && <PeriodFilter value={taskPeriod} onChange={setTaskPeriod} compact className="mb-2" />}
           {myAssignedTasks.length === 0 ? (
             <div className="text-[12px] text-slate-400 text-center py-2">Aucune tâche. Ajoute-en une ou attends une assignation.</div>
+          ) : visibleTasks.length === 0 ? (
+            <div className="text-[12px] text-slate-400 text-center py-2">Aucune tâche sur cette période.</div>
           ) : (
             <div className="divide-y divide-slate-50">
-              {myAssignedTasks.map((t) => {
+              {visibleTasks.map((t) => {
                 const late = t.status !== "fait" && t.dueDate && t.dueDate.getTime() < now.getTime();
                 const proj = t.projectId ? projects.find((p) => p.id === t.projectId) : null;
                 const prog = subtaskProgress(t);

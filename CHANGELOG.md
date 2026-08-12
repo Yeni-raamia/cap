@@ -6,6 +6,22 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.87.0] - 2026-08-12
+
+### Ajouté
+
+- **Filtres temporels partagés sur les tâches et les projets** : une même barre de filtres — **Tout / Aujourd'hui / Cette semaine / Ce mois / Période personnalisée / En retard / Sans date** — est désormais disponible sur **Productivité** (tableau des tâches d'équipe), **Projets** (liste), la **fiche projet** (tâches du projet) et **Mon espace** (mes tâches). La semaine suit la convention française (lundi → dimanche) et toutes les bornes sont calculées en heure locale. La période personnalisée accepte une seule borne (« à partir du… », « jusqu'au… »).
+- **Vue Planning** (nouvelle entrée de menu `/planning`) : un calendrier qui rassemble toutes les échéances de l'application au même endroit — tâches, tâches de projet, échéances de projet et réunions. Trois vues (**mois**, **semaine**, **liste**), navigation période par période, retour à « Aujourd'hui », filtre par personne, filtres par type d'événement (pastilles de couleur), option « masquer ce qui est fait », et compteurs du jour / en retard. Cliquer un jour ouvre le détail ; cliquer une tâche ouvre sa fiche, un projet ou une réunion mène à sa page.
+- **Dates de début sur les projets et les tâches de projet** : le champ « Début prévu » existait sur les tâches de Productivité, il est étendu aux **projets** (création et fiche projet) et aux **tâches de projet** (ajout rapide et fiche de tâche) — les tâches, tâches de projet et projets ont maintenant tous un couple début / échéance.
+
+### Corrigé
+
+- **Décalage d'un jour sur les dates affichées dans les champs de saisie** : les fiches de tâche, de tâche de projet et la fiche projet convertissaient la date en UTC avant de l'afficher (`toISOString()`). En France (UTC+1/+2), une échéance enregistrée au 12 du mois s'affichait au 11 dans le champ, et la réenregistrer reculait réellement la date d'un jour. Le formatage se fait désormais en heure locale.
+
+### Note technique
+
+- Nouveau module `lib/period.ts` (bornes de jour/semaine/mois, période personnalisée, libellés) couvert par 21 tests, et `lib/planning.ts` qui agrège les objets datés du domaine en événements de calendrier. Colonne `start_date` ajoutée aux tables `projects` et `project_tasks` (migration automatique au démarrage, aucune action requise).
+
 ## [1.86.2] - 2026-08-11
 
 ### Corrigé

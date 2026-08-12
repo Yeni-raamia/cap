@@ -18,6 +18,7 @@ import {
 import {
   fmt,
   isProjectArchived,
+  isProjectLate,
   isPublished,
   projectMetrics,
   PROJECT_STATUTS,
@@ -25,10 +26,12 @@ import {
   type Project,
   type ProjectStatus,
 } from "@/lib/domain";
+import { DEFAULT_PERIOD, matchesPeriod, type PeriodFilter as Period } from "@/lib/period";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
 import { Ring } from "@/components/dataviz";
 import { PageHero } from "@/components/PageHero";
+import { PeriodFilter } from "@/components/PeriodFilter";
 
 const statusBadge: Record<ProjectStatus, string> = {
   "En cours": "bg-emerald-100 text-emerald-700",
@@ -48,6 +51,7 @@ export default function ProjetsPage() {
   const [showNew, setShowNew] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [deadline, setDeadline] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
   const [err, setErr] = useState<string | null>(null);
@@ -59,13 +63,12 @@ export default function ProjetsPage() {
   const [search, setSearch] = useState("");
   const [fStatut, setFStatut] = useState("Tous");
   const [fResp, setFResp] = useState("Tous");
-  const [fRetard, setFRetard] = useState(false);
+  const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   const [showArchived, setShowArchived] = useState(false);
   const archivedCount = projects.filter(isProjectArchived).length;
 
   const linkedCount = (p: Project) => items.filter((i) => i.projectId === p.id).length;
-  const isLate = (p: Project) =>
-    p.status !== "Terminé" && p.status !== "Annulé" && !!p.deadline && p.deadline.getTime() < now.getTime();
+  const isLate = (p: Project) => isProjectLate(p, now);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -74,19 +77,20 @@ export default function ProjetsPage() {
       if (showArchived ? !isProjectArchived(p) : isProjectArchived(p)) return false;
       if (fStatut !== "Tous" && p.status !== fStatut) return false;
       if (fResp !== "Tous" && p.ownerId !== fResp) return false;
-      if (fRetard && !isLate(p)) return false;
+      // Le filtre temporel porte sur l'échéance du projet.
+      if (!matchesPeriod(p.deadline, isProjectLate(p, now), period, now)) return false;
       if (q && !`${p.name} ${p.description}`.toLowerCase().includes(q)) return false;
       return true;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, search, fStatut, fResp, fRetard, showArchived, now]);
+  }, [projects, search, fStatut, fResp, period, showArchived, now]);
 
   const submit = async () => {
     setErr(null);
-    const error = await createProject(name.trim(), desc.trim(), deadline || null, assignees);
+    const error = await createProject(name.trim(), desc.trim(), deadline || null, assignees, startDate || null);
     if (error) return setErr(error);
     setName("");
     setDesc("");
+    setStartDate("");
     setDeadline("");
     setAssignees([]);
     setShowNew(false);
@@ -131,9 +135,16 @@ export default function ProjetsPage() {
       {showNew && !demo && (
         <Card className="p-4 space-y-3">
           <div className="text-[13px] font-semibold text-slate-700">Nouveau projet</div>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom du projet" className="w-full text-[13px] border border-slate-200 rounded-lg px-3 py-2" />
           <div className="grid md:grid-cols-2 gap-3">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom du projet" className="text-[13px] border border-slate-200 rounded-lg px-3 py-2" />
-            <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} aria-label="Échéance" className="text-[13px] border border-slate-200 rounded-lg px-3 py-2 text-slate-700" />
+            <label className="block">
+              <span className="block text-[11px] text-slate-400 mb-1">Début prévu</span>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full text-[13px] border border-slate-200 rounded-lg px-3 py-2 text-slate-700" />
+            </label>
+            <label className="block">
+              <span className="block text-[11px] text-slate-400 mb-1">Échéance</span>
+              <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="w-full text-[13px] border border-slate-200 rounded-lg px-3 py-2 text-slate-700" />
+            </label>
           </div>
           <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2} placeholder="Description (optionnel)" className="w-full text-[13px] border border-slate-200 rounded-lg px-3 py-2" />
           <div>
@@ -175,10 +186,6 @@ export default function ProjetsPage() {
             <option value="Tous">Tous responsables</option>
             {owners.map((id) => (<option key={id} value={id}>{profileById(id).nom}</option>))}
           </select>
-          <label className="flex items-center gap-1.5 text-[12px] text-slate-600 cursor-pointer">
-            <input type="checkbox" checked={fRetard} onChange={(e) => setFRetard(e.target.checked)} className="h-3.5 w-3.5 accent-rose-600" />
-            En retard
-          </label>
           <button
             onClick={() => setShowArchived((v) => !v)}
             className={`text-[12px] rounded-lg px-2 py-1 border ${showArchived ? "bg-slate-800 text-white border-slate-800" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
@@ -187,6 +194,8 @@ export default function ProjetsPage() {
           </button>
           <span className="ml-auto text-[12px] text-slate-400">{filtered.length}</span>
         </div>
+        {/* Filtre temporel sur l'échéance du projet (« En retard » y est inclus). */}
+        <PeriodFilter value={period} onChange={setPeriod} className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800" />
       </Card>
 
       {filtered.length === 0 ? (

@@ -2394,6 +2394,7 @@ export interface ProjectTask {
   assigneeId: string | null;
   status: TaskStatus;
   priority: TaskPriority;
+  startDate: Date | null;
   dueDate: Date | null;
   completedAt: Date | null;
   ordre: number;
@@ -2459,6 +2460,8 @@ export interface Project {
   description: string;
   ownerId: string;
   status: ProjectStatus;
+  /** Date de début prévue (facultative) — alimente le planning. */
+  startDate: Date | null;
   deadline: Date | null;
   sourceItemId: string | null; // suivi (métier PRJ) à l'origine du projet
   createdAt: Date;
@@ -2524,6 +2527,14 @@ export function projectMetrics(p: Project, now: Date): ProjectMetrics {
 /** Un projet archivé (explicitement, ou terminé/annulé) est masqué de la liste active. */
 export const isProjectArchived = (p: Project): boolean =>
   p.archived === true || p.status === "Terminé" || p.status === "Annulé";
+
+/** Échéance dépassée alors que le projet n'est ni terminé ni annulé. */
+export const isProjectLate = (p: Project, now: Date): boolean =>
+  p.status !== "Terminé" && p.status !== "Annulé" && !!p.deadline && p.deadline.getTime() < now.getTime();
+
+/** Une tâche de projet non terminée dont l'échéance est passée. */
+export const isProjectTaskLate = (t: ProjectTask, now: Date): boolean =>
+  t.status !== "fait" && !!t.dueDate && t.dueDate.getTime() < now.getTime();
 
 /* ---------- Radar de profil (gamification) ----------
  * Six dimensions de performance, normalisées 0–100 relativement à l'équipe

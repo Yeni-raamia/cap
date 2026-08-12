@@ -28,12 +28,15 @@ import {
 } from "lucide-react";
 import {
   fmt,
+  isProjectTaskLate,
   projectMetrics,
   PROJECT_STATUTS,
   TASK_STATUTS,
   type ProjectStatus,
   type TaskStatus,
 } from "@/lib/domain";
+import { DEFAULT_PERIOD, matchesPeriod, toDayInput, type PeriodFilter as Period } from "@/lib/period";
+import { PeriodFilter } from "@/components/PeriodFilter";
 import { useApp } from "@/components/app-context";
 import { ProjectFiles } from "@/components/ProjectFiles";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
@@ -89,9 +92,11 @@ export default function ProjetDetailPage() {
   const project = projectById(id);
   const [taskTitle, setTaskTitle] = useState("");
   const [taskAssignee, setTaskAssignee] = useState("");
+  const [taskStart, setTaskStart] = useState("");
   const [taskDue, setTaskDue] = useState("");
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [taskQuery, setTaskQuery] = useState("");
+  const [taskPeriod, setTaskPeriod] = useState<Period>(DEFAULT_PERIOD);
   const [hideDone, setHideDone] = useState(false);
   // Proposition de tâche (Lot 3) — pour les non-membres.
   const [propTitle, setPropTitle] = useState("");
@@ -282,11 +287,26 @@ export default function ProjetDetailPage() {
           </div>
           <div className="flex items-center gap-1.5">
             <CalendarClock size={13} className="text-slate-400" />
+            <span className="text-slate-400">Début</span>
+            {canManage ? (
+              <input
+                type="date"
+                value={toDayInput(project.startDate)}
+                onChange={(e) => run(updateProject(project.id, { startDate: e.target.value || null }))}
+                aria-label="Début prévu du projet"
+                className="border border-slate-200 rounded-lg px-2 py-1 text-slate-700"
+              />
+            ) : (
+              <span className="font-medium text-slate-700">{project.startDate ? fmt(project.startDate) : "—"}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <CalendarClock size={13} className="text-slate-400" />
             <span className="text-slate-400">Échéance</span>
             {canManage ? (
               <input
                 type="date"
-                value={project.deadline ? new Date(project.deadline).toISOString().slice(0, 10) : ""}
+                value={toDayInput(project.deadline)}
                 onChange={(e) => run(updateProject(project.id, { deadline: e.target.value || null }))}
                 aria-label="Échéance du projet"
                 className="border border-slate-200 rounded-lg px-2 py-1 text-slate-700"
@@ -682,12 +702,14 @@ export default function ProjetDetailPage() {
             </div>
           )}
         </div>
+        {project.tasks.length > 0 && <PeriodFilter value={taskPeriod} onChange={setTaskPeriod} className="mb-2" />}
         <Card>
           {(() => {
             const q = taskQuery.trim().toLowerCase();
             const visibleTasks = project.tasks.filter(
               (t) =>
                 (!hideDone || t.status !== "fait") &&
+                matchesPeriod(t.dueDate, isProjectTaskLate(t, now), taskPeriod, now) &&
                 (!q || t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q))
             );
             return project.tasks.length === 0 ? (
@@ -776,9 +798,18 @@ export default function ProjetDetailPage() {
               </select>
               <input
                 type="date"
+                value={taskStart}
+                onChange={(e) => setTaskStart(e.target.value)}
+                aria-label="Début prévu de la tâche"
+                title="Début prévu"
+                className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
+              />
+              <input
+                type="date"
                 value={taskDue}
                 onChange={(e) => setTaskDue(e.target.value)}
                 aria-label="Échéance de la tâche"
+                title="Échéance"
                 className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700"
               />
               <button
@@ -789,11 +820,13 @@ export default function ProjetDetailPage() {
                       projectId: project.id,
                       title: taskTitle.trim(),
                       assigneeId: taskAssignee || null,
+                      startDate: taskStart || null,
                       dueDate: taskDue || null,
                     })
                   );
                   setTaskTitle("");
                   setTaskAssignee("");
+                  setTaskStart("");
                   setTaskDue("");
                 }}
                 disabled={!taskTitle.trim()}

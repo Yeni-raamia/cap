@@ -121,6 +121,7 @@ interface TaskPayload {
   title?: string;
   assigneeId?: string | null;
   status?: TaskStatus;
+  startDate?: string | null;
   dueDate?: string | null;
   description?: string;
   priority?: TaskPriority;
@@ -129,6 +130,7 @@ interface ProjectFields {
   name?: string;
   description?: string;
   status?: ProjectStatus;
+  startDate?: string | null;
   deadline?: string | null;
 }
 export interface TaskInput {
@@ -593,7 +595,13 @@ interface AppCtx {
   // Module Projet
   projects: Project[];
   projectById: (id: string) => Project | null;
-  createProject: (name: string, description: string, deadline: string | null, memberIds?: string[]) => Promise<string | null>;
+  createProject: (
+    name: string,
+    description: string,
+    deadline: string | null,
+    memberIds?: string[],
+    startDate?: string | null
+  ) => Promise<string | null>;
   updateProject: (id: string, fields: ProjectFields) => Promise<string | null>;
   projectTask: (action: "add" | "update" | "delete", payload: TaskPayload) => Promise<string | null>;
   projectMember: (action: "add" | "remove", projectId: string, profileId: string) => Promise<string | null>;
@@ -2096,8 +2104,13 @@ export function AppProvider({
     return null;
   };
 
-  const createProject = async (name: string, description: string, deadline: string | null, memberIds: string[] = []) =>
-    demo ? DEMO_MSG : postProjects("/api/projects", { name, description, deadline, memberIds });
+  const createProject = async (
+    name: string,
+    description: string,
+    deadline: string | null,
+    memberIds: string[] = [],
+    startDate: string | null = null
+  ) => (demo ? DEMO_MSG : postProjects("/api/projects", { name, description, deadline, memberIds, startDate }));
   const updateProject = async (id: string, fields: ProjectFields) =>
     demo ? DEMO_MSG : postProjects("/api/projects/update", { id, ...fields });
   const projectTask = async (action: "add" | "update" | "delete", payload: TaskPayload) =>

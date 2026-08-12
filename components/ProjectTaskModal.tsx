@@ -11,10 +11,9 @@ import {
   type TaskPriority,
   type TaskStatus,
 } from "@/lib/domain";
+import { toDayInput } from "@/lib/period";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
-
-const toDateInput = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
 
 /** Fiche d'édition d'une tâche de projet (titre, description, statut, priorité, responsable, échéance). */
 export function ProjectTaskModal({
@@ -34,7 +33,8 @@ export function ProjectTaskModal({
   const [status, setStatus] = useState<TaskStatus>(task.status);
   const [priority, setPriority] = useState<TaskPriority>(task.priority);
   const [assigneeId, setAssigneeId] = useState<string>(task.assigneeId ?? "");
-  const [due, setDue] = useState<string>(toDateInput(task.dueDate));
+  const [start, setStart] = useState<string>(toDayInput(task.startDate));
+  const [due, setDue] = useState<string>(toDayInput(task.dueDate));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -51,6 +51,7 @@ export function ProjectTaskModal({
       status,
       priority,
       assigneeId: assigneeId || null,
+      startDate: start || null,
       dueDate: due || null,
     });
     setBusy(false);
@@ -116,6 +117,10 @@ export function ProjectTaskModal({
                 <option value="">— Non assignée</option>
                 {team.map((u) => <option key={u.id} value={u.id}>{u.nom}</option>)}
               </select>
+            </div>
+            <div>
+              <label className={labelCls} htmlFor="pt-start">Début prévu</label>
+              <input id="pt-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} disabled={!canEdit} className={inputCls} />
             </div>
             <div>
               <label className={labelCls} htmlFor="pt-due">Échéance</label>

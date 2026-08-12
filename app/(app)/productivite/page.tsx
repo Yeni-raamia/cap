@@ -14,10 +14,12 @@ import {
   type TaskPriority,
   type TaskStatus,
 } from "@/lib/domain";
+import { DEFAULT_PERIOD, isPeriodActive, matchesPeriod, periodLabel, type PeriodFilter as Period } from "@/lib/period";
 import { useApp } from "@/components/app-context";
 import { Avatar, Card } from "@/components/atoms";
 import { Ring } from "@/components/dataviz";
 import { PageHero } from "@/components/PageHero";
+import { PeriodFilter } from "@/components/PeriodFilter";
 import { ProfilRadar } from "@/components/ProfilRadar";
 
 const STATUS_STYLE: Record<TaskStatus, string> = {
@@ -50,6 +52,7 @@ export default function ProductivitePage() {
   const [filterMember, setFilterMember] = useState<string>("");
   const [boardQuery, setBoardQuery] = useState("");
   const [filterPrio, setFilterPrio] = useState<string>("");
+  const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   const [err, setErr] = useState<string | null>(null);
 
   const canAssignOthers = ["manager", "directeur", "admin"].includes(me.role);
@@ -91,10 +94,13 @@ export default function ProductivitePage() {
   }, [tasks, now, windowDays]);
 
   const boardQ = boardQuery.trim().toLowerCase();
+  // Le filtre de période porte sur l'échéance ; « en retard » réutilise la
+  // définition métier (non terminée + échéance dépassée).
   const boardTasks = tasks.filter(
     (t) =>
       (!filterMember || t.assigneeId === filterMember) &&
       (!filterPrio || t.priority === filterPrio) &&
+      matchesPeriod(t.dueDate, isTaskLate(t, now), period, now) &&
       (!boardQ || t.title.toLowerCase().includes(boardQ) || t.description.toLowerCase().includes(boardQ))
   );
 
@@ -254,7 +260,14 @@ export default function ProductivitePage() {
       {/* Tableau des tâches (Kanban par statut) */}
       <div>
         <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-          <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Tâches de l&apos;équipe</h2>
+          <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">
+            Tâches de l&apos;équipe
+            {isPeriodActive(period) && (
+              <span className="ml-2 normal-case font-medium text-[11.5px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                {periodLabel(period, now)} · {boardTasks.length}
+              </span>
+            )}
+          </h2>
           <div className="flex items-center gap-2 flex-wrap">
             <input
               value={boardQuery}
@@ -282,6 +295,7 @@ export default function ProductivitePage() {
             </select>
           </div>
         </div>
+        <PeriodFilter value={period} onChange={setPeriod} className="mb-2" />
         <div className="grid md:grid-cols-4 gap-3">
           {TASK_STATUTS.map((st) => {
             const col = boardTasks.filter((t) => t.status === st);
@@ -408,6 +422,7 @@ function NewTaskForm({
   const [title, setTitle] = useState("");
   const [assignee, setAssignee] = useState(fixedAssignee ?? me.id);
   const [priority, setPriority] = useState<TaskPriority>("Normale");
+  const [start, setStart] = useState("");
   const [due, setDue] = useState("");
 
   const submit = async () => {
@@ -417,10 +432,12 @@ function NewTaskForm({
         title: title.trim(),
         assigneeId: fixedAssignee ?? assignee,
         priority,
+        startDate: start || null,
         dueDate: due || null,
       })
     );
     setTitle("");
+    setStart("");
     setDue("");
     setPriority("Normale");
   };
@@ -445,7 +462,8 @@ function NewTaskForm({
       <select value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)} aria-label="Priorité" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 bg-white">
         {TASK_PRIORITIES.map((p) => <option key={p}>{p}</option>)}
       </select>
-      <input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Échéance" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5" />
+      <input type="date" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Début prévu" title="Début prévu" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5" />
+      <input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Échéance" title="Échéance" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5" />
       <button onClick={submit} className="flex items-center gap-1 text-[13px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-3 py-1.5">
         <Plus size={15} /> {fixedAssignee ? "Assigner" : "Ajouter"}
       </button>
