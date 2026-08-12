@@ -12,6 +12,16 @@ import { useApp } from "./app-context";
  * l'on crée la tâche — et non dans un écran séparé : c'est la même intention
  * (« ça, il faut le faire tous les jours »), elle mérite un seul geste.
  */
+/** Champ étiqueté du formulaire. */
+function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label htmlFor={htmlFor} className="block text-[10.5px] font-medium text-slate-500 mb-0.5">{label}</label>
+      {children}
+    </div>
+  );
+}
+
 const REPEAT_OPTIONS: { key: "" | RecurrenceFrequency; label: string }[] = [
   { key: "", label: "Ne pas répéter" },
   { key: "quotidien", label: "Chaque jour" },
@@ -121,66 +131,89 @@ export function NewTaskForm({
         </div>
       )}
 
-      <div className="flex items-end gap-2 flex-wrap">
-        <div className="flex-1 min-w-[200px]">
-          <input
-            ref={inputRef}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder={fixedAssignee ? "Assigner une tâche…" : "Que faut-il faire ?"}
-            aria-label="Intitulé de la tâche"
-            className={`w-full ${compact ? "text-[13px]" : "text-[14px]"} border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 focus:border-emerald-400 outline-none`}
-          />
-        </div>
+      <input
+        ref={inputRef}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && submit()}
+        placeholder={fixedAssignee ? "Assigner une tâche…" : "Que faut-il faire ?"}
+        aria-label="Intitulé de la tâche"
+        className={`w-full ${compact ? "text-[13px]" : "text-[14px]"} border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 focus:border-emerald-400 outline-none`}
+      />
 
-        {canAssignOthers && !fixedAssignee && (
-          <select value={assignee} onChange={(e) => setAssignee(e.target.value)} aria-label="Assigné à" className={fieldCls}>
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>{p.id === me.id ? "Moi" : p.nom}</option>
-            ))}
-          </select>
+      {/* Chaque champ porte son libellé : sans cela, la liste des responsables
+       * n'était qu'un menu déroulant de plus, indiscernable au milieu des
+       * autres — on ne trouvait pas où assigner la tâche. */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mt-2">
+        {!fixedAssignee && (
+          <Field label={canAssignOthers ? "Assigner à" : "Responsable"} htmlFor="ntf-assignee">
+            <select
+              id="ntf-assignee"
+              value={assignee}
+              onChange={(e) => setAssignee(e.target.value)}
+              disabled={!canAssignOthers}
+              title={canAssignOthers ? undefined : "Seul un manager ou directeur peut assigner à quelqu'un d'autre"}
+              className={`${fieldCls} w-full disabled:opacity-70`}
+            >
+              {(canAssignOthers ? profiles : profiles.filter((p) => p.id === me.id)).map((p) => (
+                <option key={p.id} value={p.id}>{p.id === me.id ? "Moi" : p.nom}</option>
+              ))}
+            </select>
+          </Field>
         )}
 
-        <select value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)} aria-label="Priorité" className={fieldCls}>
-          {TASK_PRIORITIES.map((p) => <option key={p}>{p}</option>)}
-        </select>
+        <Field label="Priorité" htmlFor="ntf-priority">
+          <select
+            id="ntf-priority"
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as TaskPriority)}
+            className={`${fieldCls} w-full`}
+          >
+            {TASK_PRIORITIES.map((p) => <option key={p}>{p}</option>)}
+          </select>
+        </Field>
 
-        <input
-          type="date"
-          value={start}
-          onChange={(e) => setStart(e.target.value)}
-          aria-label={repeat ? "Première occurrence" : "Début prévu"}
-          title={repeat ? "Première occurrence" : "Début prévu"}
-          className={fieldCls}
-        />
-        <input
-          type="date"
-          value={due}
-          onChange={(e) => setDue(e.target.value)}
-          disabled={!!repeat}
-          aria-label="Échéance"
-          title={repeat ? "Pour une tâche répétée, l'échéance est le jour de chaque occurrence" : "Échéance"}
-          className={`${fieldCls} disabled:opacity-40`}
-        />
+        <Field label={repeat ? "Première occurrence" : "Début prévu"} htmlFor="ntf-start">
+          <input id="ntf-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} className={`${fieldCls} w-full`} />
+        </Field>
 
-        <select
-          value={repeat}
-          onChange={(e) => setRepeat(e.target.value as "" | RecurrenceFrequency)}
-          aria-label="Répétition"
-          title="Répéter cette tâche automatiquement"
-          className={`${fieldCls} ${repeat ? "border-violet-300 text-violet-700 font-medium" : ""}`}
-        >
-          {REPEAT_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-        </select>
+        <Field label="Échéance" htmlFor="ntf-due">
+          <input
+            id="ntf-due"
+            type="date"
+            value={due}
+            onChange={(e) => setDue(e.target.value)}
+            disabled={!!repeat}
+            title={repeat ? "Pour une tâche répétée, l'échéance est le jour de chaque occurrence" : undefined}
+            className={`${fieldCls} w-full disabled:opacity-40`}
+          />
+        </Field>
 
+        <Field label="Répéter" htmlFor="ntf-repeat">
+          <select
+            id="ntf-repeat"
+            value={repeat}
+            onChange={(e) => setRepeat(e.target.value as "" | RecurrenceFrequency)}
+            className={`${fieldCls} w-full ${repeat ? "border-violet-300 text-violet-700 font-medium" : ""}`}
+          >
+            {REPEAT_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </select>
+        </Field>
+      </div>
+
+      <div className="flex items-center gap-2 mt-2">
         <button
           onClick={submit}
           disabled={!title.trim()}
           className="flex items-center gap-1 text-[13px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 rounded-lg px-3.5 py-2"
         >
-          <Plus size={15} /> {fixedAssignee ? "Assigner" : "Ajouter"}
+          <Plus size={15} /> {fixedAssignee ? "Assigner" : "Ajouter la tâche"}
         </button>
+        {!fixedAssignee && who && (
+          <span className="text-[11.5px] text-slate-400">
+            sera assignée à {who.id === me.id ? "vous" : who.nom}
+          </span>
+        )}
       </div>
 
       {repeat && (

@@ -6,6 +6,13 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.96.2] - 2026-08-12
+
+### Corrigé
+
+- **Le champ d'assignation était introuvable dans le formulaire de tâche.** Il existait bien pour les managers et directeurs, mais sous la forme d'un menu déroulant **sans libellé**, aligné entre quatre autres contrôles nus — rien n'indiquait qu'il servait à assigner. Chaque champ porte désormais son intitulé (*Assigner à*, *Priorité*, *Début prévu*, *Échéance*, *Répéter*), et une mention rappelle sous le bouton à qui la tâche va revenir.
+- Le champ **est maintenant toujours présent** : un agent y voit son propre nom (champ désactivé, avec l'explication au survol) au lieu de ne rien voir du tout.
+
 ## [1.96.1] - 2026-08-12
 
 ### Corrigé
