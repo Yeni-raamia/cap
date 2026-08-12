@@ -6,6 +6,20 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.94.0] - 2026-08-12
+
+### Ajouté
+
+- **Les réunions ont une durée.** Nouveau champ (15 min → journée, par défaut 1 h), réglable à la création comme dans la fiche de la réunion. Migration automatique : les réunions existantes prennent 1 h.
+- **Planning — grille à la demi-heure.** Les créneaux passent de l'heure pleine à **30 minutes** : une réunion à 14 h 30 se pose enfin à sa vraie place, au lieu d'être rangée dans la case de 14 h.
+- **Blocs à la taille réelle.** Une réunion occupe désormais la hauteur de sa durée — un point de 15 minutes et un atelier de 3 h ne se ressemblent plus. L'heure de début et la durée sont écrites dans le bloc (l'heure seule quand il est trop bas pour deux lignes).
+- **Réunions qui se chevauchent : côte à côte.** Elles se partagent la largeur de la colonne au lieu de se masquer — sans quoi une réunion courte disparaissait derrière une longue. Une colonne libérée est réutilisée, donc trois réunions qui s'enchaînent en occupent deux, pas trois.
+- **Créer sur un créneau précis** : cliquer un créneau libre ouvre la création **avec l'heure exacte pré-remplie**, et propose directement une réunion (le bandeau « journée » et le bouton d'accueil proposent une tâche).
+
+### Note technique
+
+- `positionEvents` (calcul des décalages, hauteurs et colonnes de chevauchement) est couvert par 8 tests ; l'ensemble du planning en compte 23. Colonne `duration_minutes` ajoutée à `meetings`, bornée entre 5 minutes et 12 h côté serveur.
+
 ## [1.93.0] - 2026-08-12
 
 ### Ajouté

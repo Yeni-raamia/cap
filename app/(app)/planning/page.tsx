@@ -73,8 +73,8 @@ export default function PlanningPage() {
   const [kinds, setKinds] = useState<PlanEventKind[]>(EVENT_KINDS.map((k) => k.key));
   const [hideDone, setHideDone] = useState(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  /** Jour pour lequel on ouvre la création (clic sur « + », ou double-clic). */
-  const [createOn, setCreateOn] = useState<Date | null>(null);
+  /** Créneau visé par la création (clic sur « + », double-clic) ; minutes null = journée. */
+  const [createOn, setCreateOn] = useState<{ day: Date; minutes: number | null } | null>(null);
 
   const allEvents = useMemo(
     () => buildPlanEvents({ tasks, projects, meetings, now }),
@@ -149,7 +149,7 @@ export default function PlanningPage() {
     else
       toast(
         `« ${e.title} » déplacé au ${next.toLocaleDateString("fr-FR", { day: "2-digit", month: "long" })}` +
-          (target.hour !== null ? ` à ${p2(next.getHours())}:00` : ""),
+          (target.minutes !== null ? ` à ${p2(next.getHours())}:${p2(next.getMinutes())}` : ""),
         "success"
       );
   };
@@ -181,7 +181,7 @@ export default function PlanningPage() {
         right={
           <>
             <button
-              onClick={() => setCreateOn(selectedDay ?? now)}
+              onClick={() => setCreateOn({ day: selectedDay ?? now, minutes: null })}
               className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-3.5 py-2 hover:-translate-y-0.5 transition-transform shadow-soft"
             >
               <Plus size={16} /> Nouveau
@@ -294,7 +294,7 @@ export default function PlanningPage() {
                 eventsOf={eventsOf}
                 now={now}
                 onOpen={openEvent}
-                onCreate={(d) => setCreateOn(d)}
+                onCreate={(d, minutes) => setCreateOn({ day: d, minutes: minutes ?? null })}
               />
             </Card>
           ) : (
@@ -314,7 +314,7 @@ export default function PlanningPage() {
                     dim={!inMonth(d, anchor)}
                     isSelected={Boolean(selectedDay && sameDay(d, selectedDay))}
                     onSelect={() => setSelectedDay(selectedDay && sameDay(d, selectedDay) ? null : d)}
-                    onCreate={() => setCreateOn(d)}
+                    onCreate={() => setCreateOn({ day: d, minutes: null })}
                     onOpen={openEvent}
                   />
                 ))}
@@ -352,7 +352,7 @@ export default function PlanningPage() {
         </DndContext>
       )}
 
-      {createOn && <QuickCreateModal day={createOn} onClose={() => setCreateOn(null)} />}
+      {createOn && <QuickCreateModal day={createOn.day} minutes={createOn.minutes} onClose={() => setCreateOn(null)} />}
     </div>
   );
 }

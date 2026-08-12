@@ -3109,6 +3109,20 @@ export const MEETING_LINK_TYPES: { type: MeetingLinkType; label: string }[] = [
   { type: "objective", label: "Objectif annuel" },
 ];
 
+/** Durées proposées à la saisie (minutes). */
+export const MEETING_DURATIONS = [15, 30, 45, 60, 90, 120, 180, 240, 480];
+export const DEFAULT_MEETING_DURATION = 60;
+
+/** « 1 h 30 », « 45 min », « 1 j » — libellé court d'une durée en minutes. */
+export function formatDuration(minutes: number): string {
+  const m = Math.max(0, Math.round(minutes));
+  if (m === 480) return "journée";
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r === 0 ? `${h} h` : `${h} h ${String(r).padStart(2, "0")}`;
+}
+
 export type MeetingPresence = "invité" | "présent" | "absent" | "excusé";
 export const MEETING_PRESENCES: MeetingPresence[] = ["invité", "présent", "absent", "excusé"];
 
@@ -3141,6 +3155,8 @@ export interface Meeting {
   location: string; // lieu (salle)
   visioUrl: string; // lien de visioconférence (Teams/Zoom/Jitsi…)
   status: MeetingStatus;
+  /** Durée en minutes — sert à dessiner le bloc sur le planning. */
+  durationMinutes: number;
   notes: string; // compte-rendu
   decisions: string[]; // décisions prises
   participants: MeetingParticipant[];

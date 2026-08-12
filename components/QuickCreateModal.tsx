@@ -2,12 +2,22 @@
 
 import { useState } from "react";
 import { CalendarDays, ListTodo, Plus, X } from "lucide-react";
-import { contactDisplayName, MEETING_STATUTS, type MeetingParticipant, type MeetingStatus } from "@/lib/domain";
+import {
+  contactDisplayName,
+  DEFAULT_MEETING_DURATION,
+  formatDuration,
+  MEETING_DURATIONS,
+  MEETING_STATUTS,
+  type MeetingParticipant,
+  type MeetingStatus,
+} from "@/lib/domain";
 import { toDayInput } from "@/lib/period";
 import { useApp } from "./app-context";
 import { NewTaskForm } from "./NewTaskForm";
 
 type Kind = "tache" | "reunion";
+
+const p2 = (n: number) => String(n).padStart(2, "0");
 
 /**
  * Création rapide depuis n'importe où — bandeau d'accueil, planning.
@@ -19,16 +29,21 @@ type Kind = "tache" | "reunion";
  */
 export function QuickCreateModal({
   day,
-  defaultKind = "tache",
+  minutes,
+  defaultKind,
   onClose,
 }: {
   /** Jour choisi dans le planning ; par défaut, aujourd'hui. */
   day?: Date | null;
+  /** Heure de début visée (minutes depuis minuit) quand on clique un créneau. */
+  minutes?: number | null;
   defaultKind?: Kind;
   onClose: () => void;
 }) {
   const { me, now, profiles, contacts, createMeeting, toast } = useApp();
-  const [kind, setKind] = useState<Kind>(defaultKind);
+  // Cliquer un créneau horaire vise une réunion ; le bandeau « journée » et le
+  // bouton du bandeau d'accueil visent une tâche.
+  const [kind, setKind] = useState<Kind>(defaultKind ?? (minutes != null ? "reunion" : "tache"));
   const [err, setErr] = useState<string | null>(null);
 
   const canAssignOthers = ["manager", "directeur", "admin"].includes(me.role);
@@ -36,7 +51,10 @@ export function QuickCreateModal({
 
   // Réunion : date + heure, calées à 9 h sur le jour choisi.
   const [title, setTitle] = useState("");
-  const [when, setWhen] = useState(`${toDayInput(target)}T09:00`);
+  const [when, setWhen] = useState(
+    `${toDayInput(target)}T${p2(Math.floor((minutes ?? 9 * 60) / 60))}:${p2((minutes ?? 0) % 60)}`
+  );
+  const [duration, setDuration] = useState(DEFAULT_MEETING_DURATION);
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState<MeetingStatus>("planifiée");
   const [agenda, setAgenda] = useState("");
@@ -65,6 +83,7 @@ export function QuickCreateModal({
       date: when || null,
       location: location.trim(),
       status,
+      durationMinutes: duration,
       agenda: agenda.trim(),
       participants,
     });
@@ -142,6 +161,12 @@ export function QuickCreateModal({
                 <div>
                   <label className={labelCls} htmlFor="qc-when">Date et heure</label>
                   <input id="qc-when" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls} htmlFor="qc-duration">Durée</label>
+                  <select id="qc-duration" value={duration} onChange={(e) => setDuration(Number(e.target.value))} className={inputCls}>
+                    {MEETING_DURATIONS.map((m) => <option key={m} value={m}>{formatDuration(m)}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label className={labelCls} htmlFor="qc-status">Statut</label>

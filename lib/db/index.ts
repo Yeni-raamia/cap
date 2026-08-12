@@ -174,6 +174,7 @@ create table if not exists meetings (
   id text primary key, title text not null default '', agenda text not null default '',
   date text, location text not null default '', visio_url text not null default '',
   status text not null default 'planifiée',
+  duration_minutes integer not null default 60,
   notes text not null default '', decisions text not null default '[]', created_by text,
   created_at text not null default (datetime('now')), updated_at text not null default (datetime('now'))
 );
@@ -746,6 +747,10 @@ function ensureColumns(db: Database.Database) {
   const mtgcols = (db.prepare("pragma table_info(meetings)").all() as { name: string }[]).map((c) => c.name);
   if (mtgcols.length > 0 && !mtgcols.includes("visio_url")) {
     db.exec("alter table meetings add column visio_url text not null default ''");
+  }
+  // Réunions : durée en minutes (créneaux et blocs du planning).
+  if (mtgcols.length > 0 && !mtgcols.includes("duration_minutes")) {
+    db.exec("alter table meetings add column duration_minutes integer not null default 60");
   }
   const mpcols = (db.prepare("pragma table_info(meeting_participants)").all() as { name: string }[]).map((c) => c.name);
   if (mpcols.length > 0 && !mpcols.includes("presence")) {

@@ -4,7 +4,7 @@
  * ================================================================== */
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
-import type { Meeting, MeetingAttachment, MeetingLink, MeetingParticipant, MeetingPresence } from "@/lib/domain";
+import { DEFAULT_MEETING_DURATION, type Meeting, type MeetingAttachment, type MeetingLink, type MeetingParticipant, type MeetingPresence } from "@/lib/domain";
 
 interface MeetingRow {
   id: string;
@@ -14,12 +14,20 @@ interface MeetingRow {
   location: string;
   visio_url: string;
   status: string;
+  duration_minutes: number;
   notes: string;
   decisions: string;
   created_by: string | null;
   created_at: string;
   updated_at: string;
 }
+
+/** Durée bornée : au moins 5 minutes, au plus une journée de 12 h. */
+const cleanDuration = (v: unknown): number => {
+  const n = Math.round(Number(v));
+  if (!Number.isFinite(n)) return DEFAULT_MEETING_DURATION;
+  return Math.min(720, Math.max(5, n));
+};
 
 const asPresence = (v: string): MeetingPresence =>
   v === "présent" || v === "absent" || v === "excusé" ? v : "invité";
@@ -43,6 +51,7 @@ function mapMeeting(
     location: r.location,
     visioUrl: r.visio_url ?? "",
     status: (r.status as Meeting["status"]) ?? "planifiée",
+    durationMinutes: r.duration_minutes ?? DEFAULT_MEETING_DURATION,
     notes: r.notes,
     decisions,
     participants,
@@ -123,6 +132,7 @@ export function createMeeting(input: {
   location?: string;
   visioUrl?: string;
   status?: string;
+  durationMinutes?: number;
   notes?: string;
   decisions?: string[];
   participants?: MeetingParticipant[];
@@ -132,7 +142,7 @@ export function createMeeting(input: {
   const id = randomUUID();
   getDb()
     .prepare(
-      "insert into meetings (id, title, agenda, date, location, visio_url, status, notes, decisions, created_by) values (?,?,?,?,?,?,?,?,?,?)"
+      "insert into meetings (id, title, agenda, date, location, visio_url, status, duration_minutes, notes, decisions, created_by) values (?,?,?,?,?,?,?,?,?,?,?)"
     )
     .run(
       id,
@@ -142,6 +152,7 @@ export function createMeeting(input: {
       input.location ?? "",
       input.visioUrl ?? "",
       input.status ?? "planifiée",
+      cleanDuration(input.durationMinutes),
       input.notes ?? "",
       JSON.stringify(input.decisions ?? []),
       input.createdBy
@@ -160,6 +171,7 @@ export function updateMeeting(
     location?: string;
     visioUrl?: string;
     status?: string;
+    durationMinutes?: number;
     notes?: string;
     decisions?: string[];
     participants?: MeetingParticipant[];
@@ -170,7 +182,7 @@ export function updateMeeting(
   const cur = db.prepare("select * from meetings where id = ?").get(id) as MeetingRow | undefined;
   if (!cur) return;
   db.prepare(
-    "update meetings set title=?, agenda=?, date=?, location=?, visio_url=?, status=?, notes=?, decisions=?, updated_at=datetime('now') where id=?"
+    "update meetings set title=?, agenda=?, date=?, location=?, visio_url=?, status=?, duration_minutes=?, notes=?, decisions=?, updated_at=datetime('now') where id=?"
   ).run(
     fields.title ?? cur.title,
     fields.agenda ?? cur.agenda,
@@ -178,6 +190,7 @@ export function updateMeeting(
     fields.location ?? cur.location,
     fields.visioUrl ?? cur.visio_url,
     fields.status ?? cur.status,
+    fields.durationMinutes !== undefined ? cleanDuration(fields.durationMinutes) : cur.duration_minutes,
     fields.notes ?? cur.notes,
     fields.decisions !== undefined ? JSON.stringify(fields.decisions) : cur.decisions,
     id

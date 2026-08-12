@@ -7,6 +7,8 @@ import { ArrowLeft, CalendarDays, Check, Download, ExternalLink, FileText, Gavel
 import {
   contactDisplayName,
   formatBytes,
+  formatDuration,
+  MEETING_DURATIONS,
   MEETING_LINK_TYPES,
   MEETING_PRESENCES,
   MEETING_STATUTS,
@@ -199,6 +201,18 @@ export default function ReunionDetailPage() {
             {canEdit ? (
               <input type="datetime-local" value={meeting.date ? new Date(meeting.date.getTime() - meeting.date.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""} onChange={(e) => run(updateMeeting(id, { date: e.target.value || null }))} className={inputCls} />
             ) : <div className="text-[13px] text-slate-700">{meeting.date ? meeting.date.toLocaleString("fr-FR") : "—"}</div>}
+          </div>
+          <div>
+            <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Durée</div>
+            {canEdit ? (
+              <select
+                value={meeting.durationMinutes}
+                onChange={(e) => run(updateMeeting(id, { durationMinutes: Number(e.target.value) }))}
+                className={`${inputCls} bg-white dark:bg-slate-900`}
+              >
+                {MEETING_DURATIONS.map((m) => <option key={m} value={m}>{formatDuration(m)}</option>)}
+              </select>
+            ) : <div className="text-[13px] text-slate-700">{formatDuration(meeting.durationMinutes)}</div>}
           </div>
           <div>
             <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-1">Lieu (salle)</div>

@@ -2,19 +2,25 @@
 
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { GripVertical } from "lucide-react";
+import { formatDuration } from "@/lib/domain";
 import { sameDay } from "@/lib/period";
 import {
   dayDropId,
   dayKey,
   EVENT_KINDS,
-  HOUR_SLOTS,
+  positionEvents,
+  SLOT_MINUTES,
+  SLOTS,
   slotId,
+  slotLabel,
   type PlanEvent,
 } from "@/lib/planning";
 
 const DAY_NAMES = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+/** Hauteur d'un créneau de 30 minutes, en pixels. */
+const SLOT_H = 26;
 
-/** Chip d'événement déplaçable. */
+/** Chip d'événement déplaçable (bandeau « journée » et vue mois). */
 export function DraggableEvent({
   e,
   onOpen,
@@ -26,12 +32,11 @@ export function DraggableEvent({
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `ev:${e.id}`, data: { event: e } });
   const kind = EVENT_KINDS.find((k) => k.key === e.kind)!;
-  const heure = e.timed ? e.date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : null;
 
   return (
     <div
       ref={setNodeRef}
-      className={`group/ev flex items-center gap-1 rounded border px-1 py-0.5 bg-white dark:bg-slate-900 ${
+      className={`flex items-center gap-1 rounded border px-1 py-0.5 bg-white dark:bg-slate-900 ${
         e.late ? "border-rose-300" : "border-slate-200 dark:border-slate-700"
       } ${isDragging ? "opacity-40" : ""}`}
     >
@@ -53,38 +58,105 @@ export function DraggableEvent({
         }`}
         title={`${e.title}${e.context ? ` — ${e.context}` : ""}`}
       >
-        {heure && <span className="font-mono text-slate-400 mr-1">{heure}</span>}
         {e.title}
       </button>
     </div>
   );
 }
 
-/** Zone de dépôt (bandeau « toute la journée » ou créneau horaire). */
-function DropZone({
-  id,
-  className,
-  children,
+/** Bloc d'une réunion, dimensionné à sa durée réelle. */
+function TimedBlock({
+  e,
+  offset,
+  span,
+  lane,
+  lanes,
+  onOpen,
 }: {
-  id: string;
-  className: string;
-  children?: React.ReactNode;
+  e: PlanEvent;
+  offset: number;
+  span: number;
+  lane: number;
+  lanes: number;
+  onOpen: (e: PlanEvent) => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `ev:${e.id}`, data: { event: e } });
+  const debut = e.date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  // Sous ~45 min, le bloc est trop bas pour deux lignes de texte.
+  const serre = span <= 1.5;
+
   return (
-    <div ref={setNodeRef} className={`${className} ${isOver ? "bg-emerald-50 dark:bg-emerald-500/10 ring-1 ring-emerald-300" : ""}`}>
-      {children}
+    <div
+      ref={setNodeRef}
+      style={{
+        top: offset * SLOT_H + 2,
+        height: Math.max(SLOT_H - 4, span * SLOT_H - 4),
+        left: `calc(${(lane / lanes) * 100}% + 2px)`,
+        width: `calc(${100 / lanes}% - 4px)`,
+      }}
+      className={`absolute rounded-md border px-1 py-0.5 overflow-hidden ${
+        e.done
+          ? "bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700"
+          : "bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40"
+      } ${isDragging ? "opacity-40" : ""}`}
+    >
+      <div className="flex items-start gap-0.5">
+        <span
+          {...listeners}
+          {...attributes}
+          className="cursor-grab active:cursor-grabbing text-amber-400 hover:text-amber-600 shrink-0"
+          title="Glisser pour déplacer"
+          aria-label={`Déplacer ${e.title}`}
+        >
+          <GripVertical size={11} />
+        </span>
+        <button onClick={() => onOpen(e)} className="flex-1 min-w-0 text-left">
+          <div className={`text-[10.5px] leading-tight truncate ${e.done ? "text-slate-400 line-through" : "text-amber-900 dark:text-amber-200"}`}>
+            {serre && <span className="font-mono mr-1">{debut}</span>}
+            {e.title}
+          </div>
+          {!serre && (
+            <div className="text-[9.5px] text-amber-700/80 dark:text-amber-300/70 font-mono">
+              {debut} · {formatDuration(e.durationMinutes)}
+            </div>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Zone de dépôt d'un créneau, en fond de colonne. */
+function SlotZone({ id, top, onCreate }: { id: string; top: number; onCreate: () => void }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  const demiHeure = top % 60 !== 0;
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ top: (top - SLOTS[0]) / SLOT_MINUTES * SLOT_H, height: SLOT_H }}
+      className={`absolute inset-x-0 group/slot border-t ${
+        demiHeure ? "border-slate-50 dark:border-slate-800/50" : "border-slate-100 dark:border-slate-800"
+      } ${isOver ? "bg-emerald-100/70 dark:bg-emerald-500/15" : ""}`}
+    >
+      <button
+        onClick={onCreate}
+        aria-label={`Créer à ${slotLabel(top)}`}
+        title={`Créer à ${slotLabel(top)}`}
+        className="w-full h-full opacity-0 group-hover/slot:opacity-100 text-[10px] text-emerald-700 hover:bg-emerald-50/60 dark:hover:bg-emerald-500/5 transition"
+      >
+        +
+      </button>
     </div>
   );
 }
 
 /**
- * Vue semaine en créneaux horaires.
+ * Vue semaine en créneaux de 30 minutes.
  *
- * Deux natures d'objets cohabitent : les réunions ont une heure et se posent
- * dans la grille ; les échéances (tâches, projets) n'en ont pas et vivent dans
- * un bandeau « toute la journée ». On peut glisser les unes et les autres —
- * déposer sur un créneau donne une heure, déposer sur le bandeau n'en donne pas.
+ * Deux natures d'objets cohabitent : les réunions ont une heure et une durée,
+ * et occupent un bloc à leur taille réelle ; les échéances (tâches, projets)
+ * n'ont pas d'heure et vivent dans un bandeau « journée ». Les réunions qui se
+ * chevauchent se partagent la largeur plutôt que de se masquer.
  */
 export function PlanningWeek({
   days,
@@ -97,8 +169,10 @@ export function PlanningWeek({
   eventsOf: (d: Date) => PlanEvent[];
   now: Date;
   onOpen: (e: PlanEvent) => void;
-  onCreate: (d: Date, hour?: number) => void;
+  onCreate: (d: Date, minutes?: number) => void;
 }) {
+  const gridHeight = SLOTS.length * SLOT_H;
+
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[52rem]">
@@ -118,56 +192,72 @@ export function PlanningWeek({
           })}
         </div>
 
-        {/* Bandeau « toute la journée » : échéances sans heure */}
+        {/* Bandeau « journée » : échéances sans heure */}
         <div className="grid grid-cols-[3.5rem_repeat(7,1fr)] gap-1 mb-1">
           <div className="text-[10px] text-slate-400 text-right pr-1 pt-1">journée</div>
-          {days.map((d) => {
-            const allDay = eventsOf(d).filter((e) => !e.timed);
-            return (
-              <DropZone
-                key={`allday-${dayKey(d)}`}
-                id={dayDropId(d)}
-                className="min-h-[3rem] rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/20 p-1 space-y-0.5 transition"
-              >
-                {allDay.map((e) => <DraggableEvent key={e.id} e={e} onOpen={onOpen} compact />)}
-              </DropZone>
-            );
-          })}
+          {days.map((d) => (
+            <AllDayZone key={`allday-${dayKey(d)}`} d={d} events={eventsOf(d).filter((e) => !e.timed)} onOpen={onOpen} />
+          ))}
         </div>
 
         {/* Grille horaire */}
-        <div className="space-y-1">
-          {HOUR_SLOTS.map((h) => (
-            <div key={h} className="grid grid-cols-[3.5rem_repeat(7,1fr)] gap-1">
-              <div className="text-[10.5px] text-slate-400 text-right pr-1 pt-1 font-mono">
-                {String(h).padStart(2, "0")}:00
+        <div className="grid grid-cols-[3.5rem_repeat(7,1fr)] gap-1">
+          {/* Colonne des heures : un libellé par heure pleine */}
+          <div className="relative" style={{ height: gridHeight }}>
+            {SLOTS.filter((m) => m % 60 === 0).map((m) => (
+              <div
+                key={m}
+                style={{ top: ((m - SLOTS[0]) / SLOT_MINUTES) * SLOT_H }}
+                className="absolute right-1 -translate-y-1/2 text-[10.5px] text-slate-400 font-mono"
+              >
+                {slotLabel(m)}
               </div>
-              {days.map((d) => {
-                const slotEvents = eventsOf(d).filter((e) => e.timed && e.date.getHours() === h);
-                return (
-                  <DropZone
-                    key={slotId(d, h)}
-                    id={slotId(d, h)}
-                    className="group/slot relative min-h-[2.25rem] rounded-lg border border-slate-100 dark:border-slate-800 p-1 space-y-0.5 transition hover:border-slate-200"
-                  >
-                    {slotEvents.map((e) => <DraggableEvent key={e.id} e={e} onOpen={onOpen} compact />)}
-                    {slotEvents.length === 0 && (
-                      <button
-                        onClick={() => onCreate(d, h)}
-                        aria-label={`Créer à ${h}h le ${d.toLocaleDateString("fr-FR")}`}
-                        title="Créer sur ce créneau"
-                        className="absolute inset-0 w-full h-full opacity-0 group-hover/slot:opacity-100 grid place-items-center text-[11px] text-emerald-700 hover:bg-emerald-50/60 dark:hover:bg-emerald-500/5 rounded-lg transition"
-                      >
-                        +
-                      </button>
-                    )}
-                  </DropZone>
-                );
-              })}
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {days.map((d) => {
+            const positioned = positionEvents(eventsOf(d));
+            return (
+              <div
+                key={`col-${dayKey(d)}`}
+                className="relative rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900"
+                style={{ height: gridHeight }}
+              >
+                {SLOTS.map((m) => (
+                  <SlotZone key={slotId(d, m)} id={slotId(d, m)} top={m} onCreate={() => onCreate(d, m)} />
+                ))}
+                {positioned.map((p) => (
+                  <TimedBlock
+                    key={p.event.id}
+                    e={p.event}
+                    offset={p.offset}
+                    span={p.span}
+                    lane={p.lane}
+                    lanes={p.lanes}
+                    onOpen={onOpen}
+                  />
+                ))}
+              </div>
+            );
+          })}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AllDayZone({ d, events, onOpen }: { d: Date; events: PlanEvent[]; onOpen: (e: PlanEvent) => void }) {
+  const { setNodeRef, isOver } = useDroppable({ id: dayDropId(d) });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`min-h-[3rem] rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/20 p-1 space-y-0.5 transition ${
+        isOver ? "bg-emerald-50 dark:bg-emerald-500/10 ring-1 ring-emerald-300" : ""
+      }`}
+    >
+      {events.map((e) => (
+        <DraggableEvent key={e.id} e={e} onOpen={onOpen} compact />
+      ))}
     </div>
   );
 }

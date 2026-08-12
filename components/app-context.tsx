@@ -859,6 +859,8 @@ export interface MeetingInput {
   location?: string;
   visioUrl?: string;
   status?: string;
+  /** Durée en minutes (bloc du planning). */
+  durationMinutes?: number;
   notes?: string;
   decisions?: string[];
   participants?: MeetingParticipant[];

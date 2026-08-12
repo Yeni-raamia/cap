@@ -4,12 +4,13 @@ import {
   dayDropId,
   dayKey,
   groupByDay,
-  HOUR_SLOTS,
+  SLOTS,
   inMonth,
   isSamePlacement,
   monthGrid,
   movedDate,
   parseDropId,
+  positionEvents,
   slotId,
   weekGrid,
   type PlanEvent,
@@ -81,9 +82,10 @@ describe("grilles", () => {
     expect(inMonth(at(2026, 3, 1), NOW)).toBe(true);
     expect(inMonth(at(2026, 4, 1), NOW)).toBe(false);
   });
-  it("couvre une journée de bureau, pas 24 h", () => {
-    expect(HOUR_SLOTS[0]).toBe(7);
-    expect(HOUR_SLOTS.at(-1)).toBe(19);
+  it("couvre une journée de bureau par demi-heures", () => {
+    expect(SLOTS[0]).toBe(7 * 60);
+    expect(SLOTS[1]).toBe(7 * 60 + 30);
+    expect(SLOTS.at(-1)).toBe(19 * 60 + 30);
   });
 });
 
@@ -101,14 +103,14 @@ describe("groupByDay", () => {
 
 describe("zones de dépôt", () => {
   it("fait l'aller-retour sur un créneau", () => {
-    const t = parseDropId(slotId(at(2026, 3, 11), 14))!;
+    const t = parseDropId(slotId(at(2026, 3, 11), 14 * 60 + 30))!;
     expect(dayKey(t.day)).toBe("2026-03-11");
-    expect(t.hour).toBe(14);
+    expect(t.minutes).toBe(14 * 60 + 30);
   });
   it("fait l'aller-retour sur une journée entière", () => {
     const t = parseDropId(dayDropId(at(2026, 3, 11)))!;
     expect(dayKey(t.day)).toBe("2026-03-11");
-    expect(t.hour).toBeNull();
+    expect(t.minutes).toBeNull();
   });
   it("rejette ce qui n'est pas une zone de dépôt", () => {
     expect(parseDropId("ev-tache-t1")).toBeNull();
@@ -119,27 +121,88 @@ describe("zones de dépôt", () => {
 
 describe("déplacement", () => {
   const ev = (o: Partial<PlanEvent> = {}): PlanEvent =>
-    ({ id: "x", refId: "x", kind: "reunion", title: "T", date: at(2026, 3, 12, 14, 30), timed: true,
+    ({ id: "x", refId: "x", kind: "reunion", title: "T", date: at(2026, 3, 12, 14, 30), timed: true, durationMinutes: 60,
        personId: null, context: "", late: false, done: false, href: null, taskId: null, ...o });
 
-  it("un dépôt sur un créneau impose l'heure, minutes remises à zéro", () => {
-    const d = movedDate(ev(), { day: at(2026, 3, 16), hour: 9 });
+  it("un dépôt sur un créneau impose l'heure de début, à la demi-heure près", () => {
+    const d = movedDate(ev(), { day: at(2026, 3, 16), minutes: 9 * 60 + 30 });
     expect(d.getDate()).toBe(16);
     expect(d.getHours()).toBe(9);
-    expect(d.getMinutes()).toBe(0);
+    expect(d.getMinutes()).toBe(30);
   });
 
   it("un dépôt « toute la journée » conserve l'heure d'origine", () => {
     // Sans cela, glisser une réunion d'un jour à l'autre la ferait tomber à minuit.
-    const d = movedDate(ev(), { day: at(2026, 3, 16), hour: null });
+    const d = movedDate(ev(), { day: at(2026, 3, 16), minutes: null });
     expect(d.getDate()).toBe(16);
     expect(d.getHours()).toBe(14);
     expect(d.getMinutes()).toBe(30);
   });
 
   it("détecte un dépôt au même endroit", () => {
-    expect(isSamePlacement(ev(), { day: at(2026, 3, 12), hour: null })).toBe(true);
-    expect(isSamePlacement(ev(), { day: at(2026, 3, 12), hour: 14 })).toBe(false); // 14:30 → 14:00
-    expect(isSamePlacement(ev(), { day: at(2026, 3, 13), hour: null })).toBe(false);
+    expect(isSamePlacement(ev(), { day: at(2026, 3, 12), minutes: null })).toBe(true);
+    expect(isSamePlacement(ev(), { day: at(2026, 3, 12), minutes: 14 * 60 })).toBe(false); // 14:30 → 14:00
+    expect(isSamePlacement(ev(), { day: at(2026, 3, 13), minutes: null })).toBe(false);
+  });
+});
+
+describe("positionEvents — blocs horaires", () => {
+  const mtg = (id: string, h: number, min: number, dur: number): PlanEvent => ({
+    id, refId: id, kind: "reunion", title: id, date: at(2026, 3, 12, h, min), timed: true,
+    durationMinutes: dur, personId: null, context: "", late: false, done: false, href: null, taskId: null,
+  });
+  const tache: PlanEvent = {
+    id: "t", refId: "t", kind: "tache", title: "t", date: at(2026, 3, 12), timed: false,
+    durationMinutes: 0, personId: null, context: "", late: false, done: false, href: null, taskId: "t",
+  };
+
+  it("ignore ce qui n'a pas d'heure", () => {
+    expect(positionEvents([tache])).toEqual([]);
+  });
+
+  it("place le bloc à son heure et le dimensionne à sa durée", () => {
+    // Grille à partir de 7 h, créneaux de 30 min : 9 h 00 = 4 créneaux plus bas.
+    const [p] = positionEvents([mtg("a", 9, 0, 60)]);
+    expect(p.offset).toBe(4);
+    expect(p.span).toBe(2); // 60 min = 2 créneaux
+  });
+
+  it("gère les demi-heures", () => {
+    const [p] = positionEvents([mtg("a", 14, 30, 90)]);
+    expect(p.offset).toBe(15); // 14 h 30 → (870 - 420) / 30
+    expect(p.span).toBe(3); // 90 min
+  });
+
+  it("garde une hauteur minimale visible pour une réunion très courte", () => {
+    const [p] = positionEvents([mtg("a", 9, 0, 5)]);
+    expect(p.span).toBeGreaterThanOrEqual(0.5);
+  });
+
+  it("laisse toute la largeur quand rien ne se chevauche", () => {
+    const out = positionEvents([mtg("a", 9, 0, 60), mtg("b", 11, 0, 60)]);
+    expect(out.every((p) => p.lanes === 1 && p.lane === 0)).toBe(true);
+  });
+
+  it("partage la largeur entre réunions qui se chevauchent", () => {
+    // Sans cela, la réunion courte disparaîtrait derrière la longue.
+    const out = positionEvents([mtg("a", 9, 0, 120), mtg("b", 9, 30, 30)]);
+    expect(out.map((p) => p.lanes)).toEqual([2, 2]);
+    expect(out.map((p) => p.lane).sort()).toEqual([0, 1]);
+  });
+
+  it("réutilise une colonne libérée", () => {
+    // a 9h–10h, b 9h30–10h30 (chevauche a), c 10h–11h (peut reprendre la colonne de a).
+    const out = positionEvents([mtg("a", 9, 0, 60), mtg("b", 9, 30, 60), mtg("c", 10, 0, 60)]);
+    const byId = Object.fromEntries(out.map((p) => [p.event.id, p]));
+    expect(byId.a.lane).toBe(0);
+    expect(byId.b.lane).toBe(1);
+    expect(byId.c.lane).toBe(0);
+  });
+
+  it("sépare deux groupes de chevauchement indépendants", () => {
+    const out = positionEvents([mtg("a", 9, 0, 60), mtg("b", 9, 0, 60), mtg("c", 15, 0, 60)]);
+    const byId = Object.fromEntries(out.map((p) => [p.event.id, p]));
+    expect(byId.a.lanes).toBe(2);
+    expect(byId.c.lanes).toBe(1); // seul l'après-midi → pleine largeur
   });
 });
