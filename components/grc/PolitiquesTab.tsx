@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, ScrollText, Search, Users2 } from "lucide-react";
+import { Plus, ScrollText, Search, Users2, Megaphone} from "lucide-react";
 import {
   fmt,
+  daysSinceLastPublication,
+  publicationsInMonth,
   policyCoverage,
   POLICY_DOMAINS,
   POLICY_STATUTS,
@@ -28,7 +30,7 @@ const statusTone: Record<string, string> = {
 };
 
 export function PolitiquesTab() {
-  const { policies, profileById, readOnly } = useApp();
+  const { policies, now, profileById, readOnly } = useApp();
   const [search, setSearch] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [fDomain, setFDomain] = useState("");
@@ -132,6 +134,20 @@ export function PolitiquesTab() {
                 <div className="flex items-center justify-between gap-2 mt-2 relative">
                   <div className="flex items-center gap-2 text-[11px] text-slate-400 flex-wrap pointer-events-none">
                     <span>{profileById(p.ownerId).nom}</span>
+                    {(() => {
+                      const ce = publicationsInMonth(p.publications, now).length;
+                      const j = daysSinceLastPublication(p.publications, now);
+                      if (p.publications.length === 0) return null;
+                      return (
+                        <span
+                          className="inline-flex items-center gap-1 text-emerald-700"
+                          title={`${p.publications.length} rediffusion(s) au total${j !== null ? ` · dernière il y a ${j} j` : ""}`}
+                        >
+                          · <Megaphone size={11} /> {p.publications.length}
+                          {ce > 0 && <span className="text-emerald-600 font-medium">({ce} ce mois)</span>}
+                        </span>
+                      );
+                    })()}
                     {p.reviewDate && <span className={p.reviewDate.getTime() < Date.now() && p.status !== "Retirée" ? "text-amber-600 font-medium" : ""}>· revue {fmt(p.reviewDate)}</span>}
                   </div>
                   <button

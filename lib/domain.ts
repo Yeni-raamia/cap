@@ -587,6 +587,65 @@ export const POLICY_STAGE_TONE: Record<string, string> = {
 /** Index d'étape (0–3) ; -1 pour « Non applicable ». */
 export const policyStageIndex = (stage: string): number => POLICY_STAGES.indexOf(stage);
 
+/* ---------- Rediffusions d'une politique ----------
+ * Une politique n'est pas publiée une fois pour toutes : on la rappelle
+ * régulièrement, parfois plusieurs fois par mois. Chaque rappel est
+ * consigné — quand, par quel canal, à qui — pour pouvoir démontrer
+ * l'effort de diffusion et repérer les politiques qu'on oublie. */
+export const POLICY_CHANNELS = [
+  "E-mail",
+  "Intranet",
+  "Réunion",
+  "Affichage",
+  "Note de service",
+  "Formation / sensibilisation",
+  "Autre",
+];
+
+export interface PolicyPublication {
+  id: string;
+  policyId: string;
+  /** Date de la (re)diffusion. */
+  publishedAt: Date;
+  /** Version diffusée ce jour-là. */
+  version: string;
+  channel: string;
+  /** Destinataires : direction, service, « tout le personnel »… */
+  audience: string;
+  note: string;
+  authorId: string | null;
+  createdAt: Date;
+}
+
+/** Rediffusions d'un mois donné (mois civil local). */
+export function publicationsInMonth(pubs: PolicyPublication[], ref: Date): PolicyPublication[] {
+  return pubs.filter(
+    (p) => p.publishedAt.getFullYear() === ref.getFullYear() && p.publishedAt.getMonth() === ref.getMonth()
+  );
+}
+
+/** La plus récente rediffusion, ou null. */
+export function lastPublication(pubs: PolicyPublication[]): PolicyPublication | null {
+  if (pubs.length === 0) return null;
+  return pubs.reduce((a, b) => (b.publishedAt.getTime() > a.publishedAt.getTime() ? b : a));
+}
+
+/**
+ * Jours écoulés depuis la dernière rediffusion, ou null si jamais rediffusée.
+ * Sert à repérer les politiques que l'on a cessé de rappeler.
+ */
+export function daysSinceLastPublication(pubs: PolicyPublication[], now: Date): number | null {
+  const last = lastPublication(pubs);
+  if (!last) return null;
+  // En jours civils, pas en millisecondes : sinon « il y a 7 j » deviendrait
+  // « 6 j » selon l'heure qu'il est, pour une même journée.
+  const a = new Date(last.publishedAt);
+  a.setHours(0, 0, 0, 0);
+  const b = new Date(now);
+  b.setHours(0, 0, 0, 0);
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+
 export interface PolicyDiffusion {
   id: string;
   policyId: string;
@@ -609,6 +668,8 @@ export interface Policy {
   publishedAt: Date | null;
   reviewDate: Date | null;
   diffusions: PolicyDiffusion[];
+  /** Journal des (re)diffusions, de la plus récente à la plus ancienne. */
+  publications: PolicyPublication[];
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;

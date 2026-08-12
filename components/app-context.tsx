@@ -664,6 +664,11 @@ interface AppCtx {
   updatePolicy: (id: string, fields: PolicyInput) => Promise<string | null>;
   deletePolicy: (id: string) => Promise<string | null>;
   setPolicyDiffusion: (id: string, service: string, stage: string, note?: string) => Promise<string | null>;
+  addPolicyPublication: (
+    id: string,
+    input: { publishedAt: string; version?: string; channel?: string; audience?: string; note?: string }
+  ) => Promise<string | null>;
+  removePolicyPublication: (id: string, publicationId: string) => Promise<string | null>;
   removePolicyDiffusion: (id: string, service: string) => Promise<string | null>;
   // GRC : registre des actifs
   assets: Asset[];
@@ -948,6 +953,13 @@ const revivePolicy = (p: Policy): Policy => ({
   createdAt: new Date(p.createdAt),
   updatedAt: new Date(p.updatedAt),
   diffusions: (p.diffusions ?? []).map((d) => ({ ...d, updatedAt: new Date(d.updatedAt) })),
+  // Sans cette revivification, publishedAt resterait une chaîne et le calcul
+  // des rediffusions du mois (getFullYear) planterait.
+  publications: (p.publications ?? []).map((x) => ({
+    ...x,
+    publishedAt: new Date(x.publishedAt),
+    createdAt: new Date(x.createdAt),
+  })),
 });
 const revivePolicies = (arr: Policy[]): Policy[] => arr.map(revivePolicy);
 const reviveAsset = (a: Asset): Asset => ({
@@ -2385,7 +2397,7 @@ export function AppProvider({
 
   /* ---------- GRC : Politiques de sécurité ---------- */
   const policyById = (id: string): Policy | null => policies.find((p) => p.id === id) ?? null;
-  const policyAction = async (op: "create" | "update" | "delete" | "diffuse" | "undiffuse", input: Record<string, unknown>): Promise<string | null> => {
+  const policyAction = async (op: "create" | "update" | "delete" | "diffuse" | "undiffuse" | "publish_again" | "unpublish_again", input: Record<string, unknown>): Promise<string | null> => {
     if (demo) return "Gestion des politiques indisponible en mode démo.";
     const res = await fetch("/api/policies", {
       method: "POST",
@@ -2406,6 +2418,11 @@ export function AppProvider({
   const updatePolicy = (id: string, fields: PolicyInput) => policyAction("update", { id, ...fields });
   const deletePolicy = (id: string) => policyAction("delete", { id });
   const setPolicyDiffusion = (id: string, service: string, stage: string, note?: string) => policyAction("diffuse", { id, service, stage, note: note ?? "" });
+  /** Consigne une rediffusion (rappel) de la politique. */
+  const addPolicyPublication = (id: string, input: { publishedAt: string; version?: string; channel?: string; audience?: string; note?: string }) =>
+    policyAction("publish_again", { id, ...input });
+  const removePolicyPublication = (id: string, publicationId: string) =>
+    policyAction("unpublish_again", { id, publicationId });
   const removePolicyDiffusion = (id: string, service: string) => policyAction("undiffuse", { id, service });
 
   /* ---------- GRC : Registre des actifs ---------- */
@@ -3130,6 +3147,8 @@ export function AppProvider({
     updatePolicy,
     deletePolicy,
     setPolicyDiffusion,
+    addPolicyPublication,
+    removePolicyPublication,
     removePolicyDiffusion,
     assets,
     assetById,

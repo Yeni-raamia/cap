@@ -7,6 +7,9 @@ import {
   fmtLong,
   formatWorkload,
   workloadVariance,
+  publicationsInMonth,
+  lastPublication,
+  daysSinceLastPublication,
   buildRef,
   nextRefNumber,
   parseSubject,
@@ -323,5 +326,35 @@ describe("workloadVariance", () => {
     expect(workloadVariance(null, 90)).toBeNull();
     expect(workloadVariance(0, 90)).toBeNull();
     expect(workloadVariance(undefined, 90)).toBeNull();
+  });
+});
+
+describe("rediffusions de politique", () => {
+  const pub = (iso: string) =>
+    ({ id: iso, policyId: "p1", publishedAt: new Date(iso), version: "1.0", channel: "E-mail", audience: "", note: "", authorId: "u1", createdAt: new Date(iso) });
+  const NOW = new Date(2026, 2, 20);
+
+  it("compte les rediffusions du mois civil en cours", () => {
+    // Le cas réel : une politique rappelée 3 fois dans le mois.
+    const pubs = [pub("2026-03-02"), pub("2026-03-11"), pub("2026-03-19"), pub("2026-02-25")];
+    expect(publicationsInMonth(pubs, NOW).length).toBe(3);
+  });
+  it("ne confond pas deux mois de la même année", () => {
+    expect(publicationsInMonth([pub("2026-02-28")], NOW).length).toBe(0);
+  });
+  it("ne confond pas le même mois de deux années", () => {
+    expect(publicationsInMonth([pub("2025-03-15")], NOW).length).toBe(0);
+  });
+
+  it("retrouve la rediffusion la plus récente, quel que soit l'ordre", () => {
+    const pubs = [pub("2026-03-02"), pub("2026-03-19"), pub("2026-03-11")];
+    expect(lastPublication(pubs)?.id).toBe("2026-03-19");
+    expect(lastPublication([])).toBeNull();
+  });
+
+  it("mesure l'ancienneté de la dernière rediffusion", () => {
+    expect(daysSinceLastPublication([pub("2026-03-13")], NOW)).toBe(7);
+    // Jamais rediffusée : on ne renvoie pas 0, qui se lirait « aujourd'hui ».
+    expect(daysSinceLastPublication([], NOW)).toBeNull();
   });
 });

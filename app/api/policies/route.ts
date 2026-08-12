@@ -17,6 +17,9 @@ import {
   removeDiffusion,
   updatePolicy,
   upsertDiffusion,
+  addPublication,
+  removePublication,
+  publicationPolicyId,
 } from "@/lib/db/policies";
 import { logActivity } from "@/lib/db/admin";
 import { POLICY_STAGE_ALL } from "@/lib/domain";
@@ -78,6 +81,26 @@ export async function POST(request: Request) {
     const service = String(body?.service || "").trim();
     if (!service) return NextResponse.json({ error: "Service requis." }, { status: 400 });
     removeDiffusion(id, service);
+  } else if (op === "publish_again") {
+    const at = toIso(body?.publishedAt);
+    if (!at) return NextResponse.json({ error: "Date de diffusion requise." }, { status: 400 });
+    addPublication({
+      policyId: id,
+      publishedAt: at,
+      version: String(body?.version || ""),
+      channel: String(body?.channel || ""),
+      audience: String(body?.audience || ""),
+      note: String(body?.note || ""),
+      authorId: user.id,
+    });
+  } else if (op === "unpublish_again") {
+    const pubId = String(body?.publicationId || "");
+    // La rediffusion doit appartenir à la politique visée : sinon on pourrait
+    // effacer l'historique d'une autre politique en forgeant la requête.
+    if (!pubId || publicationPolicyId(pubId) !== id) {
+      return NextResponse.json({ error: "Rediffusion introuvable." }, { status: 404 });
+    }
+    removePublication(pubId);
   } else if (op === "delete") {
     if (!canDelete(user.role)) return NextResponse.json({ error: "Suppression réservée aux manager/directeur/admin." }, { status: 403 });
     deletePolicy(id);

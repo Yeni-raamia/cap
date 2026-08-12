@@ -1,8 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, Plus, ScrollText, Trash2, X } from "lucide-react";
+import { ExternalLink, Megaphone, Plus, ScrollText, Trash2, X } from "lucide-react";
 import {
+  daysSinceLastPublication,
+  fmt,
+  POLICY_CHANNELS,
+  publicationsInMonth,
   policyCoverage,
   policyStageIndex,
   POLICY_DOMAINS,
@@ -23,7 +27,7 @@ const toDateInput = (d: Date | null | undefined) => toDayInput(d ?? null);
 
 /** Fiche d'une politique : métadonnées + suivi de diffusion par direction/service. */
 export function PolicyModal({ policy, creating, onClose }: { policy: Policy | null; creating: boolean; onClose: () => void }) {
-  const { demo, me, profiles, refLists, directions, createPolicy, updatePolicy, deletePolicy, setPolicyDiffusion, removePolicyDiffusion } = useApp();
+  const { demo, me, now, profiles, refLists, directions, createPolicy, updatePolicy, deletePolicy, setPolicyDiffusion, removePolicyDiffusion, addPolicyPublication, removePolicyPublication } = useApp();
   // Cibles de diffusion suggérées : listes de référence + organigramme (directions/sigles/services).
   const orgTargets = [
     ...directions.flatMap((d) => [d.name, d.code, ...d.services.map((s) => s.name)]),
@@ -43,6 +47,11 @@ export function PolicyModal({ policy, creating, onClose }: { policy: Policy | nu
   const [summary, setSummary] = useState(policy?.summary ?? "");
   const [url, setUrl] = useState(policy?.url ?? "");
   const [newService, setNewService] = useState("");
+  // Saisie d'une rediffusion : la date du jour par défaut, canal e-mail.
+  const [pubDate, setPubDate] = useState(toDayInput(now));
+  const [pubChannel, setPubChannel] = useState(POLICY_CHANNELS[0]);
+  const [pubAudience, setPubAudience] = useState("");
+  const [pubNote, setPubNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -144,6 +153,90 @@ export function PolicyModal({ policy, creating, onClose }: { policy: Policy | nu
             <label className={labelCls}>Résumé / objet</label>
             <textarea value={summary} onChange={(e) => setSummary(e.target.value)} disabled={!canEdit} rows={2} placeholder="Portée, principes clés…" className={inputCls} />
           </div>
+
+          {/* Rediffusions : une politique se rappelle, parfois plusieurs fois par mois */}
+          {!creating && policy && (
+            <div>
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span className="text-[11px] font-medium text-slate-500 uppercase">Rediffusions</span>
+                <span className="text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 px-2 py-0.5 rounded-full font-medium">
+                  {policy.publications.length} au total
+                </span>
+                <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                  {publicationsInMonth(policy.publications, now).length} ce mois-ci
+                </span>
+                {(() => {
+                  const j = daysSinceLastPublication(policy.publications, now);
+                  if (j === null) return <span className="text-[11px] text-amber-700">jamais rediffusée</span>;
+                  return <span className="text-[11px] text-slate-400">dernière il y a {j} j</span>;
+                })()}
+              </div>
+
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800 max-h-52 overflow-y-auto">
+                {policy.publications.length === 0 && (
+                  <div className="px-3 py-3 text-[12px] text-slate-400">
+                    Aucune rediffusion consignée. Enregistrez chaque rappel pour démontrer l&apos;effort de diffusion.
+                  </div>
+                )}
+                {policy.publications.map((pub) => (
+                  <div key={pub.id} className="flex items-center gap-2 px-3 py-1.5">
+                    <Megaphone size={13} className="text-emerald-600 shrink-0" />
+                    <span className="text-[12.5px] text-slate-700 dark:text-slate-200 shrink-0 font-medium">{fmt(pub.publishedAt)}</span>
+                    {pub.channel && <span className="text-[11px] text-slate-500 shrink-0">· {pub.channel}</span>}
+                    {pub.version && <span className="text-[11px] text-slate-400 shrink-0">· v{pub.version}</span>}
+                    <span className="flex-1 min-w-0 text-[11.5px] text-slate-500 truncate">
+                      {pub.audience}{pub.audience && pub.note ? " — " : ""}{pub.note}
+                    </span>
+                    {canEdit && (
+                      <button
+                        onClick={() => removePolicyPublication(policy.id, pub.id)}
+                        title="Retirer cette rediffusion"
+                        aria-label="Retirer cette rediffusion"
+                        className="text-slate-300 hover:text-rose-600 shrink-0"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {canEdit && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+                  <input type="date" value={pubDate} onChange={(e) => setPubDate(e.target.value)} aria-label="Date de rediffusion" className={inputCls} />
+                  <select value={pubChannel} onChange={(e) => setPubChannel(e.target.value)} aria-label="Canal" className={inputCls}>
+                    {POLICY_CHANNELS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <input value={pubAudience} onChange={(e) => setPubAudience(e.target.value)} list="policy-services" placeholder="Destinataires" aria-label="Destinataires" className={inputCls} />
+                  <button
+                    onClick={async () => {
+                      if (!pubDate) return;
+                      const e = await addPolicyPublication(policy.id, {
+                        publishedAt: pubDate,
+                        version,
+                        channel: pubChannel,
+                        audience: pubAudience.trim(),
+                        note: pubNote.trim(),
+                      });
+                      if (e) setErr(e);
+                      else { setPubAudience(""); setPubNote(""); }
+                    }}
+                    disabled={!pubDate}
+                    className="inline-flex items-center justify-center gap-1 text-[12.5px] font-medium text-white bg-emerald-600 rounded-lg px-3 py-1.5 hover:bg-emerald-700 disabled:opacity-40"
+                  >
+                    <Plus size={14} /> Consigner
+                  </button>
+                  <input
+                    value={pubNote}
+                    onChange={(e) => setPubNote(e.target.value)}
+                    placeholder="Note (facultative)"
+                    aria-label="Note de rediffusion"
+                    className={`${inputCls} col-span-2 sm:col-span-4`}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Suivi de diffusion par direction / service */}
           {!creating && policy ? (

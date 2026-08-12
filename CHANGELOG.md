@@ -6,6 +6,25 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.102.0] - 2026-08-12
+
+### Ajouté
+
+- **GRC — suivi des rediffusions d'une politique.** Une politique n'est pas publiée une fois pour toutes : la politique de contrôle d'accès peut être rappelée trois ou quatre fois dans le mois. Chaque rappel se consigne désormais dans sa fiche — **date, canal** (e-mail, intranet, réunion, affichage, note de service, formation), **version diffusée, destinataires et note**.
+  - La fiche affiche le **nombre total de rediffusions**, **combien ce mois-ci**, et **depuis combien de jours** la politique n'a plus été rappelée — ou signale qu'elle ne l'a **jamais** été.
+  - La liste des politiques porte le même repère, pour repérer d'un coup d'œil celles qu'on a cessé de rappeler.
+  - Une rediffusion se retire si elle a été saisie par erreur ; supprimer la politique emporte tout son historique.
+
+### Sécurité
+
+- Le retrait d'une rediffusion vérifie qu'elle **appartient bien à la politique visée** : sans ce contrôle, une requête forgée aurait pu effacer l'historique d'une autre politique.
+
+### Corrigé
+
+- Les dates de rediffusion sont **revivifiées à la réception** : sans cela, le décompte mensuel travaillait sur une chaîne de caractères et aurait fait tomber l'écran des politiques.
+- L'ancienneté de la dernière rediffusion se compte en **jours civils** et non en millisecondes : « il y a 7 jours » ne bascule plus à « 6 » selon l'heure de consultation.
+
+
 ## [1.101.0] - 2026-08-12
 
 ### Modifié

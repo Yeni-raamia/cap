@@ -277,6 +277,7 @@ export function seedPolicies(): Policy[] {
     updatedAt: day(-10),
   });
   const base = (o: Partial<Policy> & { id: string; ref: string; title: string; diffusions: PolicyDiffusion[] }): Policy => ({
+    publications: [],
     reference: "ISO 27001",
     domain: "Gouvernance",
     version: "1.0",

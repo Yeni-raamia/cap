@@ -3,7 +3,7 @@
  * ================================================================== */
 import { randomUUID } from "node:crypto";
 import { getDb } from "./index";
-import { POLICY_STAGE_ALL, POLICY_STATUTS, type Policy, type PolicyDiffusion } from "@/lib/domain";
+import { POLICY_STAGE_ALL, POLICY_STATUTS, type Policy, type PolicyDiffusion, type PolicyPublication } from "@/lib/domain";
 
 const now = () => new Date().toISOString();
 
@@ -24,6 +24,30 @@ interface PolicyRow {
   created_at: string;
   updated_at: string;
 }
+interface PubRow {
+  id: string;
+  policy_id: string;
+  published_at: string;
+  version: string;
+  channel: string;
+  audience: string;
+  note: string;
+  author_id: string | null;
+  created_at: string;
+}
+
+const mapPub = (r: PubRow): PolicyPublication => ({
+  id: r.id,
+  policyId: r.policy_id,
+  publishedAt: new Date(r.published_at),
+  version: r.version,
+  channel: r.channel,
+  audience: r.audience,
+  note: r.note,
+  authorId: r.author_id,
+  createdAt: new Date(r.created_at),
+});
+
 interface DiffRow {
   id: string;
   policy_id: string;
@@ -42,7 +66,7 @@ const mapDiff = (r: DiffRow): PolicyDiffusion => ({
   updatedAt: new Date(r.updated_at),
 });
 
-function mapPolicy(r: PolicyRow, diffs: PolicyDiffusion[]): Policy {
+function mapPolicy(r: PolicyRow, diffs: PolicyDiffusion[], pubs: PolicyPublication[] = []): Policy {
   return {
     id: r.id,
     ref: r.ref,
@@ -57,6 +81,7 @@ function mapPolicy(r: PolicyRow, diffs: PolicyDiffusion[]): Policy {
     publishedAt: r.published_at ? new Date(r.published_at) : null,
     reviewDate: r.review_date ? new Date(r.review_date) : null,
     diffusions: diffs,
+    publications: pubs,
     createdBy: r.created_by,
     createdAt: new Date(r.created_at),
     updatedAt: new Date(r.updated_at),
@@ -69,7 +94,12 @@ export function listPolicies(): Policy[] {
   const diffs = db.prepare("select * from policy_diffusions order by service").all() as DiffRow[];
   const byPolicy = new Map<string, PolicyDiffusion[]>();
   diffs.forEach((d) => byPolicy.set(d.policy_id, [...(byPolicy.get(d.policy_id) ?? []), mapDiff(d)]));
-  return rows.map((r) => mapPolicy(r, byPolicy.get(r.id) ?? []));
+  const pubs = db
+    .prepare("select * from policy_publications order by published_at desc, rowid desc")
+    .all() as PubRow[];
+  const pubsByPolicy = new Map<string, PolicyPublication[]>();
+  pubs.forEach((x) => pubsByPolicy.set(x.policy_id, [...(pubsByPolicy.get(x.policy_id) ?? []), mapPub(x)]));
+  return rows.map((r) => mapPolicy(r, byPolicy.get(r.id) ?? [], pubsByPolicy.get(r.id) ?? []));
 }
 
 export function getPolicy(id: string): Policy | null {
@@ -77,7 +107,10 @@ export function getPolicy(id: string): Policy | null {
   const r = db.prepare("select * from policies where id=?").get(id) as PolicyRow | undefined;
   if (!r) return null;
   const diffs = (db.prepare("select * from policy_diffusions where policy_id=? order by service").all(id) as DiffRow[]).map(mapDiff);
-  return mapPolicy(r, diffs);
+  const pubs = (
+    db.prepare("select * from policy_publications where policy_id=? order by published_at desc, rowid desc").all(id) as PubRow[]
+  ).map(mapPub);
+  return mapPolicy(r, diffs, pubs);
 }
 
 export function policyExists(id: string): boolean {
@@ -170,6 +203,7 @@ export function updatePolicy(
 export function deletePolicy(id: string): void {
   const db = getDb();
   db.prepare("delete from policy_diffusions where policy_id=?").run(id);
+  db.prepare("delete from policy_publications where policy_id=?").run(id);
   db.prepare("delete from policies where id=?").run(id);
 }
 
@@ -195,6 +229,46 @@ export function upsertDiffusion(policyId: string, service: string, stage: string
     );
   }
   touchPolicy(db, policyId);
+}
+
+/** Consigne une (re)diffusion de la politique. */
+export function addPublication(input: {
+  policyId: string;
+  publishedAt: string;
+  version?: string;
+  channel?: string;
+  audience?: string;
+  note?: string;
+  authorId: string | null;
+}): string {
+  const id = randomUUID();
+  getDb()
+    .prepare(
+      "insert into policy_publications (id, policy_id, published_at, version, channel, audience, note, author_id) values (?,?,?,?,?,?,?,?)"
+    )
+    .run(
+      id,
+      input.policyId,
+      input.publishedAt,
+      input.version ?? "",
+      input.channel ?? "",
+      input.audience ?? "",
+      input.note ?? "",
+      input.authorId
+    );
+  return id;
+}
+
+export function removePublication(publicationId: string): void {
+  getDb().prepare("delete from policy_publications where id=?").run(publicationId);
+}
+
+/** Politique à laquelle appartient une rediffusion (contrôle d'accès). */
+export function publicationPolicyId(publicationId: string): string | null {
+  const r = getDb().prepare("select policy_id from policy_publications where id=?").get(publicationId) as
+    | { policy_id: string }
+    | undefined;
+  return r?.policy_id ?? null;
 }
 
 export function removeDiffusion(policyId: string, service: string): void {
