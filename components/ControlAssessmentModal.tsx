@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { RotateCcw, Save, X } from "lucide-react";
 import { CONTROL_STATUS, MATURITY_LABELS, type ControlAssessment } from "@/lib/domain";
+import { toDayInput } from "@/lib/period";
 import type { RefControl } from "@/lib/grc/frameworks";
 import { useApp } from "./app-context";
 
-const toDateInput = (d: Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
-const today = () => new Date().toISOString().slice(0, 10);
+/* Formatage en heure locale : `toISOString()` bascule en UTC et affiche la
+ * veille en fin de journée — réenregistrer reculait alors la date d'un jour. */
+const toDateInput = (d: Date | null | undefined) => toDayInput(d ?? null);
+const today = () => toDayInput(new Date());
 
 /** Fiche d'évaluation d'une mesure : applicabilité (SoA), statut, maturité, preuves. */
 export function ControlAssessmentModal({

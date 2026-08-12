@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, FileDown, Search, Star, Trash2, Wrench } from "lucide-react";
 import { AUDIT_ANSWER_TONE, AUDIT_FINDING_TONE, CAPA_STATUS_TONE, fmt, type Audit, type AuditQuestion, type AuditResponse, type CapaAction } from "@/lib/domain";
+import { toDayInput } from "@/lib/period";
 import { downloadCsv } from "@/lib/export";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
@@ -69,7 +70,7 @@ export function ConstatsTab() {
       c.r.severity || "", c.r.note || "", c.r.recommendation || "", c.r.mgmtResponse || "",
       c.capa?.ref || "", c.capa?.status || "", c.audit.date ? fmt(c.audit.date) : "",
     ]);
-    downloadCsv(`cap-constats-audit-${new Date().toISOString().slice(0, 10)}.csv`, [header, ...rows]);
+    downloadCsv(`cap-constats-audit-${toDayInput(new Date())}.csv`, [header, ...rows]);
   };
 
   const makeCapa = async (c: Constat) => {

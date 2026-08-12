@@ -15,8 +15,11 @@ import {
   type PolicyDiffusion,
 } from "@/lib/domain";
 import { useApp } from "./app-context";
+import { toDayInput } from "@/lib/period";
 
-const toDateInput = (d: Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+/* Formatage en heure locale : `toISOString()` bascule en UTC et affiche la
+ * veille en fin de journée — réenregistrer reculait alors la date d'un jour. */
+const toDateInput = (d: Date | null | undefined) => toDayInput(d ?? null);
 
 /** Fiche d'une politique : métadonnées + suivi de diffusion par direction/service. */
 export function PolicyModal({ policy, creating, onClose }: { policy: Policy | null; creating: boolean; onClose: () => void }) {

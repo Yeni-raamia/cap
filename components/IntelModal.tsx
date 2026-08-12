@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { Radio, Trash2, X } from "lucide-react";
 import { INCIDENT_SEVERITIES, INTEL_KINDS, INTEL_STATUS, IOC_TYPES, TLP_LEVELS, type IntelItem } from "@/lib/domain";
+import { toDayInput } from "@/lib/period";
 import { useApp } from "./app-context";
 
 const inputCls = "w-full text-[13px] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 bg-white dark:bg-slate-900 outline-none focus:border-emerald-400";
 const labelCls = "block text-[11px] font-medium text-slate-500 mb-1";
-const toDate = (d: Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+/* Formatage en heure locale (cf. toDayInput) : `toISOString()` décalait la
+ * date d'un jour en fin de journée. */
+const toDate = (d: Date | null | undefined) => toDayInput(d ?? null);
 
 export function IntelModal({ item, creating, onClose }: { item: IntelItem | null; creating: boolean; onClose: () => void }) {
   const { demo, me, profiles, createIntel, updateIntel, deleteIntel } = useApp();

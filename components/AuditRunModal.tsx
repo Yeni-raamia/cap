@@ -12,6 +12,7 @@ import { useApp } from "./app-context";
 import { AuditRadar } from "./audit/AuditRadar";
 import { AuditRapportPdf } from "./audit/AuditRapportPdf";
 import { AuditFiles } from "./audit/AuditFiles";
+import { toDayInput } from "@/lib/period";
 
 const ANSWER_BUTTONS = ["Oui", "Partiel", "Non", "Non applicable"];
 const inputCls = "w-full text-[12px] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-900 outline-none focus:border-emerald-400";
@@ -52,7 +53,7 @@ export function AuditRunModal({ audit, onClose }: { audit: Audit; onClose: () =>
     if (!conformityUpdates.length) return;
     if (typeof window !== "undefined" && !window.confirm(`Reporter les résultats de cet audit vers la Conformité (GRC) ?\n\n${conformityUpdates.length} mesure(s) verront leur statut et leur maturité mis à jour d'après les réponses de l'audit.`)) return;
     setReporting(true);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toDayInput(new Date());
     const label = `Audit ${audit.ref}${audit.date ? " du " + fmt(audit.date) : ""}`;
     let okCount = 0;
     for (const u of conformityUpdates) {

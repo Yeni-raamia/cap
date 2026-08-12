@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, Loader2, Search, ShieldCheck } from "lucide-react";
 import { ACTION_LABEL, actionLabel } from "@/lib/audit-labels";
 import { downloadCsv } from "@/lib/export";
+import { toDayInput } from "@/lib/period";
 
 interface Entry {
   id: string;
@@ -69,7 +70,7 @@ export function AuditJournal({ members }: { members: { id: string; nom: string }
         ["Date", "Type", "Détail", "Acteur", "Code"],
         ...(d.entries as Entry[]).map((e) => [fmt(e.createdAt), actionLabel(e.action), e.detail, e.actorNom, e.action]),
       ];
-      const stamp = new Date().toISOString().slice(0, 10);
+      const stamp = toDayInput(new Date());
       downloadCsv(`journal-audit-${stamp}.csv`, rows);
     } finally {
       setExporting(false);

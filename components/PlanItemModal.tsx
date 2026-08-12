@@ -11,8 +11,11 @@ import {
   type GrcPlanItem,
 } from "@/lib/domain";
 import { useApp } from "./app-context";
+import { toDayInput } from "@/lib/period";
 
-const toDateInput = (d: Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+/* Formatage en heure locale : `toISOString()` bascule en UTC et affiche la
+ * veille en fin de journée — réenregistrer reculait alors la date d'un jour. */
+const toDateInput = (d: Date | null | undefined) => toDayInput(d ?? null);
 const YEAR = new Date().getFullYear();
 const YEARS = [YEAR - 1, YEAR, YEAR + 1, YEAR + 2];
 

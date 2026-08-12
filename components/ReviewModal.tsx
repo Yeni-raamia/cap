@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { Camera, ClipboardList, Trash2, Users2, X } from "lucide-react";
 import { REVIEW_STATUS, type DirectionReview } from "@/lib/domain";
+import { toDayInput } from "@/lib/period";
 import { useApp } from "./app-context";
 
-const toDateInput = (d: Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+/* Formatage en heure locale : `toISOString()` bascule en UTC et affiche la
+ * veille en fin de journée — réenregistrer reculait alors la date d'un jour. */
+const toDateInput = (d: Date | null | undefined) => toDayInput(d ?? null);
 const inputCls = "w-full text-[13px] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-2 bg-white dark:bg-slate-900 outline-none focus:border-emerald-400";
 const labelCls = "block text-[11px] font-medium text-slate-500 mb-1";
 
@@ -31,7 +34,7 @@ export function ReviewModal({ review, creating, liveKpis, onClose }: { review: D
   const canEdit = !demo;
 
   const [title, setTitle] = useState(review?.title ?? "");
-  const [date, setDate] = useState(toDateInput(review?.date) || new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(toDateInput(review?.date) || toDayInput(new Date()));
   const [period, setPeriod] = useState(review?.period ?? "");
   const [participantIds, setParticipants] = useState<string[]>(review?.participantIds ?? []);
   const [status, setStatus] = useState(review?.status ?? "Préparée");

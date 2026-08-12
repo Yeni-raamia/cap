@@ -16,8 +16,11 @@ import {
   type FieldControl,
 } from "@/lib/domain";
 import { useApp } from "./app-context";
+import { toDayInput } from "@/lib/period";
 
-const toDateInput = (d: Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+/* Formatage en heure locale : `toISOString()` bascule en UTC et affiche la
+ * veille en fin de journée — réenregistrer reculait alors la date d'un jour. */
+const toDateInput = (d: Date | null | undefined) => toDayInput(d ?? null);
 let seq = 0;
 const tempId = () => `new_${++seq}`;
 
@@ -50,7 +53,7 @@ export function FieldControlModal({ control, creating, onClose }: { control: Fie
   const [type, setType] = useState(control?.type ?? FIELD_CONTROL_TYPES[0]);
   const [service, setService] = useState(control?.service ?? "");
   const [location, setLocation] = useState(control?.location ?? "");
-  const [date, setDate] = useState(toDateInput(control?.date) || new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(toDateInput(control?.date) || toDayInput(new Date()));
   const [inspectorId, setInspectorId] = useState(control?.inspectorId ?? me.id);
   const [status, setStatus] = useState(control?.status ?? "Planifié");
   const [summary, setSummary] = useState(control?.summary ?? "");

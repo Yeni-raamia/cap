@@ -18,8 +18,11 @@ import {
 } from "@/lib/domain";
 import { FRAMEWORKS, frameworkById } from "@/lib/grc/frameworks";
 import { useApp } from "./app-context";
+import { toDayInput } from "@/lib/period";
 
-const toDateInput = (d: Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+/* Formatage en heure locale : `toISOString()` bascule en UTC et affiche la
+ * veille en fin de journée — réenregistrer reculait alors la date d'un jour. */
+const toDateInput = (d: Date | null | undefined) => toDayInput(d ?? null);
 
 /** Fiche d'un risque (méthode ISO 27005) : inhérent → traitement → résiduel. */
 export function RiskModal({ risk, creating, onClose }: { risk: Risk | null; creating: boolean; onClose: () => void }) {

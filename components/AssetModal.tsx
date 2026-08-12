@@ -12,8 +12,11 @@ import {
   type Asset,
 } from "@/lib/domain";
 import { useApp } from "./app-context";
+import { toDayInput } from "@/lib/period";
 
-const toDateInput = (d: Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+/* Formatage en heure locale : `toISOString()` bascule en UTC et affiche la
+ * veille en fin de journée — réenregistrer reculait alors la date d'un jour. */
+const toDateInput = (d: Date | null | undefined) => toDayInput(d ?? null);
 
 /** Fiche d'un actif : nature + valorisation C/I/D → criticité. */
 export function AssetModal({ asset, creating, onClose }: { asset: Asset | null; creating: boolean; onClose: () => void }) {

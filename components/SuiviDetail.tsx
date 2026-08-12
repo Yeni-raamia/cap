@@ -18,6 +18,7 @@ import {
   UserCircle2,
 } from "lucide-react";
 import { customDeadline, daysBetween, fmt, isLateByDuration, STATUTS, type EventKind, type Item } from "@/lib/domain";
+import { toDayInput } from "@/lib/period";
 import { useApp } from "./app-context";
 import { Avatar, Card } from "./atoms";
 import { Fil } from "./Fil";
@@ -65,7 +66,7 @@ export function SuiviDetail({
   const neg = negligenceByItem(item.id);
   const nc = nonConformiteByItem(item.id);
   const relanceValue = item.dateRelancePrevue
-    ? new Date(item.dateRelancePrevue).toISOString().slice(0, 10)
+    ? toDayInput(new Date(item.dateRelancePrevue))
     : "";
   const owner = profileById(item.ownerId);
   const tl = [...item.timeline].sort((a, b) => b.date.getTime() - a.date.getTime());

@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { Flag, Target, Trash2, TrendingDown, X } from "lucide-react";
 import { fmt, objectiveProgress, OBJECTIVE_COLORS, OBJECTIVE_CRITICALITIES, OBJECTIVE_CRITICALITY_DOT, OBJECTIVE_CRITICALITY_TONE, type Objective, type ObjectiveCriticality } from "@/lib/domain";
+import { toDayInput } from "@/lib/period";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
 import { Ring } from "./dataviz";
 
-const toDateInput = (d: Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
+/* Formatage en heure locale : `toISOString()` bascule en UTC et affiche la
+ * veille en fin de journée — réenregistrer reculait alors la date d'un jour. */
+const toDateInput = (d: Date | null | undefined) => toDayInput(d ?? null);
 
 export function ObjectiveModal({ objective, creating, onClose }: { objective: Objective | null; creating: boolean; onClose: () => void }) {
   const { objectiveAction, projects, tasks, profiles, me, now, profileById, demo } = useApp();

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ClipboardCheck, X } from "lucide-react";
 import { AUDIT_CATEGORIES, type AuditQuestion } from "@/lib/domain";
+import { toDayInput } from "@/lib/period";
 import { useApp } from "./app-context";
 import { QuestionsEditor } from "./audit/QuestionsEditor";
 
@@ -19,7 +20,7 @@ export function NewAuditModal({ onClose, onCreated }: { onClose: () => void; onC
   const [targetAssetId, setTargetAssetId] = useState("");
   const [targetLabel, setTargetLabel] = useState("");
   const [auditorId, setAuditorId] = useState(me.id);
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(toDayInput(new Date()));
   // Questionnaire manuel :
   const [manualName, setManualName] = useState("");
   const [manualCategory, setManualCategory] = useState(AUDIT_CATEGORIES[0]);

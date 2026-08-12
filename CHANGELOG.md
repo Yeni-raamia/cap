@@ -6,6 +6,16 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.96.1] - 2026-08-12
+
+### Corrigé
+
+- **Décalage d'un jour sur les dates, dans 20 fiches restantes.** Le défaut corrigé en 1.87.0 sur les tâches et les projets subsistait partout ailleurs : actifs, risques, politiques, contrôles terrain, actions correctives (CAPA), continuité, fournisseurs, traitements RGPD, veille, objectifs, plan de travail, plan d'audit, audits, constats, revues de direction, journal d'audit et relance planifiée d'un suivi. La date était convertie en UTC avant affichage (`toISOString()`), si bien qu'en France une échéance au 12 s'affichait au 11 dans le champ — et la réenregistrer **reculait réellement la date d'un jour**. Le formatage se fait désormais en heure locale partout, y compris pour les valeurs par défaut « aujourd'hui ».
+
+### Connu
+
+- Six regroupements par jour (courbes d'activité, sparklines, agrégats hebdomadaires) découpent encore les journées sur le fuseau UTC : un événement survenu après minuit peut compter dans la veille. L'affichage reste cohérent avec lui-même — seule la frontière entre deux jours est décalée — et la correction touche au calcul des graphiques ; elle est laissée de côté pour l'instant.
+
 ## [1.96.0] - 2026-08-12
 
 ### Modifié

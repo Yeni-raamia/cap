@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ClipboardCheck, FileDown, Plus, Search, Target, TrendingDown, TrendingUp } from "lucide-react";
 import { AUDIT_STATUS_TONE, auditScoreTone, computeAuditScore, previousAudit, type Audit } from "@/lib/domain";
 import { fmt } from "@/lib/domain";
+import { toDayInput } from "@/lib/period";
 import { downloadCsv } from "@/lib/export";
 import { useApp } from "@/components/app-context";
 import { Card, Token } from "@/components/atoms";
@@ -37,7 +38,7 @@ export function AuditsTab() {
       const s = computeAuditScore(a.questions, a.responses);
       return [a.ref, a.title, a.gridName, a.category, targetName(a), a.status, a.date ? fmt(a.date) : "", s.global, s.coverage, s.gaps, s.criticalGaps, profileById(a.auditorId).nom];
     });
-    downloadCsv(`cap-audits-${new Date().toISOString().slice(0, 10)}.csv`, [header, ...rows]);
+    downloadCsv(`cap-audits-${toDayInput(new Date())}.csv`, [header, ...rows]);
   };
 
   return (
