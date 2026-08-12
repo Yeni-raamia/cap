@@ -2478,6 +2478,66 @@ export interface ProjectTask {
   proposedBy?: string | null;
 }
 
+/* ---------- Comptes rendus (tâches & projets) ----------
+ * Deux usages, un seul objet : le point d'avancement régulier et le bilan de
+ * fin. Les trois sections de texte sont les mêmes ; seuls leurs intitulés
+ * changent selon le type, ce qui évite deux modèles quasi identiques. */
+export type ReportRefType = "task" | "project";
+export type ReportKind = "periodique" | "cloture";
+
+export interface ReportKindDef {
+  key: ReportKind;
+  label: string;
+  hint: string;
+  /** Intitulés des trois sections, dans l'ordre du formulaire et de l'impression. */
+  sections: { done: string; difficulties: string; nextSteps: string };
+}
+
+export const REPORT_KINDS: ReportKindDef[] = [
+  {
+    key: "periodique",
+    label: "Point d'avancement",
+    hint: "Un point régulier : ce qui avance, ce qui coince, ce qui vient",
+    sections: {
+      done: "Ce qui a été fait",
+      difficulties: "Difficultés et blocages",
+      nextSteps: "Prochaines étapes",
+    },
+  },
+  {
+    key: "cloture",
+    label: "Compte rendu de clôture",
+    hint: "Le bilan de fin : résultat, écarts et enseignements",
+    sections: {
+      done: "Résultat obtenu",
+      difficulties: "Écarts par rapport au prévu",
+      nextSteps: "Enseignements et suites",
+    },
+  },
+];
+
+export const reportKindDef = (kind: ReportKind): ReportKindDef =>
+  REPORT_KINDS.find((k) => k.key === kind) ?? REPORT_KINDS[0];
+
+export interface Report {
+  id: string;
+  refType: ReportRefType;
+  refId: string;
+  kind: ReportKind;
+  title: string;
+  /** Période couverte (points d'avancement) ; facultative. */
+  periodStart: Date | null;
+  periodEnd: Date | null;
+  /** Avancement déclaré, 0–100. */
+  progress: number;
+  done: string;
+  difficulties: string;
+  nextSteps: string;
+  authorId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface ProjectNote {
   id: string;
   projectId: string;

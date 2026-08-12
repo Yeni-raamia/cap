@@ -42,6 +42,7 @@ import { ProjectFiles } from "@/components/ProjectFiles";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
 import { Discussion } from "@/components/Discussion";
 import { ProjectTaskModal } from "@/components/ProjectTaskModal";
+import { ReportsSection } from "@/components/ReportsSection";
 
 const prioBadge: Record<string, string> = {
   Basse: "bg-slate-100 text-slate-500",
@@ -1080,11 +1081,22 @@ export default function ProjetDetailPage() {
         </div>
       )}
 
-      {/* Notes */}
+      {/* Comptes rendus structurés (points d'avancement et bilan de clôture) */}
+      {!demo && (
+        <ReportsSection
+          refType="project"
+          refId={project.id}
+          refLabel={project.name}
+          canWrite={canContribute}
+        />
+      )}
+
+      {/* Notes — le fil rapide, pour ce qui ne mérite pas un compte rendu */}
       <div>
         <div className="flex items-center gap-2 mb-2">
           <StickyNote size={15} className="text-slate-500" />
           <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Notes d&apos;avancement</h2>
+          <span className="text-[11px] text-slate-400">— une ligne au fil de l&apos;eau ; pour un point structuré, rédigez un compte rendu.</span>
         </div>
         <Card className="p-3">
           {canContribute && (

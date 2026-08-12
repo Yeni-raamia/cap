@@ -158,6 +158,7 @@ export function updateTask(
 export function deleteTask(id: string): void {
   const db = getDb();
   db.prepare("delete from task_subtasks where task_id=?").run(id);
+  db.prepare("delete from reports where ref_type='task' and ref_id=?").run(id);
   db.prepare("delete from tasks where id=?").run(id);
 }
 

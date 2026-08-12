@@ -6,6 +6,23 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.90.0] - 2026-08-12
+
+### Ajouté
+
+- **Comptes rendus sur les tâches et les projets**, en deux usages qui partagent un même objet :
+  - **Point d'avancement** — un point régulier sur une période (par défaut la semaine en cours) : *ce qui a été fait*, *difficultés et blocages*, *prochaines étapes*.
+  - **Compte rendu de clôture** — le bilan de fin : *résultat obtenu*, *écarts par rapport au prévu*, *enseignements et suites*. Les trois sections sont les mêmes, seuls leurs intitulés changent selon le type : on écrit le même geste, pas deux formulaires à apprendre.
+  - Chaque compte rendu porte un **avancement déclaré** (0–100 %), son auteur et sa date. Il se rédige depuis la **fiche d'une tâche** ou depuis la **page d'un projet**, et n'est modifiable que par son auteur (ou l'encadrement).
+- **Export imprimable (PDF)** : chaque compte rendu s'imprime seul, ou en **recueil** — tous ceux d'un projet, ou toute une sélection d'équipe — avec en-tête de l'organisation. Un compte rendu n'est jamais coupé en deux par un saut de page.
+- **Onglet « Comptes rendus » dans Productivité** : le recueil de tout ce qui a été rédigé, tâches et projets confondus, filtrable **par personne**, **par type** et **par période** (jour / semaine / mois / période libre), et imprimable d'un bloc — c'est le rapport hebdomadaire, par personne ou pour toute l'équipe.
+- Les **notes d'avancement** des projets restent en place pour ce qui se dit en une ligne au fil de l'eau ; un libellé indique désormais quand passer au compte rendu structuré.
+
+### Note technique
+
+- Nouvelle table `reports` (migration automatique au démarrage) et module `lib/db/reports.ts`, couverts par 5 tests d'intégration sur base SQLite jetable (bornage de l'avancement, mise à jour partielle, suppression en cascade avec la tâche ou le projet rattaché).
+- **Non inclus dans ce lot** : les pièces jointes propres à un compte rendu. Les projets disposent déjà d'un espace « Fichiers partagés » ; pour les tâches, aucun mécanisme de pièce jointe n'existe à ce jour.
+
 ## [1.89.0] - 2026-08-12
 
 ### Modifié

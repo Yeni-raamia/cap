@@ -250,6 +250,7 @@ export function deleteProject(projectId: string): void {
     db.prepare("delete from project_members where project_id=?").run(projectId);
     db.prepare("delete from project_notes where project_id=?").run(projectId);
     db.prepare("delete from project_closure_requests where project_id=?").run(projectId);
+    db.prepare("delete from reports where ref_type='project' and ref_id=?").run(projectId);
     db.prepare("delete from objective_projects where project_id=?").run(projectId);
     db.prepare("delete from projects where id=?").run(projectId);
   });

@@ -104,6 +104,8 @@ import {
   type IntelItem,
   type OnCallShift,
   type Supplier,
+  type Report,
+  type ReportRefType,
   type Task,
   type TaskRecurrence,
   type TaskPriority,
@@ -620,6 +622,11 @@ interface AppCtx {
   // Tâches (productivité)
   tasks: Task[];
   taskAction: (op: "create" | "update" | "delete", input: TaskInput) => Promise<string | null>;
+  // Comptes rendus (points d'avancement et bilans de clôture)
+  reports: Report[];
+  /** Comptes rendus d'un objet, du plus récent au plus ancien. */
+  reportsFor: (refType: ReportRefType, refId: string) => Report[];
+  reportAction: (op: "create" | "update" | "delete", input: Record<string, unknown>) => Promise<string | null>;
   // Tâches récurrentes (gabarits qui engendrent les occurrences)
   recurrences: TaskRecurrence[];
   /** Occurrences engendrées par gabarit : total et restant à faire. */
@@ -894,6 +901,14 @@ const reviveRecurrence = (r: TaskRecurrence): TaskRecurrence => ({
   updatedAt: new Date(r.updatedAt),
 });
 const reviveRecurrences = (arr: TaskRecurrence[]): TaskRecurrence[] => arr.map(reviveRecurrence);
+const reviveReport = (r: Report): Report => ({
+  ...r,
+  periodStart: r.periodStart ? new Date(r.periodStart) : null,
+  periodEnd: r.periodEnd ? new Date(r.periodEnd) : null,
+  createdAt: new Date(r.createdAt),
+  updatedAt: new Date(r.updatedAt),
+});
+const reviveReports = (arr: Report[]): Report[] => arr.map(reviveReport);
 const reviveObjective = (o: Objective): Objective => ({
   ...o,
   startDate: new Date(o.startDate),
@@ -1163,6 +1178,7 @@ export function AppProvider({
   // sans passer par le rendu serveur.
   const [recurrences, setRecurrences] = useState<TaskRecurrence[]>([]);
   const [recurrenceCounts, setRecurrenceCounts] = useState<Record<string, { total: number; open: number }>>({});
+  const [reports, setReports] = useState<Report[]>([]);
   const [objectives, setObjectives] = useState<Objective[]>(demo ? seedObjectives() : reviveObjectives(initialObjectives ?? []));
   const [risks, setRisks] = useState<Risk[]>(demo ? seedRisks() : reviveRisks(initialRisks ?? []));
   const [policies, setPolicies] = useState<Policy[]>(demo ? seedPolicies() : revivePolicies(initialPolicies ?? []));
@@ -2257,6 +2273,36 @@ export function AppProvider({
     return null;
   };
 
+  /* ---------- Comptes rendus ---------- */
+  const refreshReports = async () => {
+    if (demo) return;
+    try {
+      const r = await fetch("/api/reports", { cache: "no-store" });
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d.reports) setReports(reviveReports(d.reports));
+    } catch {
+      /* réseau : réessai au prochain chargement */
+    }
+  };
+  const reportsFor = (refType: ReportRefType, refId: string): Report[] =>
+    reports.filter((r) => r.refType === refType && r.refId === refId);
+  const reportAction = async (
+    op: "create" | "update" | "delete",
+    input: Record<string, unknown>
+  ): Promise<string | null> => {
+    if (demo) return "Comptes rendus indisponibles en mode démo.";
+    const res = await fetch("/api/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, ...input }),
+    });
+    const d = await res.json();
+    if (!res.ok) return d.error ?? "Erreur.";
+    if (d.reports) setReports(reviveReports(d.reports));
+    return null;
+  };
+
   const subtaskAction = async (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput): Promise<string | null> => {
     if (demo) return "Tâches indisponibles en mode démo.";
     const res = await fetch("/api/tasks/subtasks", {
@@ -2904,6 +2950,7 @@ export function AppProvider({
   // occurrences du jour, côté serveur).
   useEffect(() => {
     refreshRecurrences();
+    refreshReports();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo]);
 
@@ -3039,6 +3086,9 @@ export function AppProvider({
     decideProjectDeletion,
     tasks,
     taskAction,
+    reports,
+    reportsFor,
+    reportAction,
     recurrences,
     recurrenceCounts,
     recurrenceAction,

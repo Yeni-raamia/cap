@@ -98,6 +98,15 @@ create table if not exists task_recurrences (
   updated_at text not null default (datetime('now'))
 );
 create index if not exists idx_recur_active on task_recurrences(active);
+create table if not exists reports (
+  id text primary key, ref_type text not null, ref_id text not null,
+  kind text not null default 'periodique', title text not null default '',
+  period_start text, period_end text, progress integer not null default 0,
+  done text not null default '', difficulties text not null default '', next_steps text not null default '',
+  author_id text, created_at text not null default (datetime('now')),
+  updated_at text not null default (datetime('now'))
+);
+create index if not exists idx_reports_ref on reports(ref_type, ref_id);
 create table if not exists project_closure_requests (
   id text primary key, project_id text not null, requested_by text,
   summary text not null default '', deliverables text not null default '[]',

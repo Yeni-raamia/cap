@@ -15,6 +15,7 @@ import {
 import { toDayInput } from "@/lib/period";
 import { useApp } from "./app-context";
 import { Avatar } from "./atoms";
+import { ReportsSection } from "./ReportsSection";
 
 const STATUS_STYLE: Record<TaskStatus, string> = {
   "à faire": "bg-slate-100 text-slate-600 border-slate-200",
@@ -271,6 +272,9 @@ export function TaskModal() {
               </div>
             )}
           </div>
+
+          {/* Comptes rendus de la tâche */}
+          <ReportsSection refType="task" refId={task.id} refLabel={task.title} canWrite={canEdit} compact />
 
           {/* Pied */}
           <div className="flex items-center justify-between pt-2 border-t border-slate-100">

@@ -24,6 +24,7 @@ import { PeriodFilter } from "@/components/PeriodFilter";
 import { ProfilRadar } from "@/components/ProfilRadar";
 import { NewTaskForm } from "@/components/NewTaskForm";
 import { RecurrencesPanel } from "@/components/RecurrencesPanel";
+import { ReportsDigest } from "@/components/ReportsDigest";
 
 const STATUS_STYLE: Record<TaskStatus, string> = {
   "à faire": "bg-slate-100 text-slate-600",
@@ -47,6 +48,7 @@ const WINDOWS = [
 const TABS = [
   { id: "taches", label: "Tâches de l'équipe" },
   { id: "recurrentes", label: "Tâches récurrentes" },
+  { id: "comptes-rendus", label: "Comptes rendus" },
   { id: "rendement", label: "Rendement" },
 ];
 
@@ -194,6 +196,8 @@ function ProductiviteInner() {
       )}
 
       {active === "recurrentes" && <RecurrencesPanel />}
+
+      {active === "comptes-rendus" && <ReportsDigest />}
 
       {active === "rendement" && (
         <>
