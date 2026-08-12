@@ -14,7 +14,6 @@ import { RecurrenceModal } from "./RecurrenceModal";
  */
 export function RecurrencesPanel() {
   const { recurrences, recurrenceCounts, me, now, profileById, recurrenceAction } = useApp();
-  const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<TaskRecurrence | null>(null);
   const [creating, setCreating] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -36,24 +35,14 @@ export function RecurrencesPanel() {
         <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">Tâches récurrentes</h2>
         <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">{activeCount}</span>
         <button
-          onClick={() => setOpen((v) => !v)}
-          className="text-[12px] text-slate-500 hover:text-slate-700 underline decoration-dotted"
-        >
-          {open ? "Masquer" : "Afficher"}
-        </button>
-        <button
-          onClick={() => {
-            setOpen(true);
-            setCreating(true);
-          }}
+          onClick={() => setCreating(true)}
           className="ml-auto inline-flex items-center gap-1 text-[12px] font-medium text-violet-700 border border-violet-200 hover:bg-violet-50 rounded-lg px-2.5 py-1.5"
         >
           <Plus size={14} /> Nouvelle série
         </button>
       </div>
 
-      {open && (
-        <Card>
+      <Card>
           {err && <div className="m-3 text-[12px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{err}</div>}
           {recurrences.length === 0 ? (
             <div className="p-6 text-center text-[13px] text-slate-400">
@@ -117,8 +106,7 @@ export function RecurrencesPanel() {
             Les occurrences naissent le jour prévu, à l&apos;ouverture de l&apos;application ou au passage des rappels.
             Après une longue interruption, seuls les 14 derniers jours sont rattrapés.
           </div>
-        </Card>
-      )}
+      </Card>
 
       {(creating || editing) && (
         <RecurrenceModal

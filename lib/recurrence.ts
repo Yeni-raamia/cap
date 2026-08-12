@@ -151,8 +151,15 @@ export function parseDayKey(key: string): Date {
 
 export { toDayInput };
 
-/** Résumé lisible du rythme, pour les listes et les fiches. */
-export function describeFrequency(rec: TaskRecurrence): string {
+/**
+ * Résumé lisible du rythme, pour les listes et les fiches.
+ *
+ * Ne demande que les champs de rythme : un formulaire peut donc décrire un
+ * gabarit en cours de saisie, avant qu'il n'existe.
+ */
+export function describeFrequency(
+  rec: Pick<TaskRecurrence, "frequency" | "weekdays" | "monthDay" | "intervalDays">
+): string {
   switch (rec.frequency) {
     case "quotidien":
       return "Chaque jour";

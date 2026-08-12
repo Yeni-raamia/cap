@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertOctagon,
@@ -21,6 +21,7 @@ import {
 import { fmt, fmtLong, greeting, isTaskLate, isTaskOpen, projectMetrics, subtaskProgress, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
 import { DEFAULT_PERIOD, matchesPeriod, type PeriodFilter as Period } from "@/lib/period";
 import { useApp } from "@/components/app-context";
+import { NewTaskForm } from "@/components/NewTaskForm";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { Card } from "@/components/atoms";
 import { CountUp, Sparkline } from "@/components/dataviz";
@@ -58,8 +59,9 @@ function Section({
 
 export default function MonEspacePage() {
   const { items, now, me, scores, rs, projects, negligences, conversations, tasks, taskAction, projectTask, setShowNew, setOpenTaskId } = useApp();
-  const [newTask, setNewTask] = useState("");
   const [taskPeriod, setTaskPeriod] = useState<Period>(DEFAULT_PERIOD);
+  const [taskErr, setTaskErr] = useState<string | null>(null);
+  const taskInputRef = useRef<HTMLInputElement>(null);
 
   const mine = items.filter((i) => i.ownerId === me.id);
   const attends = mine.filter((i) => ["relance", "escalade"].includes(rs(i).level));
@@ -105,10 +107,15 @@ export default function MonEspacePage() {
   const openTaskCount = myAssignedTasks.filter(isTaskOpen).length;
   const visibleTasks = myAssignedTasks.filter((t) => matchesPeriod(t.dueDate, isTaskLate(t, now), taskPeriod, now));
 
-  const addTask = async () => {
-    if (!newTask.trim()) return;
-    await taskAction("create", { title: newTask.trim(), assigneeId: me.id });
-    setNewTask("");
+  const run = async (p: Promise<string | null>) => {
+    setTaskErr(await p);
+  };
+
+  // Le bouton du bandeau amène au formulaire et y place le curseur : la
+  // création de tâche était invisible en bas de page.
+  const focusNewTask = () => {
+    document.getElementById("mes-taches")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setTimeout(() => taskInputRef.current?.focus(), 350);
   };
 
   return (
@@ -128,12 +135,20 @@ export default function MonEspacePage() {
               <p className="mt-1.5 text-[15px] text-slate-500">Ton espace, ton rythme.</p>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <button
-                onClick={() => setShowNew(true)}
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-4 py-2.5 hover:-translate-y-0.5 transition-transform shadow-soft"
-              >
-                <Plus size={16} /> Nouveau suivi de mail
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={focusNewTask}
+                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-violet-700 dark:text-violet-300 bg-white dark:bg-slate-800 border border-violet-200 dark:border-violet-800 rounded-xl px-4 py-2.5 hover:-translate-y-0.5 transition-transform shadow-soft"
+                >
+                  <ListTodo size={16} /> Nouvelle tâche
+                </button>
+                <button
+                  onClick={() => setShowNew(true)}
+                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-slate-900 dark:bg-emerald-600 rounded-xl px-4 py-2.5 hover:-translate-y-0.5 transition-transform shadow-soft"
+                >
+                  <Plus size={16} /> Nouveau suivi de mail
+                </button>
+              </div>
               <span className="inline-flex items-center gap-1.5 text-[11px] text-slate-400">
                 <Command size={12} /> <kbd className="px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-sans">⌘K</kbd> pour tout faire
               </span>
@@ -167,20 +182,13 @@ export default function MonEspacePage() {
       </Section>
 
       {/* Mes tâches (productivité) */}
+      <div id="mes-taches" className="scroll-mt-4">
       <Section icon={ListTodo} title="Mes tâches" count={openTaskCount} tone="text-violet-500">
         <Card className="p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <input
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addTask()}
-              placeholder="Ajouter une tâche personnelle…"
-              className="flex-1 text-[13px] border border-slate-200 rounded-lg px-2.5 py-1.5"
-            />
-            <button onClick={addTask} className="flex items-center gap-1 text-[13px] font-medium text-white bg-violet-600 hover:bg-violet-700 rounded-lg px-3 py-1.5">
-              <Plus size={15} /> Ajouter
-            </button>
+          <div className="mb-3">
+            <NewTaskForm canAssignOthers={false} inputRef={taskInputRef} onCreate={run} />
           </div>
+          {taskErr && <div className="mb-2 text-[12px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{taskErr}</div>}
           {myAssignedTasks.length > 0 && <PeriodFilter value={taskPeriod} onChange={setTaskPeriod} compact className="mb-2" />}
           {myAssignedTasks.length === 0 ? (
             <div className="text-[12px] text-slate-400 text-center py-2">Aucune tâche. Ajoute-en une ou attends une assignation.</div>
@@ -216,6 +224,7 @@ export default function MonEspacePage() {
           )}
         </Card>
       </Section>
+      </div>
 
       {/* À justifier */}
       {aJustifier.length > 0 && (

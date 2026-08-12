@@ -6,6 +6,18 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.89.0] - 2026-08-12
+
+### Modifié
+
+- **Productivité passe en onglets** (comme le module GRC) : **Tâches de l'équipe** (par défaut), **Tâches récurrentes**, **Rendement**. Le tableau des tâches et le formulaire de création étaient relégués en bas d'une page très longue, derrière le radar, le podium et le tableau de rendement — ils sont désormais la première chose que l'on voit. Les onglets affichent le nombre de tâches ouvertes et de séries actives. La fenêtre 7/30/90 jours ne s'affiche que dans l'onglet Rendement, où elle sert.
+- **La récurrence se règle en créant la tâche**, plus dans un écran séparé : le formulaire de création porte un choix **« Ne pas répéter / Chaque jour / Chaque jour ouvré / Chaque semaine / Chaque mois »**. Choisir un rythme crée une série qui engendre aussitôt la tâche du jour, puis les suivantes, **toujours attribuée à la même personne** (celle choisie dans le formulaire). Un encart rappelle le rythme retenu, la date de première occurrence et le responsable. L'onglet « Tâches récurrentes » reste le lieu où l'on retrouve, suspend ou modifie les séries existantes — y compris les modes rotation et « à prendre ».
+- **Mon espace — la création de tâche devient visible** : le champ discret « Ajouter une tâche personnelle… » cède la place au même formulaire complet (priorité, dates, répétition), et un bouton **« Nouvelle tâche »** apparaît dans le bandeau d'accueil, à côté de « Nouveau suivi de mail » — il amène au formulaire et y place le curseur.
+
+### Note technique
+
+- Le formulaire de création de tâche est désormais un composant partagé (`components/NewTaskForm.tsx`) utilisé par Productivité et Mon espace : un seul endroit à faire évoluer, un comportement identique des deux côtés.
+
 ## [1.88.0] - 2026-08-12
 
 ### Ajouté

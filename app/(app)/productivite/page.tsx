@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Activity, CheckSquare, Flame, Gauge, Plus, Repeat, TrendingUp, X } from "lucide-react";
+import { Suspense, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Activity, CheckSquare, Flame, Gauge, Repeat, TrendingUp, X } from "lucide-react";
 import {
   fmt,
   isPublished,
@@ -21,6 +22,7 @@ import { Ring } from "@/components/dataviz";
 import { PageHero } from "@/components/PageHero";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { ProfilRadar } from "@/components/ProfilRadar";
+import { NewTaskForm } from "@/components/NewTaskForm";
 import { RecurrencesPanel } from "@/components/RecurrencesPanel";
 
 const STATUS_STYLE: Record<TaskStatus, string> = {
@@ -42,8 +44,28 @@ const WINDOWS = [
   { key: 90, label: "90 j" },
 ];
 
+const TABS = [
+  { id: "taches", label: "Tâches de l'équipe" },
+  { id: "recurrentes", label: "Tâches récurrentes" },
+  { id: "rendement", label: "Rendement" },
+];
+
 export default function ProductivitePage() {
-  const { tasks: allTasks, profiles, items: allItems, projects: allProjects, me, now, taskAction, profileById, setOpenTaskId } = useApp();
+  return (
+    <Suspense fallback={<div className="text-[13px] text-slate-400 py-10 text-center">Chargement…</div>}>
+      <ProductiviteInner />
+    </Suspense>
+  );
+}
+
+function ProductiviteInner() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const param = params.get("tab");
+  const active = TABS.some((t) => t.id === param) ? (param as string) : "taches";
+  const setTab = (id: string) => router.replace(`/productivite?tab=${id}`, { scroll: false });
+
+  const { tasks: allTasks, profiles, items: allItems, projects: allProjects, me, now, recurrences, profileById, setOpenTaskId } = useApp();
   // Vue d'équipe : sur les éléments publiés uniquement.
   const tasks = useMemo(() => allTasks.filter(isPublished), [allTasks]);
   const items = useMemo(() => allItems.filter(isPublished), [allItems]);
@@ -116,36 +138,70 @@ export default function ProductivitePage() {
         title="Productivité de l'équipe"
         subtitle="Charge, rendement et suivi des tâches de toute l'équipe."
         right={
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
-            {WINDOWS.map((w) => (
-              <button
-                key={w.key}
-                onClick={() => setWindowDays(w.key)}
-                className={`text-[12px] px-2.5 py-1 rounded-md transition ${windowDays === w.key ? "bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-800" : "text-slate-500"}`}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
+          active === "rendement" ? (
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
+              {WINDOWS.map((w) => (
+                <button
+                  key={w.key}
+                  onClick={() => setWindowDays(w.key)}
+                  className={`text-[12px] px-2.5 py-1 rounded-md transition ${windowDays === w.key ? "bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-800" : "text-slate-500"}`}
+                >
+                  {w.label}
+                </button>
+              ))}
+            </div>
+          ) : undefined
         }
       />
 
-      {err && <div className="text-[12px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{err}</div>}
-
-      {/* Indicateurs d'équipe */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <KpiCard icon={CheckSquare} tone="text-slate-600" label="Tâches ouvertes" value={team.open} />
-        <KpiCard icon={TrendingUp} tone="text-emerald-600" label={`Achevées (${windowDays} j)`} value={team.doneRecent} />
-        <KpiCard icon={Gauge} tone="text-sky-600" label="Taux d'achèvement" value={`${team.rate}%`} />
-        <KpiCard icon={Flame} tone="text-rose-600" label="En retard" value={team.late} />
-        <KpiCard icon={X} tone="text-rose-600" label="Bloquées" value={team.blocked} />
+      {/* Onglets */}
+      <div className="flex items-center gap-1 border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`px-3.5 py-2 text-[13px] font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
+              active === t.id
+                ? "border-emerald-500 text-emerald-700 dark:text-emerald-400"
+                : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            {t.label}
+            {t.id === "taches" && <span className="ml-1.5 text-[11px] text-slate-400">{team.open}</span>}
+            {t.id === "recurrentes" && recurrences.length > 0 && (
+              <span className="ml-1.5 text-[11px] text-slate-400">{recurrences.filter((r) => r.active).length}</span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* Radar de profil (gamification) : moi vs moyenne d'équipe */}
-      <ProfilRadar members={activeProfiles} items={items} tasks={tasks} projects={projects} now={now} meId={me.id} />
+      {err && <div className="text-[12px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{err}</div>}
 
-      {/* Podium de rendement */}
-      {rows.some((r) => r.prod.doneRecent > 0 || r.prod.tasksOpen > 0) && (
+      {active === "taches" && (
+        <>
+          {/* Créer / assigner une tâche — en tête d'onglet, là où on la cherche */}
+          <NewTaskForm canAssignOthers={canAssignOthers} onCreate={run} />
+
+          {/* Indicateurs d'équipe */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <KpiCard icon={CheckSquare} tone="text-slate-600" label="Tâches ouvertes" value={team.open} />
+            <KpiCard icon={TrendingUp} tone="text-emerald-600" label={`Achevées (${windowDays} j)`} value={team.doneRecent} />
+            <KpiCard icon={Gauge} tone="text-sky-600" label="Taux d'achèvement" value={`${team.rate}%`} />
+            <KpiCard icon={Flame} tone="text-rose-600" label="En retard" value={team.late} />
+            <KpiCard icon={X} tone="text-rose-600" label="Bloquées" value={team.blocked} />
+          </div>
+        </>
+      )}
+
+      {active === "recurrentes" && <RecurrencesPanel />}
+
+      {active === "rendement" && (
+        <>
+          {/* Radar de profil (gamification) : moi vs moyenne d'équipe */}
+          <ProfilRadar members={activeProfiles} items={items} tasks={tasks} projects={projects} now={now} meId={me.id} />
+
+          {/* Podium de rendement */}
+          {rows.some((r) => r.prod.doneRecent > 0 || r.prod.tasksOpen > 0) && (
         <div className="grid sm:grid-cols-3 gap-3 stagger">
           {rows.slice(0, 3).map(({ p, prod }, i) => (
             <div key={p.id} className="rounded-2xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-soft p-4 flex items-center gap-3">
@@ -164,12 +220,6 @@ export default function ProductivitePage() {
           ))}
         </div>
       )}
-
-      {/* Créer / assigner une tâche */}
-      <NewTaskForm canAssignOthers={canAssignOthers} onCreate={run} />
-
-      {/* Séries récurrentes : gabarits qui engendrent les occurrences */}
-      <RecurrencesPanel />
 
       {/* Rendement par personne */}
       <div>
@@ -260,8 +310,11 @@ export default function ProductivitePage() {
           </div>
         </Card>
       )}
+        </>
+      )}
 
       {/* Tableau des tâches (Kanban par statut) */}
+      {active === "taches" && (
       <div>
         <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
           <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">
@@ -346,6 +399,7 @@ export default function ProductivitePage() {
           })}
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -408,70 +462,6 @@ function TaskRow({
       >
         {TASK_STATUTS.map((s) => <option key={s}>{s}</option>)}
       </select>
-    </div>
-  );
-}
-
-function NewTaskForm({
-  canAssignOthers,
-  fixedAssignee,
-  compact,
-  onCreate,
-}: {
-  canAssignOthers: boolean;
-  fixedAssignee?: string;
-  compact?: boolean;
-  onCreate: (p: Promise<string | null>) => void;
-}) {
-  const { profiles, taskAction, me } = useApp();
-  const [title, setTitle] = useState("");
-  const [assignee, setAssignee] = useState(fixedAssignee ?? me.id);
-  const [priority, setPriority] = useState<TaskPriority>("Normale");
-  const [start, setStart] = useState("");
-  const [due, setDue] = useState("");
-
-  const submit = async () => {
-    if (!title.trim()) return;
-    await onCreate(
-      taskAction("create", {
-        title: title.trim(),
-        assigneeId: fixedAssignee ?? assignee,
-        priority,
-        startDate: start || null,
-        dueDate: due || null,
-      })
-    );
-    setTitle("");
-    setStart("");
-    setDue("");
-    setPriority("Normale");
-  };
-
-  return (
-    <div className={`flex items-end gap-2 flex-wrap ${compact ? "" : "bg-white border border-slate-200 rounded-xl p-3"}`}>
-      <div className="flex-1 min-w-[180px]">
-        {!compact && <label className="text-[11px] text-slate-400 block mb-1">Nouvelle tâche</label>}
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder={fixedAssignee ? "Assigner une tâche…" : "Intitulé de la tâche…"}
-          className="w-full text-[13px] border border-slate-200 rounded-lg px-2.5 py-1.5"
-        />
-      </div>
-      {canAssignOthers && !fixedAssignee && (
-        <select value={assignee} onChange={(e) => setAssignee(e.target.value)} aria-label="Assigné à" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 bg-white">
-          {profiles.map((p) => <option key={p.id} value={p.id}>{p.id === me.id ? "Moi" : p.nom}</option>)}
-        </select>
-      )}
-      <select value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)} aria-label="Priorité" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5 bg-white">
-        {TASK_PRIORITIES.map((p) => <option key={p}>{p}</option>)}
-      </select>
-      <input type="date" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Début prévu" title="Début prévu" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5" />
-      <input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Échéance" title="Échéance" className="text-[12px] border border-slate-200 rounded-lg px-2 py-1.5" />
-      <button onClick={submit} className="flex items-center gap-1 text-[13px] font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg px-3 py-1.5">
-        <Plus size={15} /> {fixedAssignee ? "Assigner" : "Ajouter"}
-      </button>
     </div>
   );
 }
