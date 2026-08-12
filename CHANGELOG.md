@@ -6,6 +6,20 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.96.0] - 2026-08-12
+
+### Modifié
+
+- **Planning — grille élargie et adaptative.** L'amplitude par défaut passe de **7 h – 20 h** à **6 h – 22 h**, et surtout la grille **s'étend d'elle-même** quand la semaine affichée contient un événement en dehors : une réunion à 5 h ou à 23 h fait descendre ou monter la grille juste ce qu'il faut, jusqu'à couvrir la journée entière si nécessaire. La fin est arrondie à l'heure supérieure pour ne pas couper le dernier bloc.
+  - Auparavant, une réunion hors de la plage de bureau **n'apparaissait tout simplement pas** en vue semaine : elle existait en base et se voyait en vue mois et en liste, mais restait invisible là où on l'aurait cherchée.
+  - La grille **ne rétrécit jamais** en deçà de l'amplitude par défaut : elle ne change pas de taille d'une semaine à l'autre selon qu'elle est chargée ou non.
+  - L'amplitude est calculée sur les sept jours à la fois, donc **les colonnes restent alignées**.
+  - Le redimensionnement à la souris suit la nouvelle borne : depuis une grille élargie, on peut allonger une réunion jusqu'à la vraie fin de journée affichée.
+
+### Note technique
+
+- `visibleHourRange` (calcul de l'amplitude) est une fonction pure couverte par 7 tests ; le planning en compte 36 au total. Les créneaux ne sont plus une constante de module mais dérivés de l'amplitude (`slotsFor`), et `positionEvents` prend désormais l'heure de début de grille en paramètre.
+
 ## [1.95.0] - 2026-08-12
 
 ### Ajouté

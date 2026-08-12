@@ -179,17 +179,48 @@ export const inMonth = (d: Date, anchor: Date): boolean =>
 
 /* ---------- Créneaux horaires (vue semaine) ---------- */
 
-/** Amplitude affichée : une journée de bureau, pas 24 h de lignes vides. */
-export const DAY_START_HOUR = 7;
-export const DAY_END_HOUR = 20;
+/**
+ * Amplitude affichée par défaut : large, sans aller jusqu'aux 24 h qui
+ * noieraient la journée de travail sous des lignes vides.
+ */
+export const DEFAULT_START_HOUR = 6;
+export const DEFAULT_END_HOUR = 22;
 /** Pas de la grille, en minutes : les demi-heures sont l'unité usuelle. */
 export const SLOT_MINUTES = 30;
 
-/** Minutes depuis minuit de chaque créneau affiché. */
-export const SLOTS: number[] = Array.from(
-  { length: ((DAY_END_HOUR - DAY_START_HOUR) * 60) / SLOT_MINUTES },
-  (_, i) => DAY_START_HOUR * 60 + i * SLOT_MINUTES
-);
+/** Minutes depuis minuit de chaque créneau d'une amplitude donnée. */
+export const slotsFor = (startHour: number, endHour: number): number[] =>
+  Array.from(
+    { length: Math.max(1, ((endHour - startHour) * 60) / SLOT_MINUTES) },
+    (_, i) => startHour * 60 + i * SLOT_MINUTES
+  );
+
+export interface HourRange {
+  startHour: number;
+  endHour: number;
+}
+
+/**
+ * Amplitude réellement nécessaire pour la semaine affichée.
+ *
+ * On part de l'amplitude par défaut, puis on l'élargit si un événement tombe
+ * en dehors : une réunion à 5 h ou à 23 h doit rester visible, sinon elle
+ * n'existe tout simplement plus dans cette vue. On ne rétrécit jamais
+ * en deçà du défaut, pour que la grille ne saute pas d'une semaine à l'autre.
+ */
+export function visibleHourRange(events: PlanEvent[]): HourRange {
+  let startHour = DEFAULT_START_HOUR;
+  let endHour = DEFAULT_END_HOUR;
+  for (const e of events) {
+    if (!e.timed) continue;
+    const debut = e.date.getHours();
+    // Fin arrondie à l'heure supérieure, pour ne pas couper le dernier bloc.
+    const fin = Math.ceil((eventStartMinutes(e) + Math.max(SLOT_MINUTES, e.durationMinutes)) / 60);
+    if (debut < startHour) startHour = Math.max(0, debut);
+    if (fin > endHour) endHour = Math.min(24, fin);
+  }
+  return { startHour, endHour };
+}
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -261,9 +292,14 @@ export const MIN_DURATION = 15;
  * et ne déborde pas de la journée affichée — un bloc qui dépasserait la
  * grille deviendrait invisible en bas.
  */
-export function resizedDuration(current: number, deltaMinutes: number, startAtMinutes: number): number {
+export function resizedDuration(
+  current: number,
+  deltaMinutes: number,
+  startAtMinutes: number,
+  endHour: number = DEFAULT_END_HOUR
+): number {
   const snapped = Math.round((current + deltaMinutes) / RESIZE_STEP) * RESIZE_STEP;
-  const maxByDay = DAY_END_HOUR * 60 - startAtMinutes;
+  const maxByDay = endHour * 60 - startAtMinutes;
   return Math.min(Math.max(MIN_DURATION, snapped), Math.max(MIN_DURATION, maxByDay));
 }
 
@@ -295,14 +331,14 @@ const endMinutes = (e: PlanEvent) => startMinutes(e) + Math.max(SLOT_MINUTES / 2
  * L'attribution des colonnes est gloutonne — on réutilise la première colonne
  * libérée, ce qui suffit pour un agenda d'équipe.
  */
-export function positionEvents(events: PlanEvent[]): PositionedEvent[] {
+export function positionEvents(events: PlanEvent[], startHour: number = DEFAULT_START_HOUR): PositionedEvent[] {
   const timed = events
     .filter((e) => e.timed)
     .slice()
     .sort((a, b) => startMinutes(a) - startMinutes(b) || endMinutes(a) - endMinutes(b));
   if (timed.length === 0) return [];
 
-  const top = SLOTS[0];
+  const top = startHour * 60;
   const out: PositionedEvent[] = [];
 
   // Découpe en groupes de chevauchement successifs.

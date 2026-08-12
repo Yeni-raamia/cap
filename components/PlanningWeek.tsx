@@ -15,8 +15,9 @@ import {
   RESIZE_STEP,
   positionEvents,
   SLOT_MINUTES,
-  SLOTS,
+  slotsFor,
   slotId,
+  visibleHourRange,
   slotLabel,
   type PlanEvent,
 } from "@/lib/planning";
@@ -79,6 +80,7 @@ function TimedBlock({
   onOpen,
   onResize,
   canResize,
+  endHour,
 }: {
   e: PlanEvent;
   offset: number;
@@ -88,6 +90,8 @@ function TimedBlock({
   onOpen: (e: PlanEvent) => void;
   onResize: (e: PlanEvent, minutes: number) => void;
   canResize: boolean;
+  /** Fin de l'amplitude affichée — le bloc ne doit pas déborder de la grille. */
+  endHour: number;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `ev:${e.id}`, data: { event: e } });
   // Durée affichée pendant le geste : le bloc suit la souris avant l'enregistrement.
@@ -116,14 +120,14 @@ function TimedBlock({
 
     const move = (m: PointerEvent) => {
       const deltaMinutes = ((m.clientY - startY) / SLOT_H) * SLOT_MINUTES;
-      setPreview(resizedDuration(startDuration, deltaMinutes, startAt));
+      setPreview(resizedDuration(startDuration, deltaMinutes, startAt, endHour));
     };
     const up = (m: PointerEvent) => {
       el.releasePointerCapture(m.pointerId);
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerup", up);
       const deltaMinutes = ((m.clientY - startY) / SLOT_H) * SLOT_MINUTES;
-      const next = resizedDuration(startDuration, deltaMinutes, startAt);
+      const next = resizedDuration(startDuration, deltaMinutes, startAt, endHour);
       setPreview(null);
       if (next !== startDuration) onResize(e, next);
     };
@@ -182,7 +186,7 @@ function TimedBlock({
             // Accessible au clavier : flèches haut/bas par pas de 15 minutes.
             if (k.key !== "ArrowUp" && k.key !== "ArrowDown") return;
             k.preventDefault();
-            const next = resizedDuration(e.durationMinutes, k.key === "ArrowDown" ? RESIZE_STEP : -RESIZE_STEP, eventStartMinutes(e));
+            const next = resizedDuration(e.durationMinutes, k.key === "ArrowDown" ? RESIZE_STEP : -RESIZE_STEP, eventStartMinutes(e), endHour);
             if (next !== e.durationMinutes) onResize(e, next);
           }}
           title="Tirer pour changer la durée"
@@ -202,13 +206,13 @@ function TimedBlock({
 }
 
 /** Zone de dépôt d'un créneau, en fond de colonne. */
-function SlotZone({ id, top, onCreate }: { id: string; top: number; onCreate: () => void }) {
+function SlotZone({ id, top, gridTop, onCreate }: { id: string; top: number; gridTop: number; onCreate: () => void }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const demiHeure = top % 60 !== 0;
   return (
     <div
       ref={setNodeRef}
-      style={{ top: (top - SLOTS[0]) / SLOT_MINUTES * SLOT_H, height: SLOT_H }}
+      style={{ top: ((top - gridTop) / SLOT_MINUTES) * SLOT_H, height: SLOT_H }}
       className={`absolute inset-x-0 group/slot border-t ${
         demiHeure ? "border-slate-50 dark:border-slate-800/50" : "border-slate-100 dark:border-slate-800"
       } ${isOver ? "bg-emerald-100/70 dark:bg-emerald-500/15" : ""}`}
@@ -250,7 +254,12 @@ export function PlanningWeek({
   onResize: (e: PlanEvent, minutes: number) => void;
   canResize: boolean;
 }) {
-  const gridHeight = SLOTS.length * SLOT_H;
+  // Amplitude calculée sur toute la semaine : les sept colonnes restent alignées.
+  const semaine = days.flatMap((d) => eventsOf(d));
+  const { startHour, endHour } = visibleHourRange(semaine);
+  const slots = slotsFor(startHour, endHour);
+  const gridTop = startHour * 60;
+  const gridHeight = slots.length * SLOT_H;
 
   return (
     <div className="overflow-x-auto">
@@ -283,10 +292,10 @@ export function PlanningWeek({
         <div className="grid grid-cols-[3.5rem_repeat(7,1fr)] gap-1">
           {/* Colonne des heures : un libellé par heure pleine */}
           <div className="relative" style={{ height: gridHeight }}>
-            {SLOTS.filter((m) => m % 60 === 0).map((m) => (
+            {slots.filter((m: number) => m % 60 === 0).map((m: number) => (
               <div
                 key={m}
-                style={{ top: ((m - SLOTS[0]) / SLOT_MINUTES) * SLOT_H }}
+                style={{ top: ((m - gridTop) / SLOT_MINUTES) * SLOT_H }}
                 className="absolute right-1 -translate-y-1/2 text-[10.5px] text-slate-400 font-mono"
               >
                 {slotLabel(m)}
@@ -295,15 +304,15 @@ export function PlanningWeek({
           </div>
 
           {days.map((d) => {
-            const positioned = positionEvents(eventsOf(d));
+            const positioned = positionEvents(eventsOf(d), startHour);
             return (
               <div
                 key={`col-${dayKey(d)}`}
                 className="relative rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900"
                 style={{ height: gridHeight }}
               >
-                {SLOTS.map((m) => (
-                  <SlotZone key={slotId(d, m)} id={slotId(d, m)} top={m} onCreate={() => onCreate(d, m)} />
+                {slots.map((m: number) => (
+                  <SlotZone key={slotId(d, m)} id={slotId(d, m)} top={m} gridTop={gridTop} onCreate={() => onCreate(d, m)} />
                 ))}
                 {positioned.map((p) => (
                   <TimedBlock
@@ -316,6 +325,7 @@ export function PlanningWeek({
                     onOpen={onOpen}
                     onResize={onResize}
                     canResize={canResize}
+                    endHour={endHour}
                   />
                 ))}
               </div>

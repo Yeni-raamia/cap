@@ -5,7 +5,10 @@ import {
   eventStartMinutes,
   dayKey,
   groupByDay,
-  SLOTS,
+  slotsFor,
+  visibleHourRange,
+  DEFAULT_START_HOUR,
+  DEFAULT_END_HOUR,
   inMonth,
   isSamePlacement,
   monthGrid,
@@ -84,10 +87,12 @@ describe("grilles", () => {
     expect(inMonth(at(2026, 3, 1), NOW)).toBe(true);
     expect(inMonth(at(2026, 4, 1), NOW)).toBe(false);
   });
-  it("couvre une journée de bureau par demi-heures", () => {
-    expect(SLOTS[0]).toBe(7 * 60);
-    expect(SLOTS[1]).toBe(7 * 60 + 30);
-    expect(SLOTS.at(-1)).toBe(19 * 60 + 30);
+  it("découpe l'amplitude en demi-heures", () => {
+    const s = slotsFor(DEFAULT_START_HOUR, DEFAULT_END_HOUR);
+    expect(s[0]).toBe(6 * 60);
+    expect(s[1]).toBe(6 * 60 + 30);
+    expect(s.at(-1)).toBe(21 * 60 + 30);
+    expect(s.length).toBe((22 - 6) * 2);
   });
 });
 
@@ -165,13 +170,13 @@ describe("positionEvents — blocs horaires", () => {
   it("place le bloc à son heure et le dimensionne à sa durée", () => {
     // Grille à partir de 7 h, créneaux de 30 min : 9 h 00 = 4 créneaux plus bas.
     const [p] = positionEvents([mtg("a", 9, 0, 60)]);
-    expect(p.offset).toBe(4);
+    expect(p.offset).toBe(6); // 9 h depuis 6 h = 6 créneaux
     expect(p.span).toBe(2); // 60 min = 2 créneaux
   });
 
   it("gère les demi-heures", () => {
     const [p] = positionEvents([mtg("a", 14, 30, 90)]);
-    expect(p.offset).toBe(15); // 14 h 30 → (870 - 420) / 30
+    expect(p.offset).toBe(17); // 14 h 30 depuis 6 h → (870 - 360) / 30
     expect(p.span).toBe(3); // 90 min
   });
 
@@ -231,13 +236,15 @@ describe("resizedDuration — redimensionnement à la souris", () => {
   });
 
   it("ne déborde pas de la journée affichée", () => {
-    // Grille jusqu'à 20 h : depuis 19 h, on ne peut pas dépasser 1 h.
-    expect(resizedDuration(60, 600, 19 * 60)).toBe(60);
-    expect(resizedDuration(60, 600, NEUF_H)).toBe(11 * 60); // 9 h → 20 h
+    // Amplitude par défaut jusqu'à 22 h : depuis 21 h, pas plus d'1 h.
+    expect(resizedDuration(60, 600, 21 * 60)).toBe(60);
+    expect(resizedDuration(60, 5000, NEUF_H)).toBe(13 * 60); // plafonné à 9 h → 22 h
+    // Une amplitude élargie desserre la borne.
+    expect(resizedDuration(60, 5000, 21 * 60, 24)).toBe(3 * 60);
   });
 
   it("reste utilisable même pour une réunion qui commence en fin de grille", () => {
-    expect(resizedDuration(30, 0, 19 * 60 + 45)).toBe(15);
+    expect(resizedDuration(30, 0, 21 * 60 + 45)).toBe(15);
   });
 });
 
@@ -245,5 +252,53 @@ describe("eventStartMinutes", () => {
   it("compte les minutes depuis minuit", () => {
     const e = { date: at(2026, 3, 12, 14, 30) } as PlanEvent;
     expect(eventStartMinutes(e)).toBe(870);
+  });
+});
+
+describe("visibleHourRange — la grille s'adapte à ce qu'elle contient", () => {
+  const mtg = (h: number, min: number, dur: number): PlanEvent => ({
+    id: "m", refId: "m", kind: "reunion", title: "m", date: at(2026, 3, 12, h, min), timed: true,
+    durationMinutes: dur, personId: null, context: "", late: false, done: false, href: null, taskId: null,
+  });
+
+  it("garde l'amplitude par défaut quand tout y tient", () => {
+    expect(visibleHourRange([mtg(9, 0, 60)])).toEqual({ startHour: 6, endHour: 22 });
+    expect(visibleHourRange([])).toEqual({ startHour: 6, endHour: 22 });
+  });
+
+  it("descend pour une réunion matinale", () => {
+    // Sans cela, une réunion à 5 h n'existerait tout simplement plus dans cette vue.
+    expect(visibleHourRange([mtg(5, 30, 60)]).startHour).toBe(5);
+  });
+
+  it("monte pour une réunion tardive, fin arrondie à l'heure", () => {
+    expect(visibleHourRange([mtg(21, 0, 150)]).endHour).toBe(24); // 21 h + 2 h 30 → 23 h 30 → 24
+    expect(visibleHourRange([mtg(22, 30, 30)]).endHour).toBe(23);
+  });
+
+  it("ne rétrécit jamais sous l'amplitude par défaut", () => {
+    // La grille ne doit pas changer de taille d'une semaine à l'autre selon
+    // qu'elle est chargée ou non.
+    const r = visibleHourRange([mtg(10, 0, 60)]);
+    expect(r.startHour).toBe(6);
+    expect(r.endHour).toBe(22);
+  });
+
+  it("reste dans les bornes d'une journée", () => {
+    expect(visibleHourRange([mtg(0, 15, 30)]).startHour).toBe(0);
+    expect(visibleHourRange([mtg(23, 30, 120)]).endHour).toBe(24);
+  });
+
+  it("ignore les échéances sans heure", () => {
+    const tache: PlanEvent = {
+      id: "t", refId: "t", kind: "tache", title: "t", date: at(2026, 3, 12, 3, 0), timed: false,
+      durationMinutes: 0, personId: null, context: "", late: false, done: false, href: null, taskId: "t",
+    };
+    expect(visibleHourRange([tache]).startHour).toBe(6);
+  });
+
+  it("couvre le plus large des événements de la semaine", () => {
+    const r = visibleHourRange([mtg(5, 0, 30), mtg(9, 0, 60), mtg(21, 0, 120)]);
+    expect(r).toEqual({ startHour: 5, endHour: 23 });
   });
 });
