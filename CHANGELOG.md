@@ -6,6 +6,20 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.101.0] - 2026-08-12
+
+### Modifié
+
+- **Les listes de tâches prennent enfin de la présence.** Une tâche n'était qu'une ligne de texte : on ne la « voyait » pas. Chaque tâche est désormais une **carte** portant une bande de couleur selon sa priorité, et tout ce qu'il faut pour décider **sans l'ouvrir** — statut, personne assignée, projet, échéance (en rouge si dépassée), avancement des sous-tâches, temps passé sur estimé, repère de récurrence, et le **motif de blocage** affiché en clair quand la tâche est arrêtée.
+- **Trois présentations au choix**, sur les tâches d'équipe comme sur les tâches personnelles : **Liste** (cartes en colonnes), **Kanban** (par statut) et **Par personne** (regroupées, le plus chargé en tête). Le choix est immédiat, sans rechargement.
+- **Filtres et tri enrichis** sur les tâches d'équipe : recherche, **statut**, priorité, personne (dont « sans responsable »), **projet** (dont « hors projet »), période — et un **tri** par échéance, par priorité ou par date de création. Le nombre de tâches affichées est rappelé en titre.
+- **Mon espace** : la liste « Mes tâches » adopte les mêmes cartes et le même sélecteur de présentation.
+
+### Note technique
+
+- Les listes de tâches passent par un composant partagé (`components/TaskList.tsx`) : Productivité et Mon espace affichent exactement la même chose, et une évolution ne se fait qu'à un seul endroit.
+
+
 ## [1.100.0] - 2026-08-12
 
 ### Ajouté

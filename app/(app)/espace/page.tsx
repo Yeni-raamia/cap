@@ -18,11 +18,12 @@ import {
   ShieldAlert,
   Sparkles,
 } from "lucide-react";
-import { fmt, fmtLong, greeting, isTaskLate, isTaskOpen, projectMetrics, subtaskProgress, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
+import { fmt, fmtLong, greeting, isTaskLate, isTaskOpen, projectMetrics, TASK_STATUTS, type TaskStatus } from "@/lib/domain";
 import { DEFAULT_PERIOD, matchesPeriod, type PeriodFilter as Period } from "@/lib/period";
 import { useApp } from "@/components/app-context";
 import { NewTaskForm } from "@/components/NewTaskForm";
 import { QuickCreateModal } from "@/components/QuickCreateModal";
+import { TaskList, TaskViewSwitch, type TaskView } from "@/components/TaskList";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { Card } from "@/components/atoms";
 import { CountUp, Sparkline } from "@/components/dataviz";
@@ -59,8 +60,9 @@ function Section({
 }
 
 export default function MonEspacePage() {
-  const { items, now, me, scores, rs, projects, negligences, conversations, tasks, taskAction, projectTask, setShowNew, setOpenTaskId } = useApp();
+  const { items, now, me, scores, rs, projects, negligences, conversations, tasks, projectTask, setShowNew, setOpenTaskId } = useApp();
   const [taskPeriod, setTaskPeriod] = useState<Period>(DEFAULT_PERIOD);
+  const [taskView, setTaskView] = useState<TaskView>("liste");
   const [taskErr, setTaskErr] = useState<string | null>(null);
   const taskInputRef = useRef<HTMLInputElement>(null);
   const [quickCreate, setQuickCreate] = useState(false);
@@ -188,38 +190,24 @@ export default function MonEspacePage() {
             <NewTaskForm canAssignOthers={canAssignOthers} inputRef={taskInputRef} onCreate={run} />
           </div>
           {taskErr && <div className="mb-2 text-[12px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{taskErr}</div>}
-          {myAssignedTasks.length > 0 && <PeriodFilter value={taskPeriod} onChange={setTaskPeriod} compact className="mb-2" />}
-          {myAssignedTasks.length === 0 ? (
-            <div className="text-[12px] text-slate-400 text-center py-2">Aucune tâche. Ajoute-en une ou attends une assignation.</div>
-          ) : visibleTasks.length === 0 ? (
-            <div className="text-[12px] text-slate-400 text-center py-2">Aucune tâche sur cette période.</div>
-          ) : (
-            <div className="divide-y divide-slate-50">
-              {visibleTasks.map((t) => {
-                const late = t.status !== "fait" && t.dueDate && t.dueDate.getTime() < now.getTime();
-                const proj = t.projectId ? projects.find((p) => p.id === t.projectId) : null;
-                const prog = subtaskProgress(t);
-                return (
-                  <div key={t.id} className="flex items-center gap-2 py-1.5">
-                    <CheckSquare size={14} className={t.status === "fait" ? "text-emerald-500" : "text-slate-300"} />
-                    <button onClick={() => setOpenTaskId(t.id)} className={`flex-1 text-left text-[13px] ${t.status === "fait" ? "text-slate-400 line-through" : "text-slate-800"} truncate hover:text-violet-700`}>
-                      {t.title}
-                      {proj && <span className="text-[11px] text-emerald-700"> · {proj.name}</span>}
-                      {prog.total > 0 && <span className="text-[11px] text-violet-600"> · ☑ {prog.done}/{prog.total}</span>}
-                    </button>
-                    {t.dueDate && <span className={`text-[11px] ${late ? "text-rose-600 font-medium" : "text-slate-400"}`}>{fmt(t.dueDate)}</span>}
-                    <select
-                      value={t.status}
-                      onChange={(e) => taskAction("update", { id: t.id, status: e.target.value as TaskStatus })}
-                      aria-label="Statut de la tâche"
-                      className="text-[11px] border border-slate-200 rounded px-1 py-0.5"
-                    >
-                      {TASK_STATUTS.map((s) => <option key={s}>{s}</option>)}
-                    </select>
-                  </div>
-                );
-              })}
+          {myAssignedTasks.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              <PeriodFilter value={taskPeriod} onChange={setTaskPeriod} compact />
+              <span className="ml-auto"><TaskViewSwitch value={taskView} onChange={setTaskView} /></span>
             </div>
+          )}
+          {myAssignedTasks.length === 0 ? (
+            <div className="text-[12.5px] text-slate-400 text-center py-4">
+              Aucune tâche pour l&apos;instant. Ajoutez-en une, ou attendez qu&apos;on vous en assigne.
+            </div>
+          ) : (
+            <TaskList
+              tasks={visibleTasks}
+              view={taskView}
+              onOpen={setOpenTaskId}
+              showAssignee={false}
+              emptyLabel="Aucune tâche sur cette période."
+            />
           )}
         </Card>
       </Section>

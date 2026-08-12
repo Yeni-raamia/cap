@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Activity, CheckSquare, Flame, Gauge, Repeat, TrendingUp, X } from "lucide-react";
+import { Activity, CheckSquare, Flame, Gauge, TrendingUp, X } from "lucide-react";
 import {
   fmt,
   isPublished,
@@ -24,6 +24,7 @@ import { PeriodFilter } from "@/components/PeriodFilter";
 import { ProfilRadar } from "@/components/ProfilRadar";
 import { NewTaskForm } from "@/components/NewTaskForm";
 import { ChargeTab } from "@/components/ChargeTab";
+import { TaskList, TaskViewSwitch, type TaskView } from "@/components/TaskList";
 import { RecurrencesPanel } from "@/components/RecurrencesPanel";
 import { ReportsDigest } from "@/components/ReportsDigest";
 
@@ -79,10 +80,15 @@ function ProductiviteInner() {
   const [filterMember, setFilterMember] = useState<string>("");
   const [boardQuery, setBoardQuery] = useState("");
   const [filterPrio, setFilterPrio] = useState<string>("");
+  const [filterStatut, setFilterStatut] = useState<string>("");
+  const [filterProjet, setFilterProjet] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("echeance");
+  const [taskView, setTaskView] = useState<TaskView>("liste");
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   const [err, setErr] = useState<string | null>(null);
 
   const canAssignOthers = ["manager", "directeur", "admin"].includes(me.role);
+  const selectCls = "text-[12px] border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-900";
   const activeProfiles = profiles.filter((p) => p.id);
 
   const run = async (p: Promise<string | null>) => {
@@ -123,13 +129,24 @@ function ProductiviteInner() {
   const boardQ = boardQuery.trim().toLowerCase();
   // Le filtre de période porte sur l'échéance ; « en retard » réutilise la
   // définition métier (non terminée + échéance dépassée).
-  const boardTasks = tasks.filter(
-    (t) =>
-      (!filterMember || t.assigneeId === filterMember) &&
-      (!filterPrio || t.priority === filterPrio) &&
-      matchesPeriod(t.dueDate, isTaskLate(t, now), period, now) &&
-      (!boardQ || t.title.toLowerCase().includes(boardQ) || t.description.toLowerCase().includes(boardQ))
-  );
+  const PRIO_RANK: Record<string, number> = { Urgente: 0, Haute: 1, Normale: 2, Basse: 3 };
+  const boardTasks = tasks
+    .filter(
+      (t) =>
+        (!filterMember || (filterMember === "__none" ? !t.assigneeId : t.assigneeId === filterMember)) &&
+        (!filterPrio || t.priority === filterPrio) &&
+        (!filterStatut || t.status === filterStatut) &&
+        (!filterProjet || (filterProjet === "__none" ? !t.projectId : t.projectId === filterProjet)) &&
+        matchesPeriod(t.dueDate, isTaskLate(t, now), period, now) &&
+        (!boardQ || t.title.toLowerCase().includes(boardQ) || t.description.toLowerCase().includes(boardQ))
+    )
+    .slice()
+    .sort((a, b) => {
+      if (sortBy === "priorite") return PRIO_RANK[a.priority] - PRIO_RANK[b.priority];
+      if (sortBy === "recent") return b.createdAt.getTime() - a.createdAt.getTime();
+      // Par échéance : les datées d'abord, la plus proche en tête.
+      return (a.dueDate?.getTime() ?? Infinity) - (b.dueDate?.getTime() ?? Infinity);
+    });
 
   const selProfile = selected ? profileById(selected) : null;
   const selTasks = selected ? tasks.filter((t) => t.assigneeId === selected) : [];
@@ -321,92 +338,64 @@ function ProductiviteInner() {
         </>
       )}
 
-      {/* Tableau des tâches (Kanban par statut) */}
+      {/* Tâches de l'équipe */}
       {active === "taches" && (
-      <div>
-        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-          <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">
-            Tâches de l&apos;équipe
-            {isPeriodActive(period) && (
-              <span className="ml-2 normal-case font-medium text-[11.5px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
-                {periodLabel(period, now)} · {boardTasks.length}
-              </span>
-            )}
-          </h2>
-          <div className="flex items-center gap-2 flex-wrap">
-            <input
-              value={boardQuery}
-              onChange={(e) => setBoardQuery(e.target.value)}
-              placeholder="Rechercher…"
-              className="text-[12px] border border-slate-200 rounded-lg px-2.5 py-1 w-36 focus:border-emerald-400 outline-none"
-            />
-            <select
-              value={filterPrio}
-              onChange={(e) => setFilterPrio(e.target.value)}
-              aria-label="Filtrer par priorité"
-              className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white"
-            >
-              <option value="">Toute priorité</option>
-              {TASK_PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-            <select
-              value={filterMember}
-              onChange={(e) => setFilterMember(e.target.value)}
-              aria-label="Filtrer par personne"
-              className="text-[12px] border border-slate-200 rounded-lg px-2 py-1 bg-white"
-            >
-              <option value="">Toute l&apos;équipe</option>
-              {activeProfiles.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
-            </select>
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <h2 className="text-[13px] font-semibold text-slate-700 uppercase tracking-wide">
+              Tâches de l&apos;équipe
+              <span className="ml-2 normal-case font-medium text-[11.5px] text-slate-500">{boardTasks.length} affichée{boardTasks.length > 1 ? "s" : ""}</span>
+              {isPeriodActive(period) && (
+                <span className="ml-2 normal-case font-medium text-[11.5px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                  {periodLabel(period, now)}
+                </span>
+              )}
+            </h2>
+            <TaskViewSwitch value={taskView} onChange={setTaskView} />
           </div>
+
+          <Card className="p-2.5 mb-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <input
+                value={boardQuery}
+                onChange={(e) => setBoardQuery(e.target.value)}
+                placeholder="Rechercher une tâche…"
+                className="text-[12.5px] border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 flex-1 min-w-[10rem] bg-white dark:bg-slate-900 focus:border-emerald-400 outline-none"
+              />
+              <select value={filterStatut} onChange={(e) => setFilterStatut(e.target.value)} aria-label="Filtrer par statut" className={selectCls}>
+                <option value="">Tous statuts</option>
+                {TASK_STATUTS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select value={filterPrio} onChange={(e) => setFilterPrio(e.target.value)} aria-label="Filtrer par priorité" className={selectCls}>
+                <option value="">Toute priorité</option>
+                {TASK_PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <select value={filterMember} onChange={(e) => setFilterMember(e.target.value)} aria-label="Filtrer par personne" className={selectCls}>
+                <option value="">Toute l&apos;équipe</option>
+                <option value="__none">Sans responsable</option>
+                {activeProfiles.map((p) => <option key={p.id} value={p.id}>{p.nom}</option>)}
+              </select>
+              <select value={filterProjet} onChange={(e) => setFilterProjet(e.target.value)} aria-label="Filtrer par projet" className={selectCls}>
+                <option value="">Tous projets</option>
+                <option value="__none">Hors projet</option>
+                {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Trier" className={selectCls}>
+                <option value="echeance">Par échéance</option>
+                <option value="priorite">Par priorité</option>
+                <option value="recent">Plus récentes</option>
+              </select>
+            </div>
+            <PeriodFilter value={period} onChange={setPeriod} className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800" />
+          </Card>
+
+          <TaskList
+            tasks={boardTasks}
+            view={taskView}
+            onOpen={setOpenTaskId}
+            emptyLabel="Aucune tâche ne correspond aux filtres."
+          />
         </div>
-        <PeriodFilter value={period} onChange={setPeriod} className="mb-2" />
-        <div className="grid md:grid-cols-4 gap-3">
-          {TASK_STATUTS.map((st) => {
-            const col = boardTasks.filter((t) => t.status === st);
-            return (
-              <div key={st} className="bg-slate-50 rounded-xl p-2">
-                <div className="flex items-center justify-between px-1 pb-2">
-                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${STATUS_STYLE[st]}`}>{st}</span>
-                  <span className="text-[11px] text-slate-400">{col.length}</span>
-                </div>
-                <div className="space-y-2">
-                  {col.map((t) => {
-                    const who = t.assigneeId ? profileById(t.assigneeId) : null;
-                    const proj = t.projectId ? projects.find((p) => p.id === t.projectId) : null;
-                    const late = isTaskLate(t, now);
-                    const prog = subtaskProgress(t);
-                    return (
-                      <button
-                        key={t.id}
-                        onClick={() => setOpenTaskId(t.id)}
-                        className="w-full text-left bg-white rounded-lg border border-slate-100 p-2 shadow-sm hover:border-violet-200 hover:shadow transition"
-                      >
-                        <div className="flex items-start gap-1.5">
-                          {t.recurrenceId && <Repeat size={11} className="text-violet-500 mt-1 shrink-0" aria-label="Tâche récurrente" />}
-                          <span className="text-[13px] text-slate-800 flex-1">{t.title}</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded ${PRIORITY_STYLE[t.priority]}`}>{t.priority}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          {who && (
-                            <span className="flex items-center gap-1 text-[10px] text-slate-500">
-                              <Avatar init={who.init} size="h-4 w-4" /> {who.nom}
-                            </span>
-                          )}
-                          {proj && <span className="text-[10px] text-emerald-700">{proj.name}</span>}
-                          {prog.total > 0 && <span className="text-[10px] text-violet-600">☑ {prog.done}/{prog.total}</span>}
-                          {t.dueDate && <span className={`text-[10px] ${late ? "text-rose-600 font-medium" : "text-slate-400"}`}>{fmt(t.dueDate)}</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
-                  {col.length === 0 && <div className="text-[11px] text-slate-300 text-center py-2">—</div>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
       )}
     </div>
   );
