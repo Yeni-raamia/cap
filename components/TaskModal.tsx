@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CalendarClock, Check, Globe, ListTodo, Lock, Plus, Trash2, X } from "lucide-react";
+import { CalendarClock, Check, Globe, ListTodo, Lock, Plus, Repeat, Trash2, X } from "lucide-react";
 import {
   fmt,
   isTaskLate,
@@ -83,6 +83,11 @@ export function TaskModal() {
             )}
             <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400 flex-wrap">
               {author && <span>Créée par {author.nom}</span>}
+              {task.recurrenceId && (
+                <span title="Occurrence d'une tâche récurrente" className="inline-flex items-center gap-1 text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full">
+                  <Repeat size={10} /> Récurrente
+                </span>
+              )}
               {proj && <Link href={`/projets/${proj.id}`} onClick={close} className="text-emerald-700 hover:underline">· {proj.name}</Link>}
               {late && <span className="text-rose-600 font-medium bg-rose-50 px-1.5 py-0.5 rounded">En retard</span>}
               {task.published === false && (

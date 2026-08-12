@@ -30,6 +30,7 @@ try {
   console.log(
     `Rappels exécutés → ${data.relances} relance(s), ${data.escalades} escalade(s), ` +
       `${data.echeances ?? 0} échéance(s) planifiée(s), ${data.digests} digest(s), ` +
+      `${data.recurrences ?? 0} tâche(s) récurrente(s) engendrée(s), ` +
       `${data.emailsSent} e-mail(s)` +
       `${data.emailConfigured ? "" : " (e-mail non configuré : in-app uniquement)"}.`
   );

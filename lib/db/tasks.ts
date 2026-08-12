@@ -21,6 +21,8 @@ interface TaskRow {
   completed_at: string | null;
   created_at: string;
   published: number;
+  recurrence_id: string | null;
+  occurrence_date: string | null;
 }
 interface SubtaskRow {
   id: string;
@@ -53,6 +55,8 @@ function mapTask(r: TaskRow, subs: SubtaskRow[]): Task {
     createdAt: new Date(r.created_at),
     subtasks: subs.filter((s) => s.task_id === r.id).map(mapSubtask),
     published: r.published !== 0,
+    recurrenceId: r.recurrence_id ?? null,
+    occurrenceDate: r.occurrence_date ?? null,
   };
 }
 

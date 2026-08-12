@@ -73,7 +73,8 @@ create table if not exists tasks (
   assignee_id text, created_by text, project_id text,
   status text not null default 'à faire', priority text not null default 'Normale',
   start_date text, due_date text, completed_at text, created_at text not null default (datetime('now')),
-  published integer not null default 1
+  published integer not null default 1,
+  recurrence_id text, occurrence_date text
 );
 create index if not exists idx_tasks_assignee on tasks(assignee_id);
 create index if not exists idx_tasks_project2 on tasks(project_id);
@@ -83,6 +84,20 @@ create table if not exists task_subtasks (
   created_at text not null default (datetime('now'))
 );
 create index if not exists idx_subtasks_task on task_subtasks(task_id);
+create table if not exists task_recurrences (
+  id text primary key, title text not null, description text not null default '',
+  priority text not null default 'Normale', project_id text,
+  frequency text not null default 'quotidien', weekdays text not null default '[]',
+  month_day integer not null default 1, interval_days integer not null default 1,
+  assign_mode text not null default 'libre', assignee_id text,
+  rotation_ids text not null default '[]', rotation_index integer not null default 0,
+  due_offset_days integer not null default 0,
+  start_date text not null, end_date text, max_occurrences integer,
+  active integer not null default 1, last_run_on text, occurrences_count integer not null default 0,
+  created_by text, created_at text not null default (datetime('now')),
+  updated_at text not null default (datetime('now'))
+);
+create index if not exists idx_recur_active on task_recurrences(active);
 create table if not exists project_closure_requests (
   id text primary key, project_id text not null, requested_by text,
   summary text not null default '', deliverables text not null default '[]',
@@ -654,6 +669,13 @@ function ensureColumns(db: Database.Database) {
   if (tkcols.length > 0 && !tkcols.includes("published")) {
     db.exec("alter table tasks add column published integer not null default 1");
   }
+  // Tâches engendrées par un gabarit récurrent : lien vers la série + jour d'occurrence.
+  if (tkcols.length > 0 && !tkcols.includes("recurrence_id")) {
+    db.exec("alter table tasks add column recurrence_id text");
+    db.exec("alter table tasks add column occurrence_date text");
+  }
+  // L'index vit ici (et non dans SCHEMA) : la colonne n'existe qu'après la migration ci-dessus.
+  db.exec("create index if not exists idx_tasks_recurrence on tasks(recurrence_id)");
   // Tâches de projet : auteur de la proposition à l'origine (Lot 3), le cas échéant.
   const ptcols = (db.prepare("pragma table_info(project_tasks)").all() as { name: string }[]).map((c) => c.name);
   if (ptcols.length > 0 && !ptcols.includes("proposed_by")) {

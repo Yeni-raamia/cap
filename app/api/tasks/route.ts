@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
 import { createTask, deleteTask, getTask, listTasks, publishTask, updateTask } from "@/lib/db/tasks";
+import { generateDueTasks } from "@/lib/db/recurrences";
 import { insertNotification } from "@/lib/db/repo";
 import { logActivity } from "@/lib/db/admin";
 import { TASK_PRIORITIES, TASK_STATUTS, type TaskPriority, type TaskStatus } from "@/lib/domain";
@@ -20,6 +21,9 @@ const canAssignOthers = (role: string) => ["manager", "directeur", "admin"].incl
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
+  // Rattrapage paresseux : sans cron actif, les occurrences du jour naissent
+  // à la première lecture des tâches. L'opération est idempotente.
+  generateDueTasks();
   return NextResponse.json({ tasks: listTasks(user.id) });
 }
 

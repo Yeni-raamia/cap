@@ -6,6 +6,23 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.88.0] - 2026-08-12
+
+### Ajouté
+
+- **Tâches récurrentes** (section « Tâches récurrentes » de la page Productivité) : un **gabarit** décrit un travail à refaire, et engendre **de vraies tâches**, une par occurrence. Chaque occurrence a son statut, son responsable et son historique — la productivité et les statistiques restent donc justes (un gabarit qui se recocherait indéfiniment les aurait faussées).
+  - **Rythmes** : chaque jour · jours ouvrés (lundi→vendredi) · certains jours de la semaine · un jour fixe du mois (le 31 se replie sur le dernier jour des mois plus courts) · tous les N jours.
+  - **Attribution, au choix de chaque gabarit** : **toujours la même personne**, **à tour de rôle** (les personnes choisies se relaient, une occurrence chacune, façon astreinte), ou **à prendre** (l'occurrence naît sans responsable et s'attribue ensuite).
+  - **Bornes** : date de première occurrence, fin facultative, nombre maximal d'occurrences, échéance décalée de N jours après le jour d'occurrence, priorité et projet de rattachement.
+  - **Suspendre / réactiver** une série sans la supprimer. Supprimer un gabarit **conserve les occurrences déjà créées** (c'est du travail réel, parfois déjà fait) en les détachant simplement de la série.
+  - Les occurrences naissent le jour prévu — à l'ouverture de l'application ou au passage des rappels (`npm run reminders`) — et la personne assignée est notifiée. L'opération est **idempotente** : ouvrir l'application dix fois dans la journée ne crée pas dix tâches.
+  - **Rattrapage plafonné à 14 jours** : après une longue interruption, on ne recrée pas des semaines de tâches quotidiennes périmées.
+  - Les tâches issues d'une série portent un repère ↻ sur le tableau et un badge « Récurrente » dans leur fiche.
+
+### Note technique
+
+- Nouveau module `lib/recurrence.ts` (calendrier des séries, sans accès base) couvert par 29 tests, et `lib/db/recurrences.ts` (dépôt + moteur de génération) couvert par 4 tests d'intégration sur une base SQLite jetable. Nouvelle table `task_recurrences`, colonnes `recurrence_id` / `occurrence_date` sur `tasks` (migration automatique au démarrage). La génération est branchée sur le moteur de rappels et sur la lecture des tâches.
+
 ## [1.87.0] - 2026-08-12
 
 ### Ajouté

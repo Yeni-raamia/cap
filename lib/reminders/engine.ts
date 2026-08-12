@@ -9,6 +9,7 @@
  * ================================================================== */
 import { isOverDuration, isPublished, isTaskLate, reminderState } from "@/lib/domain";
 import { listTasks } from "@/lib/db/tasks";
+import { generateDueTasks } from "@/lib/db/recurrences";
 import { listProjects } from "@/lib/db/projects";
 import { listMeetings } from "@/lib/db/meetings";
 import {
@@ -32,6 +33,8 @@ export interface ReminderSummary {
   echeances: number;
   recaps: number;
   reunions: number;
+  /** Occurrences de tâches récurrentes engendrées lors de ce passage. */
+  recurrences: number;
   emailsSent: number;
   emailConfigured: boolean;
 }
@@ -40,6 +43,9 @@ export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<Re
   const now = new Date();
   // Les brouillons privés (non publiés) ne génèrent ni relance ni escalade vers le
   // directeur : seuls les éléments publiés sont « suivis » par le moteur.
+  // Les tâches récurrentes dues naissent avant tout le reste : leurs
+  // occurrences du jour entrent ainsi dans les rappels du même passage.
+  const recurrences = generateDueTasks(now).created;
   const items = listItems().filter(isPublished);
   const types = getCatalogue().types; // SLA depuis le catalogue (y compris types ajoutés)
   const targets = listEscalationTargets(); // directeurs (ou admins à défaut)
@@ -225,5 +231,5 @@ export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<Re
     `${relances} relance(s), ${escalades} escalade(s), ${echeances} échéance(s), ${digests} digest(s), ${recaps} récap(s), ${reunions} réunion(s), ${emailsSent} e-mail(s)`
   );
 
-  return { relances, escalades, digests, echeances, recaps, reunions, emailsSent, emailConfigured: emailOn };
+  return { relances, escalades, digests, echeances, recaps, reunions, recurrences, emailsSent, emailConfigured: emailOn };
 }

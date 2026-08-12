@@ -2369,6 +2369,81 @@ export interface Task {
   subtasks: Subtask[];
   /** Visibilité : `false` = privé (créateur seul), `true`/absent = publié (équipe). */
   published?: boolean;
+  /** Gabarit récurrent qui a engendré cette occurrence, le cas échéant. */
+  recurrenceId?: string | null;
+  /** Jour d'occurrence (`yyyy-mm-dd`) pour une tâche engendrée par un gabarit. */
+  occurrenceDate?: string | null;
+}
+
+/* ---------- Tâches récurrentes (gabarits) ----------
+ * Un gabarit ne se coche pas : il engendre, jour après jour, de vraies tâches
+ * indépendantes. Chaque occurrence a donc son statut, son responsable et son
+ * historique — la productivité et les statistiques restent justes. */
+export type RecurrenceFrequency = "quotidien" | "jours_ouvres" | "hebdomadaire" | "mensuel" | "personnalise";
+
+export const RECURRENCE_FREQUENCIES: { key: RecurrenceFrequency; label: string; hint: string }[] = [
+  { key: "quotidien", label: "Chaque jour", hint: "Une occurrence tous les jours, week-end compris" },
+  { key: "jours_ouvres", label: "Jours ouvrés", hint: "Du lundi au vendredi" },
+  { key: "hebdomadaire", label: "Certains jours", hint: "Les jours de la semaine que vous choisissez" },
+  { key: "mensuel", label: "Chaque mois", hint: "Un jour fixe du mois (le 1er, le 15…)" },
+  { key: "personnalise", label: "Tous les N jours", hint: "Un rythme personnalisé, à partir de la date de début" },
+];
+
+/** Comment chaque occurrence trouve son responsable. */
+export type RecurrenceAssignMode = "fixe" | "rotation" | "libre";
+
+export const RECURRENCE_ASSIGN_MODES: { key: RecurrenceAssignMode; label: string; hint: string }[] = [
+  { key: "fixe", label: "Toujours la même personne", hint: "Chaque occurrence est attribuée au responsable désigné" },
+  { key: "rotation", label: "À tour de rôle", hint: "Les personnes choisies se relaient, une occurrence chacune" },
+  { key: "libre", label: "À prendre", hint: "L'occurrence est créée sans responsable ; elle s'attribue ensuite" },
+];
+
+/** Jours de la semaine, du lundi (1) au dimanche (7) — convention ISO. */
+export const WEEKDAYS: { value: number; label: string; short: string }[] = [
+  { value: 1, label: "Lundi", short: "L" },
+  { value: 2, label: "Mardi", short: "M" },
+  { value: 3, label: "Mercredi", short: "M" },
+  { value: 4, label: "Jeudi", short: "J" },
+  { value: 5, label: "Vendredi", short: "V" },
+  { value: 6, label: "Samedi", short: "S" },
+  { value: 7, label: "Dimanche", short: "D" },
+];
+
+export interface TaskRecurrence {
+  id: string;
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  projectId: string | null;
+  frequency: RecurrenceFrequency;
+  /** Jours retenus (1–7) quand `frequency === "hebdomadaire"`. */
+  weekdays: number[];
+  /** Jour du mois (1–31) quand `frequency === "mensuel"` ; ajusté au dernier jour des mois courts. */
+  monthDay: number;
+  /** Intervalle en jours quand `frequency === "personnalise"`. */
+  intervalDays: number;
+  assignMode: RecurrenceAssignMode;
+  /** Responsable unique (mode « fixe »). */
+  assigneeId: string | null;
+  /** Personnes du roulement, dans l'ordre (mode « rotation »). */
+  rotationIds: string[];
+  /** Position courante dans le roulement. */
+  rotationIndex: number;
+  /** Décalage de l'échéance par rapport au jour d'occurrence (0 = le jour même). */
+  dueOffsetDays: number;
+  /** Premier jour possible de la série. */
+  startDate: Date;
+  /** Dernier jour possible, ou null si la série est sans fin. */
+  endDate: Date | null;
+  /** Nombre maximal d'occurrences, ou null si illimité. */
+  maxOccurrences: number | null;
+  active: boolean;
+  /** Dernier jour d'occurrence engendré (`yyyy-mm-dd`), ou null si aucun. */
+  lastRunOn: string | null;
+  occurrencesCount: number;
+  createdBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /** Élément d'une checklist de sous-tâches. */

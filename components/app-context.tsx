@@ -105,6 +105,7 @@ import {
   type OnCallShift,
   type Supplier,
   type Task,
+  type TaskRecurrence,
   type TaskPriority,
   type TaskStatus,
   type TrainingCourse,
@@ -619,6 +620,14 @@ interface AppCtx {
   // Tâches (productivité)
   tasks: Task[];
   taskAction: (op: "create" | "update" | "delete", input: TaskInput) => Promise<string | null>;
+  // Tâches récurrentes (gabarits qui engendrent les occurrences)
+  recurrences: TaskRecurrence[];
+  /** Occurrences engendrées par gabarit : total et restant à faire. */
+  recurrenceCounts: Record<string, { total: number; open: number }>;
+  recurrenceAction: (
+    op: "create" | "update" | "toggle" | "delete" | "run",
+    input: Record<string, unknown>
+  ) => Promise<string | null>;
   // Plan de l'année (objectifs)
   objectives: Objective[];
   objectiveAction: (op: "create" | "update" | "downgrade" | "achieve" | "delete", input: Record<string, unknown>) => Promise<string | null>;
@@ -877,6 +886,14 @@ const reviveTask = (t: Task): Task => ({
   subtasks: t.subtasks ?? [],
 });
 const reviveTasks = (arr: Task[]): Task[] => arr.map(reviveTask);
+const reviveRecurrence = (r: TaskRecurrence): TaskRecurrence => ({
+  ...r,
+  startDate: new Date(r.startDate),
+  endDate: r.endDate ? new Date(r.endDate) : null,
+  createdAt: new Date(r.createdAt),
+  updatedAt: new Date(r.updatedAt),
+});
+const reviveRecurrences = (arr: TaskRecurrence[]): TaskRecurrence[] => arr.map(reviveRecurrence);
 const reviveObjective = (o: Objective): Objective => ({
   ...o,
   startDate: new Date(o.startDate),
@@ -1142,6 +1159,10 @@ export function AppProvider({
     demo ? seedProjects() : reviveProjects(initialProjects ?? [])
   );
   const [tasks, setTasks] = useState<Task[]>(demo ? [] : reviveTasks(initialTasks ?? []));
+  // Les gabarits récurrents sont peu nombreux : chargés à la volée au montage,
+  // sans passer par le rendu serveur.
+  const [recurrences, setRecurrences] = useState<TaskRecurrence[]>([]);
+  const [recurrenceCounts, setRecurrenceCounts] = useState<Record<string, { total: number; open: number }>>({});
   const [objectives, setObjectives] = useState<Objective[]>(demo ? seedObjectives() : reviveObjectives(initialObjectives ?? []));
   const [risks, setRisks] = useState<Risk[]>(demo ? seedRisks() : reviveRisks(initialRisks ?? []));
   const [policies, setPolicies] = useState<Policy[]>(demo ? seedPolicies() : revivePolicies(initialPolicies ?? []));
@@ -2200,6 +2221,42 @@ export function AppProvider({
     if (d.tasks) setTasks(reviveTasks(d.tasks));
     return null;
   };
+  /* ---------- Tâches récurrentes ---------- */
+  const applyRecurrencePayload = (d: {
+    recurrences?: TaskRecurrence[];
+    counts?: Record<string, { total: number; open: number }>;
+    tasks?: Task[];
+  }) => {
+    if (d.recurrences) setRecurrences(reviveRecurrences(d.recurrences));
+    if (d.counts) setRecurrenceCounts(d.counts);
+    if (d.tasks) setTasks(reviveTasks(d.tasks));
+  };
+  const refreshRecurrences = async () => {
+    if (demo) return;
+    try {
+      const r = await fetch("/api/tasks/recurrences", { cache: "no-store" });
+      if (!r.ok) return;
+      applyRecurrencePayload(await r.json());
+    } catch {
+      /* réseau : réessai au prochain chargement */
+    }
+  };
+  const recurrenceAction = async (
+    op: "create" | "update" | "toggle" | "delete" | "run",
+    input: Record<string, unknown>
+  ): Promise<string | null> => {
+    if (demo) return "Tâches indisponibles en mode démo.";
+    const res = await fetch("/api/tasks/recurrences", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ op, ...input }),
+    });
+    const d = await res.json();
+    if (!res.ok) return d.error ?? "Erreur.";
+    applyRecurrencePayload(d);
+    return null;
+  };
+
   const subtaskAction = async (op: "add" | "toggle" | "rename" | "delete", input: SubtaskInput): Promise<string | null> => {
     if (demo) return "Tâches indisponibles en mode démo.";
     const res = await fetch("/api/tasks/subtasks", {
@@ -2843,6 +2900,13 @@ export function AppProvider({
       .catch(() => {});
   };
 
+  // Chargement initial des gabarits récurrents (la lecture engendre aussi les
+  // occurrences du jour, côté serveur).
+  useEffect(() => {
+    refreshRecurrences();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo]);
+
   // Sondage périodique (pas de WebSocket sur le serveur local).
   useEffect(() => {
     if (demo) return;
@@ -2975,6 +3039,9 @@ export function AppProvider({
     decideProjectDeletion,
     tasks,
     taskAction,
+    recurrences,
+    recurrenceCounts,
+    recurrenceAction,
     subtaskAction,
     objectives,
     objectiveAction,

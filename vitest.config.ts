@@ -2,9 +2,11 @@ import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
 
 /**
- * Configuration Vitest — tests unitaires de la logique métier pure
- * (domaine, TOTP, user-agent, libellés d'audit). Aucun accès base ou
- * navigateur : environnement Node, alias `@/` aligné sur le tsconfig.
+ * Configuration Vitest — pour l'essentiel, des tests unitaires de logique
+ * métier pure (domaine, TOTP, user-agent, libellés d'audit, calendrier des
+ * récurrences), sans base ni navigateur. Quelques tests d'intégration
+ * ouvrent une base SQLite jetable via `DATABASE_PATH` (moteur de
+ * récurrence) : environnement Node, alias `@/` aligné sur le tsconfig.
  */
 export default defineConfig({
   resolve: {

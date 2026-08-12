@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Activity, CheckSquare, Flame, Gauge, Plus, TrendingUp, X } from "lucide-react";
+import { Activity, CheckSquare, Flame, Gauge, Plus, Repeat, TrendingUp, X } from "lucide-react";
 import {
   fmt,
   isPublished,
@@ -21,6 +21,7 @@ import { Ring } from "@/components/dataviz";
 import { PageHero } from "@/components/PageHero";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { ProfilRadar } from "@/components/ProfilRadar";
+import { RecurrencesPanel } from "@/components/RecurrencesPanel";
 
 const STATUS_STYLE: Record<TaskStatus, string> = {
   "à faire": "bg-slate-100 text-slate-600",
@@ -166,6 +167,9 @@ export default function ProductivitePage() {
 
       {/* Créer / assigner une tâche */}
       <NewTaskForm canAssignOthers={canAssignOthers} onCreate={run} />
+
+      {/* Séries récurrentes : gabarits qui engendrent les occurrences */}
+      <RecurrencesPanel />
 
       {/* Rendement par personne */}
       <div>
@@ -318,6 +322,7 @@ export default function ProductivitePage() {
                         className="w-full text-left bg-white rounded-lg border border-slate-100 p-2 shadow-sm hover:border-violet-200 hover:shadow transition"
                       >
                         <div className="flex items-start gap-1.5">
+                          {t.recurrenceId && <Repeat size={11} className="text-violet-500 mt-1 shrink-0" aria-label="Tâche récurrente" />}
                           <span className="text-[13px] text-slate-800 flex-1">{t.title}</span>
                           <span className={`text-[9px] px-1.5 py-0.5 rounded ${PRIORITY_STYLE[t.priority]}`}>{t.priority}</span>
                         </div>
