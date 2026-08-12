@@ -6,6 +6,19 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.104.0] - 2026-08-12
+
+### Ajouté
+
+- **GRC — statistiques de rediffusion des politiques.** L'onglet Politiques propose désormais deux vues : **Registre** (l'existant) et **Rediffusions**.
+  - **Repères** : total des rappels, nombre ce mois-ci, moyenne par politique en vigueur, et politiques **jamais rediffusées**.
+  - **Rythme sur 12 mois** : un histogramme du nombre de rappels par mois, pour voir si l'effort de diffusion se maintient ou s'essouffle.
+  - **Classement par politique** : les plus rappelées en tête, en **vert celles rappelées ce mois-ci**, en gris les autres — la couleur distingue l'effort passé de l'effort courant.
+  - **Répartition par canal** (e-mail, intranet, réunion, affichage…), en part du total.
+  - **Politiques à rappeler** : celles jamais rediffusées, ou sans rappel depuis plus de 60 jours. C'est le vrai signal — les moyennes ne disent pas ce qu'on a oublié.
+  - Les moyennes et le décompte « jamais rediffusée » ne portent que sur les politiques **en vigueur** : une politique retirée n'a pas vocation à être rappelée, la compter laisserait croire à un manquement.
+
+
 ## [1.103.0] - 2026-08-12
 
 ### Ajouté

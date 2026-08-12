@@ -10,6 +10,7 @@ import {
   publicationsInMonth,
   lastPublication,
   daysSinceLastPublication,
+  policyPublicationStats,
   buildRef,
   nextRefNumber,
   parseSubject,
@@ -356,5 +357,64 @@ describe("rediffusions de politique", () => {
     expect(daysSinceLastPublication([pub("2026-03-13")], NOW)).toBe(7);
     // Jamais rediffusée : on ne renvoie pas 0, qui se lirait « aujourd'hui ».
     expect(daysSinceLastPublication([], NOW)).toBeNull();
+  });
+});
+
+describe("policyPublicationStats", () => {
+  const NOW = new Date(2026, 7, 20); // 20 août 2026
+  const pub = (iso: string, channel = "E-mail") =>
+    ({ id: iso + channel, policyId: "p", publishedAt: new Date(iso), version: "", channel, audience: "", note: "", authorId: null, createdAt: new Date(iso) });
+  const pol = (id: string, title: string, status: string, pubs: ReturnType<typeof pub>[]) =>
+    ({ id, title, status, publications: pubs });
+
+  it("agrège le total et le mois en cours", () => {
+    const s = policyPublicationStats(
+      [pol("1", "Accès", "En vigueur", [pub("2026-08-03"), pub("2026-08-11"), pub("2026-07-02")])],
+      NOW
+    );
+    expect(s.total).toBe(3);
+    expect(s.ceMois).toBe(2);
+  });
+
+  it("ne compte que les politiques en vigueur pour « jamais rediffusée »", () => {
+    // Une politique retirée n'a pas vocation à être rappelée : la compter
+    // ferait croire à un manquement.
+    const s = policyPublicationStats(
+      [pol("1", "A", "En vigueur", []), pol("2", "B", "Retirée", []), pol("3", "C", "En vigueur", [pub("2026-08-01")])],
+      NOW
+    );
+    expect(s.jamais).toBe(1);
+    expect(s.moyenne).toBe(0.5); // (0 + 1) / 2 politiques en vigueur
+  });
+
+  it("construit une fenêtre mensuelle glissante, du plus ancien au plus récent", () => {
+    const s = policyPublicationStats([pol("1", "A", "En vigueur", [pub("2026-08-05"), pub("2026-06-05")])], NOW, 3);
+    expect(s.parMois.length).toBe(3);
+    expect(s.parMois.map((m) => m.count)).toEqual([1, 0, 1]); // juin, juillet, août
+    expect(s.parMois.at(-1)!.key).toBe("2026-08");
+  });
+
+  it("classe les politiques par nombre de rediffusions", () => {
+    const s = policyPublicationStats(
+      [pol("1", "Peu", "En vigueur", [pub("2026-08-01")]), pol("2", "Beaucoup", "En vigueur", [pub("2026-08-01"), pub("2026-08-02")])],
+      NOW
+    );
+    expect(s.parPolitique.map((p) => p.titre)).toEqual(["Beaucoup", "Peu"]);
+    expect(s.parPolitique[0].count).toBe(2);
+  });
+
+  it("répartit par canal et nomme les canaux manquants", () => {
+    const s = policyPublicationStats(
+      [pol("1", "A", "En vigueur", [pub("2026-08-01", "Réunion"), pub("2026-08-02", ""), pub("2026-08-03", "Réunion")])],
+      NOW
+    );
+    expect(s.parCanal[0]).toEqual({ canal: "Réunion", count: 2 });
+    expect(s.parCanal.find((c) => c.canal === "Non précisé")?.count).toBe(1);
+  });
+
+  it("ne divise pas par zéro sans politique en vigueur", () => {
+    const s = policyPublicationStats([], NOW);
+    expect(s.moyenne).toBe(0);
+    expect(s.total).toBe(0);
   });
 });

@@ -646,6 +646,80 @@ export function daysSinceLastPublication(pubs: PolicyPublication[], now: Date): 
   return Math.round((b.getTime() - a.getTime()) / 86400000);
 }
 
+/* ---------- Statistiques de rediffusion ---------- */
+
+export interface PolicyPublicationStats {
+  total: number;
+  ceMois: number;
+  /** Politiques en vigueur n'ayant jamais été rediffusées. */
+  jamais: number;
+  /** Moyenne de rediffusions par politique en vigueur (1 décimale). */
+  moyenne: number;
+  /** Rediffusions par mois, du plus ancien au plus récent. */
+  parMois: { key: string; label: string; count: number }[];
+  /** Politiques les plus rediffusées, décroissant. */
+  parPolitique: { id: string; titre: string; count: number; ceMois: number; jours: number | null }[];
+  /** Répartition par canal, décroissant. */
+  parCanal: { canal: string; count: number }[];
+}
+
+/**
+ * Agrège les rediffusions de tout le corpus de politiques.
+ *
+ * `mois` fixe la profondeur de l'historique mensuel. On ne compte que les
+ * politiques **en vigueur** dans les moyennes et le « jamais rediffusée » :
+ * un texte retiré n'a pas vocation à être rappelé.
+ */
+export function policyPublicationStats(
+  policies: { id: string; title: string; status: string; publications: PolicyPublication[] }[],
+  now: Date,
+  mois = 12
+): PolicyPublicationStats {
+  const enVigueur = policies.filter((p) => p.status === "En vigueur");
+  const toutes = policies.flatMap((p) => p.publications);
+
+  // Fenêtre mensuelle glissante, du plus ancien au plus récent.
+  const parMois = Array.from({ length: mois }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (mois - 1 - i), 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return {
+      key,
+      label: d.toLocaleDateString("fr-FR", { month: "short" }),
+      count: toutes.filter(
+        (x) => x.publishedAt.getFullYear() === d.getFullYear() && x.publishedAt.getMonth() === d.getMonth()
+      ).length,
+    };
+  });
+
+  const parPolitique = policies
+    .map((p) => ({
+      id: p.id,
+      titre: p.title,
+      count: p.publications.length,
+      ceMois: publicationsInMonth(p.publications, now).length,
+      jours: daysSinceLastPublication(p.publications, now),
+    }))
+    .sort((a, b) => b.count - a.count || a.titre.localeCompare(b.titre));
+
+  const canaux = new Map<string, number>();
+  toutes.forEach((x) => {
+    const c = x.channel || "Non précisé";
+    canaux.set(c, (canaux.get(c) ?? 0) + 1);
+  });
+
+  return {
+    total: toutes.length,
+    ceMois: publicationsInMonth(toutes, now).length,
+    jamais: enVigueur.filter((p) => p.publications.length === 0).length,
+    moyenne: enVigueur.length
+      ? Math.round((enVigueur.reduce((n, p) => n + p.publications.length, 0) / enVigueur.length) * 10) / 10
+      : 0,
+    parMois,
+    parPolitique,
+    parCanal: [...canaux.entries()].map(([canal, count]) => ({ canal, count })).sort((a, b) => b.count - a.count),
+  };
+}
+
 export interface PolicyDiffusion {
   id: string;
   policyId: string;

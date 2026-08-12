@@ -18,8 +18,9 @@ import { Truck } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { PolicyModal } from "@/components/PolicyModal";
 import { PolicyTrackingModal } from "@/components/PolicyTrackingModal";
-import { PolitiquesStats } from "@/components/grc/PolitiquesStats";
+import { PolitiquesRediffusionsStats } from "@/components/grc/PolitiquesRediffusionsStats";
 import { PolitiquesParDirection } from "@/components/grc/PolitiquesParDirection";
+import { PolitiquesStats } from "@/components/grc/PolitiquesStats";
 import { PolitiquesRapportPdf } from "@/components/grc/PolitiquesRapportPdf";
 
 const statusTone: Record<string, string> = {
@@ -31,6 +32,7 @@ const statusTone: Record<string, string> = {
 
 export function PolitiquesTab() {
   const { policies, now, profileById, readOnly } = useApp();
+  const [vue, setVue] = useState<"registre" | "rediffusions">("registre");
   const [search, setSearch] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [fDomain, setFDomain] = useState("");
@@ -59,6 +61,11 @@ export function PolitiquesTab() {
   const tracking = trackId ? policies.find((p) => p.id === trackId) ?? null : null;
   const canCreate = !readOnly;
 
+  const VUES: { id: "registre" | "rediffusions"; label: string }[] = [
+    { id: "registre", label: "Registre" },
+    { id: "rediffusions", label: "Rediffusions" },
+  ];
+
   return (
     <div className="space-y-5">
       <GrcTabHeader
@@ -76,6 +83,25 @@ export function PolitiquesTab() {
         }
       />
 
+      <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 text-[12px] bg-white dark:bg-slate-900">
+        {VUES.map((v) => (
+          <button
+            key={v.id}
+            onClick={() => setVue(v.id)}
+            aria-pressed={vue === v.id}
+            className={`px-3 py-1.5 rounded-md font-medium transition ${
+              vue === v.id ? "bg-emerald-600 text-white" : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {vue === "rediffusions" ? (
+        <PolitiquesRediffusionsStats />
+      ) : (
+      <>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Kpi label="Politiques" value={`${kpi.total}`} tone="text-slate-700" />
         <Kpi label="En vigueur" value={`${kpi.enVigueur}`} tone="text-emerald-600" />
@@ -161,6 +187,8 @@ export function PolitiquesTab() {
             );
           })}
         </div>
+      )}
+      </>
       )}
 
       {(creating || editing) && (
