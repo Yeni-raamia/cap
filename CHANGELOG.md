@@ -6,6 +6,22 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.105.0] - 2026-08-12
+
+### Ajouté
+
+- **Mesure d'adoption de l'application** (Statistiques → « Adoption de l'outil ») : répond à « l'outil est-il adopté ? », **sans surveiller les personnes**.
+  - **Personnes actives** sur 7 et 30 jours, nombre de comptes, **taux d'adoption**, courbe des personnes actives par jour, **heures d'affluence** (jour de semaine × heure) et **pages les plus utilisées**.
+  - **Volontairement non nominative** : la sortie ne contient que des comptages de personnes distinctes, jamais de temps individuel ni d'identifiant. Réservée aux rôles de pilotage (manager, directeur, admin, DSI) ; un agent reçoit un refus.
+  - **Seule l'activité réelle compte** : le marquage n'a lieu que si la personne a interagi (clic, touche, molette, toucher) dans les deux minutes. Un onglet laissé ouvert en réunion ne gonfle pas la mesure.
+  - **Conservation limitée à 90 jours** : les marques brutes, nécessaires uniquement pour dédoublonner, sont purgées automatiquement à chaque passage des rappels.
+  - Aucune reconstitution rétroactive : la collecte démarre au déploiement, l'écran le dit explicitement tant qu'il n'y a rien à montrer.
+
+### Note technique
+
+- `lib/db/usage.ts` couvert par 8 tests (déduplication du battement, séries continues avec jours creux à zéro, répartition horaire lundi en tête, purge). Table `usage_marks`, à clé composite (jour, heure, personne, page), qui rend le battement idempotent — sans quoi un sondage toutes les 20 secondes pèserait 180 fois par heure et par personne.
+
+
 ## [1.104.0] - 2026-08-12
 
 ### Ajouté

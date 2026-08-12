@@ -532,6 +532,16 @@ create table if not exists conversation_mutes (
   conversation_id text not null, profile_id text not null,
   primary key (conversation_id, profile_id)
 );
+/* Marques d'usage : une ligne par personne, jour, heure et page — le
+   temps d'agréger. Elles servent uniquement à compter des personnes
+   DISTINCTES ; rien d'individuel n'est exposé, et une purge les efface
+   passé la durée de conservation. */
+create table if not exists usage_marks (
+  day text not null, hour integer not null, profile_id text not null,
+  page text not null default '',
+  primary key (day, hour, profile_id, page)
+);
+create index if not exists idx_usage_day on usage_marks(day);
 create table if not exists presence (
   profile_id text primary key, last_seen_at text not null default (datetime('now'))
 );

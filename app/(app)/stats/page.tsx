@@ -40,6 +40,7 @@ import { BarChart3, Columns2, GripVertical, Plus, RectangleHorizontal, RotateCcw
 type BlockSize = "full" | "half";
 type LayoutItem = { id: string; size: BlockSize };
 import { useApp } from "@/components/app-context";
+import { AdoptionPanel } from "@/components/AdoptionPanel";
 import { PageHero } from "@/components/PageHero";
 import { RapportPdf } from "@/components/RapportPdf";
 import { ExportSuivis } from "@/components/ExportSuivis";
@@ -121,6 +122,7 @@ function SortableBlock({
 }
 
 export default function StatsPage() {
+  const [vue, setVue] = useState<"dashboard" | "adoption">("dashboard");
   const { items: allItems, profiles, catalogue, now, projects: allProjects, theme, negligences, nonConformites, me } = useApp();
   // Statistiques d'équipe : sur les éléments publiés uniquement.
   const items = useMemo(() => allItems.filter(isPublished), [allItems]);
@@ -783,13 +785,33 @@ export default function StatsPage() {
         }
       />
 
-      {customize && (
+      <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 text-[12px] bg-white dark:bg-slate-900">
+        {[
+          { id: "dashboard" as const, label: "Tableau de bord" },
+          { id: "adoption" as const, label: "Adoption de l'outil" },
+        ].map((v) => (
+          <button
+            key={v.id}
+            onClick={() => setVue(v.id)}
+            aria-pressed={vue === v.id}
+            className={`px-3 py-1.5 rounded-md font-medium transition ${
+              vue === v.id ? "bg-emerald-600 text-white" : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {vue === "adoption" && <AdoptionPanel />}
+
+      {vue === "dashboard" && customize && (
         <div className="text-[12px] text-slate-500 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
           Glisse un bloc (n&apos;importe où dessus) pour le déplacer. L&apos;icône <Columns2 size={12} className="inline align-text-bottom" /> le passe en demi-largeur (deux par ligne), la croix le retire. Menu pour en (r)ajouter. Disposition enregistrée sur cet appareil.
         </div>
       )}
 
-      {layout.length === 0 ? (
+      {vue === "dashboard" && (layout.length === 0 ? (
         <div className={`${box} text-center text-[13px] text-slate-400 py-10`}>
           Aucun bloc affiché. Ajoute-en via « Personnaliser ».
         </div>
@@ -831,7 +853,7 @@ export default function StatsPage() {
             ) : null}
           </DragOverlay>
         </DndContext>
-      )}
+      ))}
     </div>
   );
 }

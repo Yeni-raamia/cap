@@ -2931,12 +2931,14 @@ export function AppProvider({
     convId?: string | null,
     typing = false
   ): Promise<{ onlineIds: string[]; memberIds: string[]; typing: string[]; reads: Record<string, string> }> => {
+    // Activité réelle : interaction dans les deux dernières minutes.
+    const active = Date.now() - lastInteractionRef.current < 2 * 60 * 1000;
     const empty = { onlineIds: [] as string[], memberIds: [] as string[], typing: [] as string[], reads: {} as Record<string, string> };
     if (demo) return empty;
     const r = await fetch("/api/presence", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ convId: convId ?? null, typing }),
+      body: JSON.stringify({ convId: convId ?? null, typing, active, page: typeof window !== "undefined" ? window.location.pathname : "" }),
     }).catch(() => null);
     if (!r || !r.ok) return empty;
     const d = await r.json().catch(() => empty);
@@ -3025,6 +3027,20 @@ export function AppProvider({
       })
       .catch(() => {});
   };
+
+  /* Dernière interaction réelle de la personne. Sert à ne mesurer l'adoption
+   * que lorsqu'on se sert vraiment de l'application : un onglet ouvert et
+   * abandonné ne doit pas compter comme un usage. */
+  const lastInteractionRef = useRef<number>(Date.now());
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const touch = () => {
+      lastInteractionRef.current = Date.now();
+    };
+    const events = ["pointerdown", "keydown", "wheel", "touchstart"] as const;
+    events.forEach((e) => window.addEventListener(e, touch, { passive: true }));
+    return () => events.forEach((e) => window.removeEventListener(e, touch));
+  }, []);
 
   // Chargement initial des gabarits récurrents (la lecture engendre aussi les
   // occurrences du jour, côté serveur).

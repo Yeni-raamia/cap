@@ -10,6 +10,7 @@
 import { isOverDuration, isPublished, isTaskLate, reminderState } from "@/lib/domain";
 import { listTasks } from "@/lib/db/tasks";
 import { generateDueTasks } from "@/lib/db/recurrences";
+import { purgeUsageMarks } from "@/lib/db/usage";
 import { listProjects } from "@/lib/db/projects";
 import { listMeetings } from "@/lib/db/meetings";
 import {
@@ -46,6 +47,8 @@ export async function runReminders(opts?: { forceWeekly?: boolean }): Promise<Re
   // Les tâches récurrentes dues naissent avant tout le reste : leurs
   // occurrences du jour entrent ainsi dans les rappels du même passage.
   const recurrences = generateDueTasks(now).created;
+  // Conservation limitée des marques d'usage : purge quotidienne.
+  purgeUsageMarks(now);
   const items = listItems().filter(isPublished);
   const types = getCatalogue().types; // SLA depuis le catalogue (y compris types ajoutés)
   const targets = listEscalationTargets(); // directeurs (ou admins à défaut)

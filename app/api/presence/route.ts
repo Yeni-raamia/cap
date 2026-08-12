@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { canAccessConversation, markRead, memberIds } from "@/lib/db/messaging";
+import { markUsage } from "@/lib/db/usage";
 import { conversationReadMap, onlineUserIds, setTyping, touchPresence, typingUserIds } from "@/lib/db/presence";
 
 export async function POST(request: Request) {
@@ -15,6 +16,13 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const convId: string | null = typeof body?.convId === "string" && body.convId ? body.convId : null;
   const typing = Boolean(body?.typing);
+
+  /* Mesure d'adoption : on ne marque que si la personne a réellement interagi
+   * récemment. Un onglet ouvert sans personne devant ne compte pas — sinon
+   * la mesure dirait « présent » pour une journée de réunion. */
+  if (body?.active === true) {
+    markUsage(user.id, typeof body?.page === "string" ? body.page : "");
+  }
 
   let members: string[] = [];
   let typers: string[] = [];
