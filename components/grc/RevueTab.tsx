@@ -20,7 +20,7 @@ export function RevueTab() {
   const [editId, setEditId] = useState<string | null>(null);
 
   const kpis = useMemo(
-    () => computeGrcKpis({ risks: app.risks, controlAssessments: app.controlAssessments, fieldControls: app.fieldControls, capaActions: app.capaActions, incidents: app.incidents, processing: app.processing, policies: app.policies, continuityPlans: app.continuityPlans, missions: app.missions, assets: app.assets, now }),
+    () => computeGrcKpis({ risks: app.risks, controlAssessments: app.controlAssessments, fieldControls: app.fieldControls, capaActions: app.capaActions, incidents: app.incidents, processing: app.processing, policies: app.policies, continuityPlans: app.continuityPlans, missions: app.missions, assets: app.assets, nonConformites: app.nonConformites, negligences: app.negligences, now }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [app.risks, app.controlAssessments, app.fieldControls, app.capaActions, app.incidents, app.processing, app.policies, app.continuityPlans, app.missions, app.assets, now]
   );

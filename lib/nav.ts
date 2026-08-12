@@ -6,6 +6,13 @@ export interface NavItem {
   label: string;
   icon: string; // nom d'icône lucide (résolu dans Sidebar)
   roles: Role[];
+  /**
+   * Page retirée de la barre latérale mais conservée ici : ses routes existent
+   * encore (fiches de détail, anciens liens) et doivent rester protégées par
+   * les mêmes rôles. Sans cette entrée, `canAccess` laisserait passer tout le
+   * monde sur une route inconnue.
+   */
+  hidden?: boolean;
 }
 
 /* Navigation filtrée par rôle (RBAC applicatif — cf. §4.7). */
@@ -18,8 +25,11 @@ export const NAV: NavItem[] = [
   { id: "planning", href: "/planning", label: "Planning", icon: "CalendarDays", roles: ["agent", "manager", "directeur", "admin", "dsi"] },
   { id: "plan", href: "/plan", label: "Plan de l'année", icon: "CalendarRange", roles: ["agent", "manager", "directeur", "admin"] },
   { id: "blocages", href: "/blocages", label: "Ce qui ne bouge pas", icon: "AlertTriangle", roles: ["manager", "directeur", "admin"] },
-  { id: "negligences", href: "/negligences", label: "Négligences", icon: "AlertOctagon", roles: ["manager", "directeur", "admin", "dsi"] },
-  { id: "nonconformites", href: "/non-conformites", label: "Non-conformités", icon: "FileWarning", roles: ["manager", "directeur", "admin", "dsi"] },
+  // Les deux registres vivent désormais dans le GRC (onglet « Écarts &
+  // manquements »). Conservés ici, masqués du menu, pour continuer de protéger
+  // /negligences/[id] et /non-conformites/[id].
+  { id: "negligences", href: "/negligences", label: "Négligences", icon: "AlertOctagon", roles: ["manager", "directeur", "admin", "dsi"], hidden: true },
+  { id: "nonconformites", href: "/non-conformites", label: "Non-conformités", icon: "FileWarning", roles: ["manager", "directeur", "admin", "dsi"], hidden: true },
   { id: "grc", href: "/grc", label: "GRC", icon: "ShieldCheck", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "audit", href: "/audit", label: "Audit", icon: "ClipboardCheck", roles: ["manager", "directeur", "admin", "dsi"] },
   { id: "soc", href: "/soc", label: "SOC", icon: "Radar", roles: ["manager", "directeur", "admin", "dsi"] },
@@ -53,8 +63,9 @@ export const hasPageAccess = (me: Profile, pageId: string): boolean => {
   return allowed(item, me.role, me.extraPages ?? [], me.deniedPages ?? []);
 };
 
+/** Entrées visibles dans la barre latérale (les pages masquées en sont exclues). */
 export const navForUser = (me: Profile): NavItem[] =>
-  NAV.filter((n) => allowed(n, me.role, me.extraPages ?? [], me.deniedPages ?? []));
+  NAV.filter((n) => !n.hidden && allowed(n, me.role, me.extraPages ?? [], me.deniedPages ?? []));
 
 export const canAccess = (href: string, me: Profile): boolean => {
   const item = NAV.find((n) => href === n.href || href.startsWith(n.href + "/"));

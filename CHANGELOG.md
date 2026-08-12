@@ -6,6 +6,23 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.91.0] - 2026-08-12
+
+### Modifié
+
+- **Négligences et non-conformités rejoignent le GRC**, dans un onglet unique **« Écarts & manquements »** à deux registres. Les deux objets partagent le même modèle (gravité, risque, transmission au DG, décision) : les séparer en deux entrées de menu les rendait difficiles à croiser. La non-conformité retrouve au passage sa place ISO 27001 §10.1, à côté des politiques, des contrôles et du plan d'actions. La barre latérale passe de 21 à 19 entrées.
+  - Un bandeau d'indicateurs communs coiffe les deux registres : non-conformités et négligences à traiter, manquements graves ou critiques, et actions correctives liées (dont celles en retard).
+  - **Les anciennes adresses continuent de fonctionner** : `/negligences` et `/non-conformites` redirigent vers l'onglet, et les fiches de détail restent accessibles — les liens du cockpit, de Mon espace, des suivis et des notifications sont intacts.
+
+### Ajouté
+
+- **De la non-conformité à l'action corrective** : chaque fiche porte un bouton qui ouvre une action corrective **pré-remplie** (intitulé, politique ou contrôle violé, impact, description) et **conserve le lien vers l'écart d'origine**. Une non-conformité déjà traitée affiche le nombre d'actions rattachées et leurs références. C'est la boucle demandée par l'ISO 27001 §10.1, qui n'existait pas : le champ était prévu dans le modèle mais n'était jamais renseigné.
+- **Les écarts entrent dans la revue de direction** : trois nouveaux indicateurs — *non-conformités ouvertes*, *négligences ouvertes*, *manquements graves* — rejoignent l'instantané KPI de la revue (ISO 27001 §9.3) et le rapport PDF. Un manquement grave non traité pèse désormais sur la posture globale, au même titre qu'un écart de contrôle.
+
+### Sécurité
+
+- Les pages retirées du menu restent **protégées par les mêmes rôles**. La navigation accepte désormais un marqueur « masqué » : l'entrée disparaît de la barre latérale mais continue de garder ses routes. Sans cela, `/negligences/<id>` serait devenu accessible à n'importe quel compte connecté, le contrôle d'accès laissant passer les routes qu'il ne connaît pas. Couvert par 5 tests.
+
 ## [1.90.0] - 2026-08-12
 
 ### Ajouté

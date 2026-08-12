@@ -8,6 +8,7 @@ import {
   CAPA_TYPES,
   fmt,
   type CapaAction,
+  type CapaSource,
 } from "@/lib/domain";
 import { useApp } from "./app-context";
 
@@ -22,12 +23,37 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 /** Fiche d'une action corrective/préventive (CAPA) : suivi, échéance, vérification. */
-export function CapaModal({ capa, creating, onClose }: { capa: CapaAction | null; creating: boolean; onClose: () => void }) {
+/**
+ * Origine imposée à la création : l'action naît d'un écart précis (une
+ * non-conformité, par exemple) et doit en garder le lien. Sans cela, une
+ * action créée depuis une fiche perdrait sa traçabilité (ISO 27001 §10.1).
+ */
+export interface CapaOrigin {
+  sourceType: CapaSource;
+  sourceId: string;
+  /** Intitulé et contexte pré-remplis, modifiables avant enregistrement. */
+  title?: string;
+  description?: string;
+  /** Ligne de rappel affichée en tête de la fiche. */
+  label?: string;
+}
+
+export function CapaModal({
+  capa,
+  creating,
+  origin,
+  onClose,
+}: {
+  capa: CapaAction | null;
+  creating: boolean;
+  origin?: CapaOrigin;
+  onClose: () => void;
+}) {
   const { demo, me, profiles, fieldControlById, createCapa, updateCapa, deleteCapa } = useApp();
   const canEdit = !demo;
 
-  const [title, setTitle] = useState(capa?.title ?? "");
-  const [description, setDescription] = useState(capa?.description ?? "");
+  const [title, setTitle] = useState(capa?.title ?? origin?.title ?? "");
+  const [description, setDescription] = useState(capa?.description ?? origin?.description ?? "");
   const [type, setType] = useState(capa?.type ?? CAPA_TYPES[0]);
   const [priority, setPriority] = useState(capa?.priority ?? "Normale");
   const [ownerId, setOwnerId] = useState(capa?.ownerId ?? me.id);
@@ -47,7 +73,15 @@ export function CapaModal({ capa, creating, onClose }: { capa: CapaAction | null
     setBusy(true);
     setErr(null);
     const payload = { title: title.trim(), description, type, priority, ownerId, dueDate: dueDate || null, status, verification };
-    const e = creating ? await createCapa({ ...payload, sourceType: "manuel" }) : capa ? await updateCapa(capa.id, payload) : "—";
+    const e = creating
+      ? await createCapa(
+          origin
+            ? { ...payload, sourceType: origin.sourceType, sourceId: origin.sourceId }
+            : { ...payload, sourceType: "manuel" }
+        )
+      : capa
+        ? await updateCapa(capa.id, payload)
+        : "—";
     setBusy(false);
     if (e) setErr(e);
     else onClose();
@@ -77,6 +111,11 @@ export function CapaModal({ capa, creating, onClose }: { capa: CapaAction | null
 
         <div className="p-4 space-y-3">
           {err && <div className="text-[12px] text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">{err}</div>}
+          {origin?.label && (
+            <div className="text-[12px] text-emerald-800 dark:text-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg px-3 py-2">
+              Action rattachée à : <b>{origin.label}</b>
+            </div>
+          )}
 
           {capa && capa.sourceType !== "manuel" && (
             <div className="text-[11px] text-slate-500 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">

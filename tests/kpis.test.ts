@@ -73,12 +73,49 @@ describe("computeGrcKpis", () => {
   });
 });
 
+describe("écarts & manquements", () => {
+  const ecart = (o: Record<string, unknown>) =>
+    ({ id: "e", itemId: null, objet: "O", service: "", concerne: "", gravite: "Modérée", risque: "Moyen", impact: "", description: "", status: "Ouverte", decisions: [], createdBy: "u", decidedBy: null, createdAt: NOW, updatedAt: NOW, decidedAt: null, ...o }) as never;
+
+  it("vaut zéro quand les registres ne sont pas fournis", () => {
+    const k = computeGrcKpis(empty);
+    expect(k.nonConformitesOuvertes).toBe(0);
+    expect(k.negligencesOuvertes).toBe(0);
+    expect(k.manquementsGraves).toBe(0);
+  });
+
+  it("ne compte comme ouverts que les écarts ni décidés ni classés", () => {
+    const k = computeGrcKpis({
+      ...empty,
+      nonConformites: [
+        ecart({ id: "n1", status: "Ouverte" }),
+        ecart({ id: "n2", status: "Transmise au DG" }),
+        ecart({ id: "n3", status: "Décision rendue" }),
+        ecart({ id: "n4", status: "Classée" }),
+      ],
+      negligences: [ecart({ id: "g1", status: "Ouverte" })],
+    });
+    expect(k.nonConformitesOuvertes).toBe(2);
+    expect(k.negligencesOuvertes).toBe(1);
+  });
+
+  it("agrège les manquements graves des deux registres", () => {
+    const k = computeGrcKpis({
+      ...empty,
+      nonConformites: [ecart({ id: "n1", gravite: "Grave" }), ecart({ id: "n2", gravite: "Faible" })],
+      negligences: [ecart({ id: "g1", gravite: "Critique" })],
+    });
+    expect(k.manquementsGraves).toBe(2);
+  });
+});
+
 describe("grcPosture", () => {
   const base: GrcKpis = {
     conformite: 80, risquesOuverts: 0, risquesCritiques: 0, risquesAcceptes: 0, controlesRealises: 0,
     ecartsOuverts: 0, tauxConformiteControles: 0, capaOuvertes: 0, capaEnRetard: 0, incidentsOuverts: 0,
     incidentsCritiques: 0, violationsDonnees: 0, traitements: 0, aipdARealiser: 0, politiquesEnVigueur: 0,
     applicabilitePolitiques: 0, continuiteATester: 0, joyauxPrioritaires: 0,
+    nonConformitesOuvertes: 0, negligencesOuvertes: 0, manquementsGraves: 0,
   };
 
   it("part de la conformité quand rien ne pénalise", () => {
@@ -88,6 +125,10 @@ describe("grcPosture", () => {
   it("pénalise les points d'attention", () => {
     // 80 - 2*4 (crit) - 1*3 (retard) - 1*5 (inc crit) - 2*2 (aipd) - 1*2 (continuité) = 80-8-3-5-4-2 = 58
     expect(grcPosture({ ...base, risquesCritiques: 2, capaEnRetard: 1, incidentsCritiques: 1, aipdARealiser: 2, continuiteATester: 1 })).toBe(58);
+  });
+
+  it("pénalise aussi les manquements graves non traités", () => {
+    expect(grcPosture({ ...base, manquementsGraves: 2 })).toBe(74); // 80 - 2*3
   });
 
   it("borne le score dans [0, 100]", () => {

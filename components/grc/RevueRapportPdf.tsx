@@ -10,6 +10,7 @@ const KPI_LABELS: Record<string, string> = {
   conformite: "Conformité %", risquesCritiques: "Risques critiques", capaEnRetard: "Actions en retard",
   incidentsOuverts: "Incidents ouverts", violationsDonnees: "Violations de données", aipdARealiser: "AIPD à réaliser",
   ecartsOuverts: "Écarts terrain", applicabilitePolitiques: "Applicabilité pol. %", joyauxPrioritaires: "Joyaux prioritaires", continuiteATester: "Continuité à tester",
+  nonConformitesOuvertes: "Non-conformités ouvertes", negligencesOuvertes: "Négligences ouvertes", manquementsGraves: "Manquements graves",
 };
 
 /** Rapport imprimable : revue de direction (ISO 27001 §9.3) + posture GRC courante. */
@@ -19,7 +20,7 @@ export function RevueRapportPdf() {
   const { open, trigger } = usePrint();
 
   const kpis = useMemo(
-    () => computeGrcKpis({ risks: app.risks, controlAssessments: app.controlAssessments, fieldControls: app.fieldControls, capaActions: app.capaActions, incidents: app.incidents, processing: app.processing, policies: app.policies, continuityPlans: app.continuityPlans, missions: app.missions, assets: app.assets, now }),
+    () => computeGrcKpis({ risks: app.risks, controlAssessments: app.controlAssessments, fieldControls: app.fieldControls, capaActions: app.capaActions, incidents: app.incidents, processing: app.processing, policies: app.policies, continuityPlans: app.continuityPlans, missions: app.missions, assets: app.assets, nonConformites: app.nonConformites, negligences: app.negligences, now }),
     [app.risks, app.controlAssessments, app.fieldControls, app.capaActions, app.incidents, app.processing, app.policies, app.continuityPlans, app.missions, app.assets, now]
   );
   const posture = grcPosture(kpis);

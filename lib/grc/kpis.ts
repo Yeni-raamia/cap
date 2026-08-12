@@ -18,6 +18,8 @@ import {
   type FieldControl,
   type Incident,
   type Mission,
+  type Negligence,
+  type NonConformite,
   type Policy,
   type ProcessingActivity,
   type Risk,
@@ -37,6 +39,9 @@ export interface GrcKpiInput {
   continuityPlans: ContinuityPlan[];
   missions: Mission[];
   assets: Asset[];
+  /** Registres d'écarts (onglet « Écarts & manquements ») — facultatifs. */
+  nonConformites?: NonConformite[];
+  negligences?: Negligence[];
   now: Date;
 }
 
@@ -60,6 +65,10 @@ export interface GrcKpis {
   applicabilitePolitiques: number; // %
   continuiteATester: number;
   joyauxPrioritaires: number;
+  nonConformitesOuvertes: number;
+  negligencesOuvertes: number;
+  /** Écarts graves ou critiques, tous registres confondus. */
+  manquementsGraves: number;
 }
 
 const REALISED = new Set(["Réalisé", "Clôturé"]);
@@ -92,6 +101,12 @@ export function computeGrcKpis(x: GrcKpiInput): GrcKpis {
 
   const jewels = computeJewels(x.assets, x.risks, x.fieldControls, x.missions).filter(isJewel);
 
+  // Écarts : « ouvert » = ni décidé, ni classé (mêmes statuts dans les deux registres).
+  const ncs = x.nonConformites ?? [];
+  const negs = x.negligences ?? [];
+  const enCours = (s: string) => s !== "Décision rendue" && s !== "Classée";
+  const grave = (g: string) => g === "Grave" || g === "Critique";
+
   return {
     conformite,
     risquesOuverts: openRisks.length,
@@ -111,6 +126,9 @@ export function computeGrcKpis(x: GrcKpiInput): GrcKpis {
     applicabilitePolitiques,
     continuiteATester: x.continuityPlans.filter((p) => isPlanTestStale(p, x.now)).length,
     joyauxPrioritaires: jewels.filter((j) => j.band === "Prioritaire").length,
+    nonConformitesOuvertes: ncs.filter((n) => enCours(n.status)).length,
+    negligencesOuvertes: negs.filter((n) => enCours(n.status)).length,
+    manquementsGraves: [...ncs, ...negs].filter((n) => grave(n.gravite)).length,
   };
 }
 
@@ -122,5 +140,8 @@ export function grcPosture(k: GrcKpis): number {
   score -= k.incidentsCritiques * 5;
   score -= k.aipdARealiser * 2;
   score -= k.continuiteATester * 2;
+  // Un manquement grave non traité pèse sur la posture au même titre qu'un
+  // écart de contrôle : c'est la même boucle d'amélioration (ISO 27001 §10.1).
+  score -= k.manquementsGraves * 3;
   return Math.max(0, Math.min(100, Math.round(score)));
 }

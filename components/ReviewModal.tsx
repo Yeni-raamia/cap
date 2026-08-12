@@ -22,6 +22,7 @@ const KPI_LABELS: Record<string, string> = {
   conformite: "Conformité %", risquesCritiques: "Risques critiques", capaEnRetard: "Actions en retard",
   incidentsOuverts: "Incidents ouverts", violationsDonnees: "Violations de données", aipdARealiser: "AIPD à réaliser",
   ecartsOuverts: "Écarts terrain", applicabilitePolitiques: "Applicabilité pol. %", joyauxPrioritaires: "Joyaux prioritaires", continuiteATester: "Continuité à tester",
+  nonConformitesOuvertes: "Non-conformités ouvertes", negligencesOuvertes: "Négligences ouvertes", manquementsGraves: "Manquements graves",
 };
 
 /** Fiche d'une revue de direction (ISO 27001 §9.3) : entrées, sorties, instantané KPI. */

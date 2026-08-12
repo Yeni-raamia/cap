@@ -23,7 +23,7 @@ export function GrcRapportGlobalPdf() {
   const { risks, assets, policies, incidents, missions, suppliers, continuityPlans, reviews, directions, profileById, now } = app;
 
   const kpis = useMemo(
-    () => computeGrcKpis({ risks, controlAssessments: app.controlAssessments, fieldControls: app.fieldControls, capaActions: app.capaActions, incidents, processing: app.processing, policies, continuityPlans, missions, assets, now }),
+    () => computeGrcKpis({ risks, controlAssessments: app.controlAssessments, fieldControls: app.fieldControls, capaActions: app.capaActions, incidents, processing: app.processing, policies, continuityPlans, missions, assets, nonConformites: app.nonConformites, negligences: app.negligences, now }),
     [risks, app.controlAssessments, app.fieldControls, app.capaActions, incidents, app.processing, policies, continuityPlans, missions, assets, now]
   );
   const posture = grcPosture(kpis);

@@ -10,6 +10,7 @@ import { RisquesTab } from "@/components/grc/RisquesTab";
 import { ConformiteTab } from "@/components/grc/ConformiteTab";
 import { PolitiquesTab } from "@/components/grc/PolitiquesTab";
 import { ControlesTab } from "@/components/grc/ControlesTab";
+import { EcartsTab } from "@/components/grc/EcartsTab";
 import { ActionsTab } from "@/components/grc/ActionsTab";
 import { PlanTab } from "@/components/grc/PlanTab";
 import { DistinctionsTab } from "@/components/grc/DistinctionsTab";
@@ -40,6 +41,7 @@ const TABS = [
   { id: "rgpd", label: "RGPD" },
   { id: "politiques", label: "Politiques" },
   { id: "controles", label: "Contrôles terrain" },
+  { id: "ecarts", label: "Écarts & manquements" },
   { id: "incidents", label: "Incidents" },
   { id: "actions", label: "Plan d'actions" },
   { id: "revue", label: "Revue de direction" },
@@ -91,6 +93,7 @@ function GrcInner() {
       {active === "rgpd" && <RgpdTab />}
       {active === "politiques" && <PolitiquesTab />}
       {active === "controles" && <ControlesTab />}
+      {active === "ecarts" && <EcartsTab onTab={setTab} />}
       {active === "incidents" && <IncidentsTab />}
       {active === "actions" && <ActionsTab />}
       {active === "revue" && <RevueTab />}

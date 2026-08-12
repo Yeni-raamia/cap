@@ -14,7 +14,7 @@ import { useApp } from "@/components/app-context";
 import { Avatar, Card, MetierChip, Token, TypeTag } from "@/components/atoms";
 import { NegligencePrint } from "@/components/NegligencePrint";
 import { Discussion } from "@/components/Discussion";
-import { graviteBadge, statusBadge } from "../page";
+import { graviteBadge, statusBadge } from "@/components/grc/NegligencesPanel";
 
 export default function NegligenceDetailPage() {
   const params = useParams();
@@ -38,7 +38,7 @@ export default function NegligenceDetailPage() {
   if (!neg) {
     return (
       <div className="space-y-4">
-        <Link href="/negligences" className="inline-flex items-center gap-1 text-[13px] text-emerald-700"><ArrowLeft size={15} /> Négligences</Link>
+        <Link href="/grc?tab=ecarts" className="inline-flex items-center gap-1 text-[13px] text-emerald-700"><ArrowLeft size={15} /> Négligences</Link>
         <Card className="p-10 text-center text-[13px] text-slate-400">Fiche introuvable.</Card>
       </div>
     );
@@ -64,7 +64,7 @@ export default function NegligenceDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <Link href="/negligences" className="inline-flex items-center gap-1 text-[13px] text-emerald-700 hover:underline"><ArrowLeft size={15} /> Négligences</Link>
+        <Link href="/grc?tab=ecarts" className="inline-flex items-center gap-1 text-[13px] text-emerald-700 hover:underline"><ArrowLeft size={15} /> Négligences</Link>
         <button onClick={() => window.print()} className="inline-flex items-center gap-1.5 text-[12px] font-medium text-white bg-slate-800 rounded-lg px-3 py-1.5 hover:bg-slate-700">
           <Printer size={14} /> Imprimer (PDF)
         </button>
