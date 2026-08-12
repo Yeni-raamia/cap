@@ -54,6 +54,7 @@ export async function POST(request: Request) {
       priority,
       startDate: toIso(body?.startDate),
       dueDate: toIso(body?.dueDate),
+      estimatedMinutes: body?.estimatedMinutes,
     });
     logTaskEvent(newId, "creation", `Tâche créée par ${user.nom}.`, user.id);
     if (assigneeId !== user.id) {
@@ -103,6 +104,8 @@ export async function POST(request: Request) {
       priority,
       startDate: body?.startDate !== undefined ? toIso(body.startDate) : undefined,
       dueDate: body?.dueDate !== undefined ? toIso(body.dueDate) : undefined,
+      estimatedMinutes: body?.estimatedMinutes,
+      spentMinutes: body?.spentMinutes,
     });
     /* Journal : on ne consigne que ce qui a réellement changé, en phrases
      * lisibles — le but est de répondre à « qui a déplacé cette échéance ? ». */

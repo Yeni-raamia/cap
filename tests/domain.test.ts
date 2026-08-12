@@ -5,6 +5,8 @@ import {
   daysBetween,
   fmt,
   fmtLong,
+  formatWorkload,
+  workloadVariance,
   buildRef,
   nextRefNumber,
   parseSubject,
@@ -286,5 +288,40 @@ describe("fmt / fmtLong — robustesse aux dates sérialisées", () => {
     expect(fmt("pas une date" as unknown as Date)).toBe("—");
     expect(fmt(undefined as unknown as Date)).toBe("—");
     expect(fmtLong({} as unknown as Date)).toBe("—");
+  });
+});
+
+describe("formatWorkload", () => {
+  it("exprime les petites charges en minutes puis en heures", () => {
+    expect(formatWorkload(15)).toBe("15 min");
+    expect(formatWorkload(59)).toBe("59 min");
+    expect(formatWorkload(60)).toBe("1 h");
+    expect(formatWorkload(90)).toBe("1 h 30");
+  });
+  it("bascule en jours au-delà d'une journée de travail", () => {
+    // 420 min = 7 h = une journée : « 1 j » se compare à un planning,
+    // « 420 min » ne parle à personne.
+    expect(formatWorkload(420)).toBe("1 j");
+    expect(formatWorkload(840)).toBe("2 j");
+    expect(formatWorkload(480)).toBe("1 j 1 h");
+  });
+  it("renvoie un tiret quand il n'y a rien à afficher", () => {
+    expect(formatWorkload(0)).toBe("—");
+    expect(formatWorkload(null)).toBe("—");
+    expect(formatWorkload(undefined)).toBe("—");
+    expect(formatWorkload(-30)).toBe("—");
+  });
+});
+
+describe("workloadVariance", () => {
+  it("mesure le dépassement en pourcentage", () => {
+    expect(workloadVariance(60, 90)).toBe(50);
+    expect(workloadVariance(60, 30)).toBe(-50);
+    expect(workloadVariance(60, 60)).toBe(0);
+  });
+  it("ne dit rien sans estimation — on ne compare pas à zéro", () => {
+    expect(workloadVariance(null, 90)).toBeNull();
+    expect(workloadVariance(0, 90)).toBeNull();
+    expect(workloadVariance(undefined, 90)).toBeNull();
   });
 });

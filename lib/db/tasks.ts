@@ -15,6 +15,15 @@ import {
 
 const now = () => new Date().toISOString();
 
+/** Charge bornée : 0 à 200 jours ; `null` = non estimée. */
+const cleanMinutes = (v: unknown, allowNull = true): number | null => {
+  if (v === null || v === "" || v === undefined) return allowNull ? null : 0;
+  const n = Math.round(Number(v));
+  if (!Number.isFinite(n) || n < 0) return allowNull ? null : 0;
+  return Math.min(n, 200 * 420);
+};
+
+
 interface TaskRow {
   id: string;
   title: string;
@@ -32,6 +41,8 @@ interface TaskRow {
   recurrence_id: string | null;
   occurrence_date: string | null;
   blocked_reason: string | null;
+  estimated_minutes: number | null;
+  spent_minutes: number;
 }
 interface EventRow {
   id: string;
@@ -96,6 +107,8 @@ function mapTask(r: TaskRow, subs: SubtaskRow[], events: EventRow[] = []): Task 
     published: r.published !== 0,
     recurrenceId: r.recurrence_id ?? null,
     occurrenceDate: r.occurrence_date ?? null,
+    estimatedMinutes: r.estimated_minutes ?? null,
+    spentMinutes: r.spent_minutes ?? 0,
     blockedReason: r.blocked_reason ?? null,
     events: events.filter((e) => e.task_id === r.id).map(mapEvent),
   };
@@ -129,14 +142,15 @@ export function createTask(input: {
   priority?: TaskPriority;
   startDate?: string | null;
   dueDate?: string | null;
+  estimatedMinutes?: number | null;
   /** Publier immédiatement (visible par l'équipe). Défaut : privé (créateur seul). */
   published?: boolean;
 }): string {
   const id = randomUUID();
   getDb()
     .prepare(
-      "insert into tasks (id, title, description, assignee_id, created_by, project_id, status, priority, start_date, due_date, published) " +
-        "values (?,?,?,?,?,?,?,?,?,?,?)"
+      "insert into tasks (id, title, description, assignee_id, created_by, project_id, status, priority, start_date, due_date, estimated_minutes, published) " +
+        "values (?,?,?,?,?,?,?,?,?,?,?,?)"
     )
     .run(
       id,
@@ -149,6 +163,7 @@ export function createTask(input: {
       input.priority ?? "Normale",
       input.startDate ?? null,
       input.dueDate ?? null,
+      cleanMinutes(input.estimatedMinutes),
       // Espace privé désactivé → toujours publié (comportement d'avant le Lot 2).
       (PRIVATE_SPACE_ENABLED ? !!input.published : true) ? 1 : 0
     );
@@ -172,6 +187,9 @@ export function updateTask(
     startDate?: string | null;
     dueDate?: string | null;
     blockedReason?: string | null;
+    estimatedMinutes?: number | null;
+    /** Temps passé, valeur absolue en minutes. */
+    spentMinutes?: number;
   }
 ): void {
   const cur = getDb().prepare("select * from tasks where id=?").get(id) as TaskRow | undefined;
@@ -186,7 +204,7 @@ export function updateTask(
     status !== "bloqué" ? null : fields.blockedReason !== undefined ? fields.blockedReason : cur.blocked_reason;
   getDb()
     .prepare(
-      "update tasks set title=?, description=?, assignee_id=?, project_id=?, status=?, priority=?, start_date=?, due_date=?, completed_at=?, blocked_reason=? where id=?"
+      "update tasks set title=?, description=?, assignee_id=?, project_id=?, status=?, priority=?, start_date=?, due_date=?, completed_at=?, blocked_reason=?, estimated_minutes=?, spent_minutes=? where id=?"
     )
     .run(
       fields.title ?? cur.title,
@@ -199,6 +217,8 @@ export function updateTask(
       fields.dueDate !== undefined ? fields.dueDate : cur.due_date,
       completedAt,
       blockedReason,
+      fields.estimatedMinutes !== undefined ? cleanMinutes(fields.estimatedMinutes) : cur.estimated_minutes,
+      fields.spentMinutes !== undefined ? cleanMinutes(fields.spentMinutes, false) : cur.spent_minutes,
       id
     );
 }

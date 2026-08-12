@@ -2,7 +2,7 @@
 
 import { useState, type RefObject } from "react";
 import { ListTodo, Plus, Repeat } from "lucide-react";
-import { TASK_PRIORITIES, type RecurrenceFrequency, type TaskPriority } from "@/lib/domain";
+import { formatWorkload, TASK_ESTIMATES, TASK_PRIORITIES, type RecurrenceFrequency, type TaskPriority } from "@/lib/domain";
 import { parseDay, toDayInput } from "@/lib/period";
 import { describeFrequency, isoWeekday } from "@/lib/recurrence";
 import { useApp } from "./app-context";
@@ -62,6 +62,7 @@ export function NewTaskForm({
   const [start, setStart] = useState(defaultDueDate ?? "");
   const [due, setDue] = useState(defaultDueDate ?? "");
   const [repeat, setRepeat] = useState<"" | RecurrenceFrequency>("");
+  const [estimate, setEstimate] = useState("");
 
   const assigneeId = fixedAssignee ?? assignee;
   const firstDay = parseDay(start) ?? now;
@@ -92,6 +93,7 @@ export function NewTaskForm({
           priority,
           startDate: start || null,
           dueDate: due || null,
+          estimatedMinutes: estimate ? Number(estimate) : null,
         })
       );
     }
@@ -101,6 +103,7 @@ export function NewTaskForm({
     setDue(defaultDueDate ?? "");
     setPriority("Normale");
     setRepeat("");
+    setEstimate("");
   };
 
   // Aperçu du rythme choisi, à partir des valeurs saisies.
@@ -144,7 +147,7 @@ export function NewTaskForm({
       {/* Chaque champ porte son libellé : sans cela, la liste des responsables
        * n'était qu'un menu déroulant de plus, indiscernable au milieu des
        * autres — on ne trouvait pas où assigner la tâche. */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mt-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mt-2">
         {!fixedAssignee && (
           <Field label={canAssignOthers ? "Assigner à" : "Responsable"} htmlFor="ntf-assignee">
             <select
@@ -187,6 +190,19 @@ export function NewTaskForm({
             title={repeat ? "Pour une tâche répétée, l'échéance est le jour de chaque occurrence" : undefined}
             className={`${fieldCls} w-full disabled:opacity-40`}
           />
+        </Field>
+
+        <Field label="Estimation" htmlFor="ntf-estimate">
+          <select
+            id="ntf-estimate"
+            value={estimate}
+            onChange={(e) => setEstimate(e.target.value)}
+            title="Charge prévue — sert au suivi et à la vue de charge"
+            className={`${fieldCls} w-full`}
+          >
+            <option value="">Non estimée</option>
+            {TASK_ESTIMATES.map((m) => <option key={m} value={m}>{formatWorkload(m)}</option>)}
+          </select>
         </Field>
 
         <Field label="Répéter" htmlFor="ntf-repeat">

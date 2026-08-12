@@ -128,6 +128,8 @@ interface TaskPayload {
   dueDate?: string | null;
   description?: string;
   priority?: TaskPriority;
+  estimatedMinutes?: number | null;
+  spentMinutes?: number;
 }
 interface ProjectFields {
   name?: string;
@@ -148,6 +150,8 @@ export interface TaskInput {
   dueDate?: string | null;
   /** Motif exigé au passage en « bloqué ». */
   blockedReason?: string | null;
+  estimatedMinutes?: number | null;
+  spentMinutes?: number;
 }
 export interface SubtaskInput {
   taskId?: string;

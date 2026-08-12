@@ -6,6 +6,20 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.98.0] - 2026-08-12
+
+### Ajouté
+
+- **Charge estimée et temps passé**, sur les tâches comme sur les tâches de projet.
+  - **Estimation** à la création et dans la fiche : 15 min, 30 min, 1 h, 2 h, une demi-journée, 1 j, 2 j, 1 semaine — ou « Non estimée ». Une **journée de travail compte 7 heures**, pour que « 3 j » veuille dire trois journées réelles et non 72 heures.
+  - **Pointage du temps passé** en un clic : des boutons *+15 min*, *+30 min*, *+1 h*, *+2 h* cumulent le temps, avec remise à zéro possible. Pas de chronomètre à démarrer et à oublier d'arrêter.
+  - **Écart affiché** dès qu'une estimation existe : « +50 % vs estimé » en rouge au-delà de 10 % de dépassement, en bleu quand on a fait plus vite, en vert dans les clous. Sans estimation, aucun écart n'est inventé.
+  - Les durées s'affichent en langage courant (« 1 h 30 », « 2 j », « 1 j 3 h ») plutôt qu'en minutes.
+
+### Note technique
+
+- `formatWorkload` et `workloadVariance` sont des fonctions pures couvertes par 7 tests. Colonnes `estimated_minutes` / `spent_minutes` ajoutées à `tasks` et `project_tasks` (migration automatique), bornées côté serveur : une estimation absurde est ramenée à 200 jours, un temps négatif à zéro.
+
 ## [1.97.0] - 2026-08-12
 
 ### Ajouté

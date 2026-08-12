@@ -685,6 +685,11 @@ function ensureColumns(db: Database.Database) {
   if (tkcols.length > 0 && !tkcols.includes("published")) {
     db.exec("alter table tasks add column published integer not null default 1");
   }
+  // Charge : estimation et temps passé (en minutes).
+  if (tkcols.length > 0 && !tkcols.includes("estimated_minutes")) {
+    db.exec("alter table tasks add column estimated_minutes integer");
+    db.exec("alter table tasks add column spent_minutes integer not null default 0");
+  }
   // Motif de blocage : une tâche « bloquée » sans raison est un cul-de-sac.
   if (tkcols.length > 0 && !tkcols.includes("blocked_reason")) {
     db.exec("alter table tasks add column blocked_reason text");
@@ -706,6 +711,11 @@ function ensureColumns(db: Database.Database) {
     db.exec("alter table project_tasks add column description text not null default ''");
     db.exec("alter table project_tasks add column priority text not null default 'Normale'");
     db.exec("alter table project_tasks add column completed_at text");
+  }
+  // Tâches de projet : charge estimée et temps passé (parité avec Productivité).
+  if (ptcols.length > 0 && !ptcols.includes("estimated_minutes")) {
+    db.exec("alter table project_tasks add column estimated_minutes integer");
+    db.exec("alter table project_tasks add column spent_minutes integer not null default 0");
   }
   // Tâches de projet : date de début prévue (parité avec les tâches Productivité).
   if (ptcols.length > 0 && !ptcols.includes("start_date")) {

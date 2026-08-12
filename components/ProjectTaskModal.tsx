@@ -4,7 +4,11 @@ import { useState } from "react";
 import { CalendarClock, ListTodo, Trash2, X } from "lucide-react";
 import {
   fmt,
+  formatWorkload,
+  TASK_ESTIMATES,
   TASK_PRIORITIES,
+  TIME_INCREMENTS,
+  workloadVariance,
   TASK_STATUTS,
   type Profile,
   type ProjectTask,
@@ -35,6 +39,8 @@ export function ProjectTaskModal({
   const [assigneeId, setAssigneeId] = useState<string>(task.assigneeId ?? "");
   const [start, setStart] = useState<string>(toDayInput(task.startDate));
   const [due, setDue] = useState<string>(toDayInput(task.dueDate));
+  const [estimate, setEstimate] = useState<string>(task.estimatedMinutes ? String(task.estimatedMinutes) : "");
+  const [spent, setSpent] = useState<number>(task.spentMinutes ?? 0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -53,6 +59,8 @@ export function ProjectTaskModal({
       assigneeId: assigneeId || null,
       startDate: start || null,
       dueDate: due || null,
+      estimatedMinutes: estimate ? Number(estimate) : null,
+      spentMinutes: spent,
     });
     setBusy(false);
     if (e) setErr(e);
@@ -123,9 +131,44 @@ export function ProjectTaskModal({
               <input id="pt-start" type="date" value={start} onChange={(e) => setStart(e.target.value)} disabled={!canEdit} className={inputCls} />
             </div>
             <div>
+              <label className={labelCls} htmlFor="pt-estimate">Charge estimée</label>
+              <select id="pt-estimate" value={estimate} onChange={(e) => setEstimate(e.target.value)} disabled={!canEdit} className={`${inputCls} bg-white`}>
+                <option value="">Non estimée</option>
+                {TASK_ESTIMATES.map((m) => <option key={m} value={m}>{formatWorkload(m)}</option>)}
+              </select>
+            </div>
+            <div>
               <label className={labelCls} htmlFor="pt-due">Échéance</label>
               <input id="pt-due" type="date" value={due} onChange={(e) => setDue(e.target.value)} disabled={!canEdit} className={inputCls} />
             </div>
+          </div>
+
+          <div>
+            <span className={labelCls}>Temps passé</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[14px] font-semibold text-slate-800 tabular-nums">{formatWorkload(spent)}</span>
+              {(() => {
+                const ecart = workloadVariance(estimate ? Number(estimate) : null, spent);
+                return ecart === null ? null : (
+                  <span className={`text-[11px] px-1.5 py-0.5 rounded-full ${ecart > 10 ? "bg-rose-100 text-rose-700" : ecart < -10 ? "bg-sky-100 text-sky-700" : "bg-emerald-100 text-emerald-700"}`}>
+                    {ecart > 0 ? `+${ecart}` : ecart} % vs estimé
+                  </span>
+                );
+              })()}
+              {canEdit && (
+                <div className="flex items-center gap-1 ml-auto flex-wrap">
+                  {TIME_INCREMENTS.map((m) => (
+                    <button key={m} onClick={() => setSpent((v) => v + m)} className="text-[11.5px] text-slate-600 border border-slate-200 rounded-lg px-2 py-1 hover:bg-slate-50">
+                      +{formatWorkload(m)}
+                    </button>
+                  ))}
+                  {spent > 0 && (
+                    <button onClick={() => setSpent(0)} className="text-[11.5px] text-slate-400 hover:text-rose-600 px-1.5 py-1">remettre à zéro</button>
+                  )}
+                </div>
+              )}
+            </div>
+            {canEdit && <div className="text-[10.5px] text-slate-400 mt-0.5">Enregistré avec la fiche.</div>}
           </div>
 
           {task.assigneeId && (

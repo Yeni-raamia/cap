@@ -6,8 +6,12 @@ import { Ban, CalendarClock, Check, Globe, History, ListTodo, Lock, Plus, Repeat
 import {
   fmt,
   isTaskLate,
+  formatWorkload,
   subtaskProgress,
+  TASK_ESTIMATES,
   TASK_EVENT_TONE,
+  TIME_INCREMENTS,
+  workloadVariance,
   TASK_PRIORITIES,
   TASK_STATUTS,
   type TaskPriority,
@@ -247,6 +251,20 @@ export function TaskModal() {
                 <div className="text-[13px] text-slate-700 py-1.5">{task.dueDate ? fmt(task.dueDate) : "—"}</div>
               )}
             </Field>
+            <Field label="Charge estimée">
+              {canEdit ? (
+                <select
+                  value={task.estimatedMinutes ?? ""}
+                  onChange={(e) => patch({ estimatedMinutes: e.target.value ? Number(e.target.value) : null })}
+                  className="w-full text-[13px] border border-slate-200 rounded-lg px-2 py-1.5 bg-white"
+                >
+                  <option value="">Non estimée</option>
+                  {TASK_ESTIMATES.map((m) => <option key={m} value={m}>{formatWorkload(m)}</option>)}
+                </select>
+              ) : (
+                <div className="text-[13px] text-slate-700 py-1.5">{formatWorkload(task.estimatedMinutes)}</div>
+              )}
+            </Field>
             <Field label="Projet rattaché">
               {canEdit ? (
                 <select
@@ -261,6 +279,50 @@ export function TaskModal() {
                 <div className="text-[13px] text-slate-700 py-1.5">{proj ? proj.name : "—"}</div>
               )}
             </Field>
+          </div>
+
+          {/* Temps passé */}
+          <div>
+            <div className="text-[11px] font-medium text-slate-400 uppercase mb-1.5">Temps passé</div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[15px] font-semibold text-slate-800 tabular-nums">{formatWorkload(task.spentMinutes ?? 0)}</span>
+              {(() => {
+                const ecart = workloadVariance(task.estimatedMinutes, task.spentMinutes ?? 0);
+                if (ecart === null) return <span className="text-[11.5px] text-slate-400">estimation non renseignée</span>;
+                return (
+                  <span
+                    className={`text-[11.5px] px-1.5 py-0.5 rounded-full ${
+                      ecart > 10 ? "bg-rose-100 text-rose-700" : ecart < -10 ? "bg-sky-100 text-sky-700" : "bg-emerald-100 text-emerald-700"
+                    }`}
+                    title={`Estimé : ${formatWorkload(task.estimatedMinutes)}`}
+                  >
+                    {ecart > 0 ? `+${ecart}` : ecart} % vs estimé
+                  </span>
+                );
+              })()}
+              {canEdit && (
+                <div className="flex items-center gap-1 ml-auto flex-wrap">
+                  {TIME_INCREMENTS.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => patch({ spentMinutes: (task.spentMinutes ?? 0) + m })}
+                      className="text-[11.5px] text-slate-600 border border-slate-200 rounded-lg px-2 py-1 hover:bg-slate-50"
+                    >
+                      +{formatWorkload(m)}
+                    </button>
+                  ))}
+                  {(task.spentMinutes ?? 0) > 0 && (
+                    <button
+                      onClick={() => patch({ spentMinutes: 0 })}
+                      title="Remettre à zéro"
+                      className="text-[11.5px] text-slate-400 hover:text-rose-600 px-1.5 py-1"
+                    >
+                      remettre à zéro
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Description */}

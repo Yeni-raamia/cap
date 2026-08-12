@@ -49,6 +49,8 @@ interface TaskRow {
   description: string;
   priority: TaskPriority;
   completed_at: string | null;
+  estimated_minutes: number | null;
+  spent_minutes: number;
 }
 interface MemberRow {
   project_id: string;
@@ -62,6 +64,15 @@ interface NoteRow {
   created_at: string;
 }
 
+
+/** Charge bornée : 0 à 200 jours ; `null` = non estimée. */
+const cleanMinutes = (v: unknown, allowNull = true): number | null => {
+  if (v === null || v === "" || v === undefined) return allowNull ? null : 0;
+  const n = Math.round(Number(v));
+  if (!Number.isFinite(n) || n < 0) return allowNull ? null : 0;
+  return Math.min(n, 200 * 420);
+};
+
 function mapTask(r: TaskRow): ProjectTask {
   return {
     id: r.id,
@@ -74,6 +85,8 @@ function mapTask(r: TaskRow): ProjectTask {
     startDate: r.start_date ? new Date(r.start_date) : null,
     dueDate: r.due_date ? new Date(r.due_date) : null,
     completedAt: r.completed_at ? new Date(r.completed_at) : null,
+    estimatedMinutes: r.estimated_minutes ?? null,
+    spentMinutes: r.spent_minutes ?? 0,
     ordre: r.ordre,
     createdAt: new Date(r.created_at),
     proposedBy: r.proposed_by ?? null,
@@ -379,13 +392,14 @@ export function addTask(input: {
   dueDate?: string | null;
   description?: string;
   priority?: TaskPriority;
+  estimatedMinutes?: number | null;
 }): void {
   const db = getDb();
   const max = db
     .prepare("select coalesce(max(ordre),0)+1 as n from project_tasks where project_id = ?")
     .get(input.projectId) as { n: number };
   db.prepare(
-    "insert into project_tasks (id, project_id, title, assignee_id, status, start_date, due_date, ordre, description, priority) values (?,?,?,?,?,?,?,?,?,?)"
+    "insert into project_tasks (id, project_id, title, assignee_id, status, start_date, due_date, ordre, description, priority, estimated_minutes) values (?,?,?,?,?,?,?,?,?,?,?)"
   ).run(
     randomUUID(),
     input.projectId,
@@ -396,7 +410,8 @@ export function addTask(input: {
     input.dueDate ?? null,
     max.n,
     input.description ?? "",
-    input.priority ?? "Normale"
+    input.priority ?? "Normale",
+    cleanMinutes(input.estimatedMinutes)
   );
 }
 
@@ -410,6 +425,8 @@ export function updateTask(
     dueDate?: string | null;
     description?: string;
     priority?: TaskPriority;
+    estimatedMinutes?: number | null;
+    spentMinutes?: number;
   }
 ): void {
   const cur = getDb().prepare("select * from project_tasks where id = ?").get(taskId) as TaskRow | undefined;
@@ -420,7 +437,7 @@ export function updateTask(
     nextStatus === "fait" ? cur.completed_at ?? new Date().toISOString() : null;
   getDb()
     .prepare(
-      "update project_tasks set title=?, assignee_id=?, status=?, start_date=?, due_date=?, description=?, priority=?, completed_at=? where id=?"
+      "update project_tasks set title=?, assignee_id=?, status=?, start_date=?, due_date=?, description=?, priority=?, completed_at=?, estimated_minutes=?, spent_minutes=? where id=?"
     )
     .run(
       fields.title ?? cur.title,
@@ -431,6 +448,8 @@ export function updateTask(
       fields.description !== undefined ? fields.description : cur.description ?? "",
       fields.priority ?? cur.priority ?? "Normale",
       completedAt,
+      fields.estimatedMinutes !== undefined ? cleanMinutes(fields.estimatedMinutes) : cur.estimated_minutes,
+      fields.spentMinutes !== undefined ? cleanMinutes(fields.spentMinutes, false) : cur.spent_minutes,
       taskId
     );
 }

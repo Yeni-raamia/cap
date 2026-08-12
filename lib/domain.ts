@@ -2357,6 +2357,46 @@ export const PROJECT_STATUTS: ProjectStatus[] = ["En cours", "En pause", "Termin
 export type TaskStatus = "à faire" | "en cours" | "fait" | "bloqué";
 export const TASK_STATUTS: TaskStatus[] = ["à faire", "en cours", "fait", "bloqué"];
 
+/* ---------- Charge de travail (estimation & temps passé) ----------
+ * Tout est stocké en minutes ; une journée de travail vaut 7 heures, ce qui
+ * permet d'exprimer une charge en jours sans se mentir sur la disponibilité
+ * réelle d'une personne. */
+export const WORK_DAY_MINUTES = 420;
+
+/** Estimations proposées à la saisie (minutes). */
+export const TASK_ESTIMATES = [15, 30, 60, 120, 210, 420, 840, 2100];
+/** Incréments de pointage rapide du temps passé (minutes). */
+export const TIME_INCREMENTS = [15, 30, 60, 120];
+
+/**
+ * « 45 min », « 2 h », « 1 j 3 h », « 3 j » — charge lisible.
+ *
+ * Au-delà d'une journée, on bascule en jours : « 1 260 min » ne parle à
+ * personne, « 3 j » se compare d'un coup d'œil à un planning.
+ */
+export function formatWorkload(minutes: number | null | undefined): string {
+  const m = Math.round(Number(minutes));
+  if (!Number.isFinite(m) || m <= 0) return "—";
+  if (m < 60) return `${m} min`;
+  if (m < WORK_DAY_MINUTES) {
+    const h = Math.floor(m / 60);
+    const r = m % 60;
+    return r === 0 ? `${h} h` : `${h} h ${String(r).padStart(2, "0")}`;
+  }
+  const j = Math.floor(m / WORK_DAY_MINUTES);
+  const reste = m % WORK_DAY_MINUTES;
+  if (reste === 0) return `${j} j`;
+  const h = Math.round(reste / 60);
+  return h === 0 ? `${j} j` : `${j} j ${h} h`;
+}
+
+/** Écart entre le prévu et le réalisé, en % (positif = dépassement). */
+export function workloadVariance(estimated: number | null | undefined, spent: number): number | null {
+  const est = Number(estimated);
+  if (!Number.isFinite(est) || est <= 0) return null;
+  return Math.round(((spent - est) / est) * 100);
+}
+
 export type TaskPriority = "Basse" | "Normale" | "Haute" | "Urgente";
 export const TASK_PRIORITIES: TaskPriority[] = ["Basse", "Normale", "Haute", "Urgente"];
 export const TASK_PRIORITY_WEIGHT: Record<TaskPriority, number> = {
@@ -2385,6 +2425,10 @@ export interface Task {
   subtasks: Subtask[];
   /** Visibilité : `false` = privé (créateur seul), `true`/absent = publié (équipe). */
   published?: boolean;
+  /** Charge estimée en minutes, ou null si la tâche n'a pas été estimée. */
+  estimatedMinutes?: number | null;
+  /** Temps réellement passé, en minutes (0 par défaut). */
+  spentMinutes?: number;
   /** Motif du blocage quand `status === "bloqué"` ; null sinon. */
   blockedReason?: string | null;
   /** Journal des changements, du plus récent au plus ancien. */
@@ -2527,6 +2571,10 @@ export interface ProjectTask {
   startDate: Date | null;
   dueDate: Date | null;
   completedAt: Date | null;
+  /** Charge estimée en minutes, ou null si non estimée. */
+  estimatedMinutes?: number | null;
+  /** Temps réellement passé, en minutes. */
+  spentMinutes?: number;
   ordre: number;
   createdAt: Date;
   /** Auteur de la proposition à l'origine de la tâche (Lot 3), ou null si ajout direct. */
