@@ -6,6 +6,20 @@ et le projet suit un versionnage sémantique.
 
 ## [Non publié] · Unreleased
 
+## [1.100.0] - 2026-08-12
+
+### Ajouté
+
+- **Réordonnancement des tâches d'un projet par glisser-déposer.** La colonne d'ordre existait en base depuis l'origine mais n'était écrite qu'à la création : aucune interface ne permettait de s'en servir. Chaque ligne porte désormais une poignée ; on tire pour classer les tâches dans l'ordre où l'on veut les traiter, et les positions sont renumérotées à l'enregistrement.
+  - La poignée seule déclenche le glissement : le reste de la ligne conserve ses boutons et ses listes déroulantes.
+  - **Le réordonnancement se désactive dès qu'un filtre masque des tâches** (recherche, « masquer les terminées », filtre de période), avec une explication à l'écran. Réordonner une liste partielle réécrirait au hasard la position des tâches invisibles.
+  - Réservé à ceux qui peuvent déjà éditer le tableau (propriétaire, membres, encadrement).
+
+### Sécurité
+
+- Le serveur n'applique le nouvel ordre qu'aux tâches **appartenant réellement au projet visé** : un identifiant étranger glissé dans la requête est ignoré et ne peut pas déplacer la tâche d'un autre projet.
+
+
 ## [1.99.0] - 2026-08-12
 
 ### Ajouté

@@ -1,6 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -25,6 +35,7 @@ import {
   Users2,
   X,
   Paperclip,
+  GripVertical,
 } from "lucide-react";
 import {
   fmt,
@@ -35,7 +46,7 @@ import {
   type ProjectStatus,
   type TaskStatus,
 } from "@/lib/domain";
-import { DEFAULT_PERIOD, matchesPeriod, toDayInput, type PeriodFilter as Period } from "@/lib/period";
+import { DEFAULT_PERIOD, isPeriodActive, matchesPeriod, toDayInput, type PeriodFilter as Period } from "@/lib/period";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { useApp } from "@/components/app-context";
 import { ProjectFiles } from "@/components/ProjectFiles";
@@ -98,6 +109,8 @@ export default function ProjetDetailPage() {
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [taskQuery, setTaskQuery] = useState("");
   const [taskPeriod, setTaskPeriod] = useState<Period>(DEFAULT_PERIOD);
+  // Un simple clic ne doit pas devenir un glissement : seuil de 6 px.
+  const taskSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const [hideDone, setHideDone] = useState(false);
   // Proposition de tâche (Lot 3) — pour les non-membres.
   const [propTitle, setPropTitle] = useState("");
@@ -137,6 +150,10 @@ export default function ProjetDetailPage() {
   // Les autres passent par une proposition.
   const canEditBoard =
     !demo && (me.role === "manager" || me.role === "directeur" || me.role === "admin" || project.ownerId === me.id || project.memberIds.includes(me.id));
+  /* Réordonner n'a de sens que sur la liste complète : sur une liste filtrée,
+   * on ne verrait qu'une partie des tâches et l'ordre des autres serait
+   * réécrit au hasard. */
+  const canReorder = canEditBoard && !taskQuery.trim() && !hideDone && !isPeriodActive(taskPeriod);
   const isOwner = !demo && project.ownerId === me.id;
   // Le propriétaire décide des propositions ; un manager/directeur/admin en secours.
   const canDecideProposals = isOwner || (!demo && (me.role === "manager" || me.role === "directeur" || me.role === "admin"));
@@ -704,6 +721,12 @@ export default function ProjetDetailPage() {
           )}
         </div>
         {project.tasks.length > 0 && <PeriodFilter value={taskPeriod} onChange={setTaskPeriod} className="mb-2" />}
+        {canEditBoard && project.tasks.length > 1 && !canReorder && (
+          <div className="text-[11.5px] text-slate-400 mb-2">
+            Le réordonnancement est indisponible tant qu&apos;un filtre masque des tâches — réordonner une liste
+            partielle brouillerait l&apos;ordre des tâches cachées.
+          </div>
+        )}
         <Card>
           {(() => {
             const q = taskQuery.trim().toLowerCase();
@@ -718,11 +741,25 @@ export default function ProjetDetailPage() {
           ) : visibleTasks.length === 0 ? (
             <div className="p-6 text-center text-[13px] text-slate-400">Aucune tâche ne correspond au filtre.</div>
           ) : (
+            <DndContext
+              sensors={taskSensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(e: DragEndEvent) => {
+                const { active, over } = e;
+                if (!over || active.id === over.id) return;
+                const ids = visibleTasks.map((x) => x.id);
+                const from = ids.indexOf(String(active.id));
+                const to = ids.indexOf(String(over.id));
+                if (from === -1 || to === -1) return;
+                run(projectTask("reorder", { projectId: project.id, taskIds: arrayMove(ids, from, to) }));
+              }}
+            >
+            <SortableContext items={visibleTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
             <div className="divide-y divide-slate-100">
               {visibleTasks.map((t) => {
                 const late = t.status !== "fait" && t.dueDate && t.dueDate.getTime() < now.getTime();
                 return (
-                  <div key={t.id} className="flex items-center gap-3 px-4 py-2.5">
+                  <SortableTaskRow key={t.id} id={t.id} canReorder={canReorder}>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded ${taskBadge[t.status]}`}>{t.status}</span>
                     <button onClick={() => setEditTaskId(t.id)} className="flex-1 min-w-0 text-left group">
                       <div className="flex items-center gap-1.5 min-w-0">
@@ -770,10 +807,12 @@ export default function ProjetDetailPage() {
                         </button>
                       </>
                     )}
-                  </div>
+                  </SortableTaskRow>
                 );
               })}
             </div>
+            </SortableContext>
+            </DndContext>
           );
           })()}
           {canEditBoard && (
@@ -1157,6 +1196,47 @@ export default function ProjetDetailPage() {
         if (!t) return null;
         return <ProjectTaskModal task={t} team={teamForAssign} canEdit={canEditBoard} onClose={() => setEditTaskId(null)} />;
       })()}
+    </div>
+  );
+}
+
+/**
+ * Ligne de tâche déplaçable.
+ *
+ * La poignée porte seule les écouteurs de glissement : le reste de la ligne
+ * contient des boutons et des listes déroulantes, qui doivent rester
+ * cliquables.
+ */
+function SortableTaskRow({
+  id,
+  canReorder,
+  children,
+}: {
+  id: string;
+  canReorder: boolean;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: !canReorder });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-900 ${isDragging ? "opacity-60 shadow-sm" : ""}`}
+    >
+      {canReorder ? (
+        <span
+          {...listeners}
+          {...attributes}
+          title="Glisser pour réordonner"
+          aria-label="Réordonner cette tâche"
+          className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 shrink-0"
+        >
+          <GripVertical size={14} />
+        </span>
+      ) : (
+        <span className="w-[14px] shrink-0" aria-hidden />
+      )}
+      {children}
     </div>
   );
 }

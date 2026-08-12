@@ -130,6 +130,8 @@ interface TaskPayload {
   priority?: TaskPriority;
   estimatedMinutes?: number | null;
   spentMinutes?: number;
+  /** Ordre complet des tâches du projet (action « reorder »). */
+  taskIds?: string[];
 }
 interface ProjectFields {
   name?: string;
@@ -612,7 +614,7 @@ interface AppCtx {
     startDate?: string | null
   ) => Promise<string | null>;
   updateProject: (id: string, fields: ProjectFields) => Promise<string | null>;
-  projectTask: (action: "add" | "update" | "delete", payload: TaskPayload) => Promise<string | null>;
+  projectTask: (action: "add" | "update" | "delete" | "reorder", payload: TaskPayload) => Promise<string | null>;
   projectMember: (action: "add" | "remove", projectId: string, profileId: string) => Promise<string | null>;
   projectNote: (projectId: string, body: string) => Promise<string | null>;
   proposeProjectTask: (projectId: string, payload: { title: string; description?: string; dueDate?: string | null }) => Promise<string | null>;
@@ -2161,7 +2163,7 @@ export function AppProvider({
   ) => (demo ? DEMO_MSG : postProjects("/api/projects", { name, description, deadline, memberIds, startDate }));
   const updateProject = async (id: string, fields: ProjectFields) =>
     demo ? DEMO_MSG : postProjects("/api/projects/update", { id, ...fields });
-  const projectTask = async (action: "add" | "update" | "delete", payload: TaskPayload) =>
+  const projectTask = async (action: "add" | "update" | "delete" | "reorder", payload: TaskPayload) =>
     demo ? DEMO_MSG : postProjects("/api/projects/tasks", { action, ...payload });
   const projectMember = async (action: "add" | "remove", projectId: string, profileId: string) =>
     demo ? DEMO_MSG : postProjects("/api/projects/members", { action, projectId, profileId });

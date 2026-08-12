@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { denyReadOnly } from "@/lib/auth/guards";
 import { canEditProjectBoard } from "@/lib/auth/project-guard";
-import { addTask, deleteTask, getProjectOwner, getProjectTaskInfo, listProjects, updateTask } from "@/lib/db/projects";
+import { addTask, deleteTask, getProjectOwner, getProjectTaskInfo, listProjects, reorderTasks, updateTask } from "@/lib/db/projects";
 import { insertNotification } from "@/lib/db/repo";
 import { TASK_PRIORITIES, TASK_STATUTS, type TaskPriority, type TaskStatus } from "@/lib/domain";
 
@@ -30,6 +30,19 @@ export async function POST(request: Request) {
   const action: string = body?.action;
 
   const projName = (pid: string) => listProjects().find((p) => p.id === pid)?.name ?? "un projet";
+
+  if (action === "reorder") {
+    const projectId: string = body?.projectId;
+    const ids: unknown = body?.taskIds;
+    if (!projectId || !Array.isArray(ids)) {
+      return NextResponse.json({ error: "Projet ou ordre manquant." }, { status: 400 });
+    }
+    if (!canEditProjectBoard(projectId, user)) {
+      return NextResponse.json({ error: "Réservé au propriétaire et aux membres du projet." }, { status: 403 });
+    }
+    reorderTasks(projectId, ids.filter((x): x is string => typeof x === "string"));
+    return NextResponse.json({ projects: listProjects(user.id) });
+  }
 
   if (action === "add") {
     const projectId: string = body?.projectId;

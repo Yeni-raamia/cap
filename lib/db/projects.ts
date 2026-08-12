@@ -454,6 +454,26 @@ export function updateTask(
     );
 }
 
+/**
+ * Réordonne les tâches d'un projet.
+ *
+ * `orderedIds` est la liste complète des tâches visibles, dans leur nouvel
+ * ordre. On n'écrit que les identifiants qui appartiennent réellement au
+ * projet : un identifiant étranger glissé dans la requête ne doit pas
+ * pouvoir déplacer la tâche d'un autre projet.
+ */
+export function reorderTasks(projectId: string, orderedIds: string[]): void {
+  const db = getDb();
+  const owned = new Set(
+    (db.prepare("select id from project_tasks where project_id = ?").all(projectId) as { id: string }[]).map((r) => r.id)
+  );
+  const stmt = db.prepare("update project_tasks set ordre = ? where id = ? and project_id = ?");
+  const tx = db.transaction(() => {
+    orderedIds.filter((id) => owned.has(id)).forEach((id, i) => stmt.run(i + 1, id, projectId));
+  });
+  tx();
+}
+
 export function deleteTask(taskId: string): void {
   getDb().prepare("delete from project_tasks where id = ?").run(taskId);
 }
